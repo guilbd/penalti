@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060b16">
+<title>Pênalti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesma identidade das versões do jogo: noite de estádio, filete dourado, tipografia condensada de TV. */
+:root {
+  --night: #060b16; --panel: #0d1730; --line: rgba(255, 255, 255, .14);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 880px; margin: 0 auto; padding: calc(40px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(56px, 12vw, 104px); line-height: .9; margin: 8px 0 14px; text-transform: uppercase; }
+.lead { color: var(--muted); font-size: 17px; line-height: 1.55; max-width: 60ch; margin: 0 0 32px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.card { display: flex; flex-direction: column; gap: 8px; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--line); padding: 20px; color: inherit; text-decoration: none; min-width: 0; transition: border-color .15s, transform .15s; }
+.card:hover, .card:focus-visible { border-top-color: var(--gold); transform: translateY(-2px); outline: none; }
+.card.pick { border-top-color: var(--gold); }
+.tag { font-family: var(--display); font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.card.pick .tag { color: var(--gold); }
+.card h2 { font-family: var(--display); font-size: 30px; font-weight: 800; margin: 0; text-transform: uppercase; }
+.card p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 15px; }
+.go { margin-top: auto; padding-top: 10px; font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+footer { margin-top: 36px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+</style>
+
+<main>
+  <div class="eyebrow">Disputa de pênaltis · protótipo</div>
+  <h1>Pênalti</h1>
+  <p class="lead">Cinco cobranças para cada lado contra o computador e morte súbita se empatar. A bola tem gravidade, resistência do ar e efeito, e o goleiro só alcança o canto se saltar na hora certa.</p>
+  <div class="grid">
+    <a class="card" data-touch href="penalti-celular.html"><span class="tag">Celular · leve</span><h2>Celular 2D</h2><p>Chute arrastando o dedo. Roda em qualquer Android ou iPhone.</p><span class="go">Jogar →</span></a>
+    <a class="card" data-touch href="penalti-celular-3d.html"><span class="tag">Celular · 3D</span><h2>Celular 3D</h2><p>O mesmo arrasto de dedo com estádio em 3D, sombras e rede que balança.</p><span class="go">Jogar →</span></a>
+    <a class="card" data-desk href="penalti-2d.html"><span class="tag">Computador</span><h2>PC 2D</h2><p>Mira com o mouse e força segurando o clique. Q/E para efeito.</p><span class="go">Jogar →</span></a>
+    <a class="card" data-desk href="penalti-3d.html"><span class="tag">Computador</span><h2>PC 3D</h2><p>Versão 3D para mouse, com câmera de transmissão atrás do gol.</p><span class="go">Jogar →</span></a>
+  </div>
+  <footer>Dica: no celular, use "Adicionar à tela de início" no navegador para jogar em tela cheia.</footer>
+</main>
+<script>
+  // destaca as versões que combinam com o aparelho
+  const touch = window.matchMedia('(pointer: coarse)').matches;
+  document.querySelectorAll(touch ? '[data-touch]' : '[data-desk]').forEach(a => {
+    a.classList.add('pick'); a.querySelector('.tag').textContent += ' · indicado';
+  });
+</script>
+
+</html>

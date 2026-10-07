@@ -1,0 +1,465 @@
+<meta charset="utf-8">
+<title>Pênalti 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Transmissão noturna: placar em painel marinho com filete dourado, tipografia condensada de TV esportiva. */
+:root {
+  --night: #060b16; --panel: rgba(8, 15, 31, .88); --panel-solid: #0d1730; --line: rgba(255, 255, 255, .14);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --goal: #3cc47a; --miss: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; }
+#app { position: fixed; inset: 0; }
+#scene { width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+.hud { position: absolute; inset: 0; pointer-events: none; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.board { position: absolute; left: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); background: var(--panel); border-left: 4px solid var(--gold); min-width: 250px; font-family: var(--display); text-transform: uppercase; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.board-head { display: flex; justify-content: space-between; gap: 16px; padding: 6px 12px; font-size: 13px; letter-spacing: .12em; color: var(--muted); border-bottom: 1px solid var(--line); }
+.board-head b { color: var(--gold); font-weight: 700; }
+.row { display: grid; grid-template-columns: 64px 1fr 34px; align-items: center; gap: 10px; padding: 6px 12px; }
+.team { font-size: 20px; font-weight: 800; letter-spacing: .04em; display: flex; align-items: center; gap: 8px; }
+.team::before { content: ""; width: 10px; height: 18px; background: var(--c); }
+.team.user { --c: #f2c230; } .team.cpu { --c: #d8dde3; }
+.row b { font-size: 26px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
+.dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.dots i { width: 13px; height: 13px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); box-sizing: border-box; }
+.dots i.g { background: var(--goal); border-color: var(--goal); }
+.dots i.x { background: var(--miss); border-color: var(--miss); position: relative; }
+.role { position: absolute; right: 16px; top: calc(16px + env(safe-area-inset-top, 0px)); font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .1em; text-transform: uppercase; background: var(--panel); padding: 8px 14px; border-right: 4px solid var(--gold); }
+.role:empty { display: none; }
+.banner { position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%); text-align: center; font-family: var(--display); animation: pop .35s cubic-bezier(.2,1.4,.4,1); }
+.banner .big { font-size: clamp(44px, 9vw, 110px); font-weight: 800; letter-spacing: .02em; line-height: .95; text-shadow: 0 6px 30px rgba(0,0,0,.6); }
+.banner.good .big { color: var(--gold); } .banner.bad .big { color: var(--ink); }
+.banner .small { font-size: 20px; font-weight: 600; letter-spacing: .15em; color: var(--muted); margin-top: 6px; }
+@keyframes pop { from { transform: translate(-50%, -50%) scale(.6); opacity: 0; } }
+.meter { position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100% - 32px)); background: var(--panel); padding: 10px 14px 12px; font-family: var(--display); text-transform: uppercase; letter-spacing: .08em; box-sizing: border-box; }
+.meter-top { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+.meter-top span b { color: var(--ink); font-weight: 700; }
+#chipVal.on { color: var(--gold); }
+.bar { position: relative; height: 14px; background: rgba(255,255,255,.08); overflow: hidden; }
+.bar .sweet { position: absolute; left: 60%; width: 22%; top: 0; bottom: 0; background: rgba(60,196,122,.28); border-left: 1px solid var(--goal); border-right: 1px solid var(--goal); }
+.bar .fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, #f2c230, #f29a32); }
+.bar .fill.hot { background: linear-gradient(90deg, #f29a32, var(--miss)); }
+.bar-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
+.help { position: absolute; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: max-content; max-width: min(460px, calc(100% - 430px)); background: rgba(6, 11, 22, .78); padding: 8px 14px; font-size: 14px; line-height: 1.4; color: var(--ink); text-wrap: pretty; }
+.info { position: absolute; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-family: var(--display); font-size: 16px; letter-spacing: .08em; text-transform: uppercase; background: var(--panel); padding: 6px 12px; font-variant-numeric: tabular-nums; }
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(ellipse at 50% 40%, rgba(6,11,22,.55), rgba(6,11,22,.92)); padding: 16px; }
+.card { width: min(520px, 100%); background: var(--panel-solid); border-top: 4px solid var(--gold); padding: 28px; box-sizing: border-box; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.eyebrow { font-family: var(--display); font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+.card h1 { font-family: var(--display); font-size: clamp(44px, 8vw, 64px); font-weight: 800; line-height: .95; margin: 6px 0 12px; text-transform: uppercase; text-wrap: balance; }
+.card p { color: var(--muted); line-height: 1.5; margin: 0 0 18px; max-width: 60ch; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 20px; }
+.seg button, .btn { font-family: var(--display); font-size: 18px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 10px 8px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--night); border-color: var(--ink); }
+.btn.primary { width: 100%; background: var(--gold); color: #1a1406; border-color: var(--gold); font-size: 22px; padding: 14px; }
+.btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; color: var(--muted); margin: 18px 0 0; }
+.keys dt { font-family: var(--display); font-weight: 700; color: var(--ink); letter-spacing: .06em; text-transform: uppercase; }
+.keys dd { margin: 0; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions .btn { flex: 1 1 160px; }
+.mute { position: absolute; right: 16px; top: calc(62px + env(safe-area-inset-top, 0px)); pointer-events: auto; font-family: var(--display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; background: var(--panel); color: var(--muted); border: 0; padding: 6px 10px; cursor: pointer; }
+@media (max-width: 860px) { .help { max-width: calc(100% - 32px); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 640px) { .board { min-width: 0; } .row { grid-template-columns: 54px 1fr 28px; } .role { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .banner { animation: none; } }
+</style>
+
+<div id="app">
+  <canvas id="scene"></canvas>
+  <div class="hud">
+    <div class="board">
+      <div class="board-head"><span>Disputa de pênaltis</span><b id="diffLbl">Médio</b></div>
+      <div class="row"><span class="team user">Você</span><span class="dots" id="dotsU"></span><b id="scU">0</b></div>
+      <div class="row"><span class="team cpu">CPU</span><span class="dots" id="dotsC"></span><b id="scC">0</b></div>
+    </div>
+    <div class="role" id="role"></div>
+    <button class="mute" id="muteBtn" type="button">Som: ligado</button>
+    <div class="banner" id="banner" hidden><div class="big" id="bannerBig"></div><div class="small" id="bannerSmall"></div></div>
+    <div class="meter" id="meter" hidden>
+      <div class="meter-top"><span>Força</span><span>Efeito <b id="curveVal">sem efeito</b></span><span>Cavadinha <b id="chipVal">desligada</b></span></div>
+      <div class="bar"><div class="sweet"></div><div class="fill" id="powerFill"></div></div>
+      <div class="bar-scale"><span>fraco</span><span>ideal</span><span>isola</span></div>
+    </div>
+    <div class="help" id="help" hidden></div>
+    <div class="info" id="info" hidden></div>
+  </div>
+
+  <div class="overlay" id="menu">
+    <div class="card">
+      <div class="eyebrow">Versão 3D · protótipo</div>
+      <h1>Pênalti 3D</h1>
+      <p>Cinco cobranças para cada lado e, se empatar, morte súbita. Você bate primeiro e depois vai para o gol, com a câmera atrás da rede. A bola sofre gravidade, resistência do ar e efeito, e o goleiro só alcança o canto se saltar na hora certa.</p>
+      <div class="eyebrow" style="margin-bottom:8px">Dificuldade</div>
+      <div class="seg" role="group" aria-label="Dificuldade">
+        <button type="button" id="dEasy" data-diff="easy" aria-pressed="false">Fácil</button>
+        <button type="button" id="dMed" data-diff="medium" aria-pressed="true">Médio</button>
+        <button type="button" id="dHard" data-diff="hard" aria-pressed="false">Difícil</button>
+      </div>
+      <button class="btn primary" id="startBtn" type="button">Começar disputa</button>
+      <dl class="keys">
+        <dt>Mouse</dt><dd>Mira no gol (ou escolhe o canto do salto)</dd>
+        <dt>Segurar clique</dt><dd>Carrega a força. Acima da faixa verde a bola tende a subir</dd>
+        <dt>Q / E</dt><dd>Efeito para a esquerda ou direita</dd>
+        <dt>C</dt><dd>Cavadinha</dd>
+        <dt>M</dt><dd>Liga ou desliga o som</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="overlay" id="over" hidden>
+    <div class="card">
+      <div class="eyebrow">Fim da disputa</div>
+      <h1 id="overTitle">Você venceu</h1>
+      <p id="overScore"></p>
+      <div class="actions">
+        <button class="btn primary" id="againBtn" type="button">Jogar de novo</button>
+        <button class="btn" id="menuBtn" type="button">Trocar dificuldade</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="engine.js"></script>
+<script>
+(() => {
+  const { C, V, add, sub, mul, dot, cross, len, norm, lerp, ICO } = PK;
+  const game = window.penaltiGame = new PK.Game();
+  const cv = document.getElementById('scene');
+  const renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const ANISO = renderer.capabilities.getMaxAnisotropy();
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0b1426, 70, 190);
+  const camera = new THREE.PerspectiveCamera(36, 1, 0.05, 700);
+  let cw = 0, ch = 0;
+  function resize() {
+    cw = Math.max(1, cv.clientWidth); ch = Math.max(1, cv.clientHeight);
+    renderer.setSize(cw, ch, false); camera.aspect = cw / ch; camera.fov = cw / ch < 1.2 ? 52 : 36; camera.updateProjectionMatrix();
+  }
+  resize();
+  const v3 = p => new THREE.Vector3(p.x, p.y, p.z);
+  function makeCanvas(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; }
+  function tex(c, repeat) {
+    const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = ANISO;
+    if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
+    return t;
+  }
+  const DISPLAY = '"Barlow Condensed", "Arial Narrow", sans-serif';
+
+  // ---------- céu e luzes ----------
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(450, 32, 16), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color(0x010309) }, bottom: { value: new THREE.Color(0x1b2c4e) } },
+    vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ float h = clamp(vP.y * 1.8 + 0.05, 0.0, 1.0); gl_FragColor = vec4(mix(bottom, top, pow(h, 0.6)), 1.0); }'
+  })));
+  {
+    const n = 700, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) { const th = Math.random() * Math.PI * 2, ph = Math.random() * 1.2; pos[i * 3] = Math.cos(th) * Math.sin(ph) * 420; pos[i * 3 + 1] = Math.cos(ph) * 420; pos[i * 3 + 2] = Math.sin(th) * Math.sin(ph) * 420; }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0x9fb2ff, size: 1.3, sizeAttenuation: false, fog: false })));
+  }
+  scene.add(new THREE.HemisphereLight(0xa8bfff, 0x1d3a1a, 0.55));
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.55);
+  sun.position.set(-16, 34, -20); sun.target.position.set(0, 0, 5);
+  sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 22, bottom: -22, near: 5, far: 95 });
+  sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.02;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0xc6d4ff, 0.6); fill.position.set(22, 26, 36); scene.add(fill);
+
+  // ---------- gramado com as linhas da área ----------
+  const GX0 = -40, GZ0 = -45, GSZ = 80, GS = 2048;
+  const grass = makeCanvas(GS, GS, g => {
+    const m = GS / GSZ, X = x => (x - GX0) * m, Z = z => (z - GZ0) * m;
+    for (let z = GZ0, i = 0; z < GZ0 + GSZ; z += 5, i++) { g.fillStyle = i % 2 ? '#2b6829' : '#31742f'; g.fillRect(0, Z(z), GS, 5 * m + 1); }
+    for (let i = 0; i < 90000; i++) { g.fillStyle = Math.random() < 0.5 ? 'rgba(0,0,0,.09)' : 'rgba(255,255,200,.05)'; g.fillRect(Math.random() * GS, Math.random() * GS, 1, 2); }
+    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, 0, X(-34), GS); g.fillRect(X(34), 0, GS, GS); g.fillRect(0, Z(C.GZ), GS, GS);
+    g.fillStyle = g.strokeStyle = 'rgba(245,248,242,.93)';
+    const w = 0.12 * m; g.lineWidth = w;
+    const lx = (x0, x1, z) => g.fillRect(X(Math.min(x0, x1)), Z(z) - w / 2, Math.abs(x1 - x0) * m, w);
+    const lz = (x, z0, z1) => g.fillRect(X(x) - w / 2, Z(Math.min(z0, z1)), w, Math.abs(z1 - z0) * m);
+    const G = C.GZ;
+    lx(-34, 34, G); lz(-34, G, GZ0); lz(34, G, GZ0); lx(-34, 34, G - 52.5);
+    lx(-9.16, 9.16, G - 5.5); lz(-9.16, G, G - 5.5); lz(9.16, G, G - 5.5);
+    lx(-20.16, 20.16, G - 16.5); lz(-20.16, G, G - 16.5); lz(20.16, G, G - 16.5);
+    const a0 = Math.acos(5.5 / 9.15);
+    g.beginPath(); g.arc(X(0), Z(0), 9.15 * m, 1.5 * Math.PI - a0, 1.5 * Math.PI + a0); g.stroke();
+    g.beginPath(); g.arc(X(0), Z(G - 52.5), 9.15 * m, 0, Math.PI * 2); g.stroke();
+    for (const sx of [-1, 1]) { g.beginPath(); g.arc(X(sx * 34), Z(G), 1 * m, sx < 0 ? -Math.PI / 2 : Math.PI, sx < 0 ? 0 : 1.5 * Math.PI); g.stroke(); }
+    g.beginPath(); g.arc(X(0), Z(0), 0.12 * m, 0, 7); g.fill();
+  });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(GSZ, GSZ), new THREE.MeshStandardMaterial({ map: tex(grass), roughness: 0.95 }));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(GX0 + GSZ / 2, 0, GZ0 + GSZ / 2); ground.receiveShadow = true; scene.add(ground);
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color: 0x1d461d, roughness: 1 }));
+  outer.rotation.x = -Math.PI / 2; outer.position.y = -0.02; outer.receiveShadow = true; scene.add(outer);
+
+  // ---------- gol e rede ----------
+  const Y = new THREE.Vector3(0, 1, 0);
+  function rod(a, b, r, mat, shadow = true) {
+    const A = v3(a), B = v3(b), d = B.clone().sub(A), l = d.length();
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, l, 16), mat);
+    m.position.copy(A).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(Y, d.normalize()); m.castShadow = shadow; scene.add(m); return m;
+  }
+  const white = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.05 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x7d8790, roughness: 0.6 });
+  const hw = C.GW / 2 + C.PR, H = C.GH + C.PR;
+  rod(V(-hw, 0, C.GZ), V(-hw, C.GH + 2 * C.PR, C.GZ), C.PR, white);
+  rod(V(hw, 0, C.GZ), V(hw, C.GH + 2 * C.PR, C.GZ), C.PR, white);
+  rod(V(-hw - C.PR, H, C.GZ), V(hw + C.PR, H, C.GZ), C.PR, white);
+  for (const sx of [-1, 1]) { rod(V(sx * hw, H, C.GZ), V(sx * hw, H, C.GZ + C.NET_TOP), 0.02, grey); rod(V(sx * hw, H, C.GZ + C.NET_TOP), V(sx * hw, 0, C.GZ + C.NET_BOT), 0.02, grey); }
+  rod(V(-hw, H, C.GZ + C.NET_TOP), V(hw, H, C.GZ + C.NET_TOP), 0.02, grey);
+  rod(V(-hw, 0.02, C.GZ + C.NET_BOT), V(hw, 0.02, C.GZ + C.NET_BOT), 0.02, grey);
+  const NET = PK.netLines();
+  let segs = 0; NET.forEach(l => { segs += l.length - 1; });
+  const netPos = new Float32Array(segs * 6), netGeo = new THREE.BufferGeometry();
+  netGeo.setAttribute('position', new THREE.BufferAttribute(netPos, 3));
+  const netMat = new THREE.LineBasicMaterial({ color: 0xeef2f6, transparent: true, opacity: 0.5 });
+  scene.add(new THREE.LineSegments(netGeo, netMat));
+  let netActive = true;
+  function updateNet(now) {
+    const hits = game.ball.netHits, active = hits.some(h => now - h.t < 3);
+    if (!active && !netActive) return;
+    netActive = active;
+    let i = 0;
+    for (const line of NET) for (let k = 0; k < line.length - 1; k++) for (const pt of [line[k], line[k + 1]]) {
+      const o = active ? PK.netOffset(pt, hits, now) : null;
+      netPos[i++] = pt.p.x + (o ? o.x : 0); netPos[i++] = pt.p.y + (o ? o.y : 0); netPos[i++] = pt.p.z + (o ? o.z : 0);
+    }
+    netGeo.attributes.position.needsUpdate = true; netGeo.computeBoundingSphere();
+  }
+
+  // ---------- arquibancadas, refletores e placas ----------
+  const crowdCanvas = makeCanvas(1024, 512, (g, w, h) => {
+    g.fillStyle = '#0b0f19'; g.fillRect(0, 0, w, h);
+    const shirts = ['#f2c230', '#f2c230', '#2a4fa8', '#e6e6e6', '#b52a2f', '#2f8a4a', '#2b2f3a', '#f29a32'];
+    const skins = ['#e0b08c', '#c48a63', '#8d5a3b', '#f1c9a5', '#5b3a26'];
+    for (let row = 0; row < h; row += 16) {
+      g.fillStyle = '#1a1f2b'; g.fillRect(0, row + 13, w, 3);
+      for (let x = Math.random() * 6; x < w; x += 8 + Math.random() * 5) {
+        if (Math.random() < 0.07) continue;
+        const y = row + Math.random() * 2;
+        g.fillStyle = shirts[(Math.random() * shirts.length) | 0]; g.fillRect(x - 1, y + 7, 9, 7);
+        g.fillStyle = skins[(Math.random() * skins.length) | 0]; g.beginPath(); g.arc(x + 3.5, y + 4.5, 3.2, 0, 7); g.fill();
+      }
+    }
+  });
+  const crowdTextures = [];
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x0d1424, roughness: 0.9 });
+  function stand(base, toward, width, depth, rise) {
+    const away = mul(toward, -1), L = Math.hypot(depth, rise);
+    const center = add(base, V(away.x * depth / 2, rise / 2, away.z * depth / 2));
+    const n = norm(V(toward.x * rise, depth, toward.z * rise));
+    const t = tex(crowdCanvas, [width / 16, L / 8]); crowdTextures.push(t);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(width, L), new THREE.MeshLambertMaterial({ map: t, emissive: 0x161b26 }));
+    m.position.copy(v3(center)); m.lookAt(v3(add(center, n))); scene.add(m);
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(width, base.y), darkMat);
+    wall.position.copy(v3(V(base.x, base.y / 2, base.z))); wall.lookAt(v3(add(V(base.x, base.y / 2, base.z), toward))); scene.add(wall);
+    const roofC = add(base, V(away.x * (depth + 2), rise + 7, away.z * (depth + 2)));
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(width, 0.8, 16), darkMat);
+    roof.position.copy(v3(roofC)); roof.lookAt(v3(add(roofC, toward))); roof.rotateX(-0.12); scene.add(roof);
+  }
+  stand(V(0, 1.3, C.BOARDS_Z + 3), V(0, 0, -1), 130, 30, 24);
+  stand(V(-44, 1.3, -10), V(1, 0, 0), 120, 26, 20);
+  stand(V(44, 1.3, -10), V(-1, 0, 0), 120, 26, 20);
+  stand(V(0, 1.3, -64), V(0, 0, 1), 130, 26, 20);
+  const glow = tex(makeCanvas(128, 128, (g, w) => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(0.2, 'rgba(255,245,220,.55)'); r.addColorStop(1, 'rgba(255,240,210,0)'); g.fillStyle = r; g.fillRect(0, 0, w, w); }));
+  for (const [x, z] of [[-40, C.BOARDS_Z + 26], [40, C.BOARDS_Z + 26], [-40, -58], [40, -58]]) {
+    rod(V(x, 0, z), V(x, 36, z), 0.45, grey, false);
+    const panel = new THREE.Mesh(new THREE.BoxGeometry(7, 3.2, 0.6), new THREE.MeshBasicMaterial({ color: 0xfffaf0 }));
+    panel.position.set(x, 37, z); panel.lookAt(0, 0, 0); scene.add(panel);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: 0xfff1d8, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
+    s.position.set(x, 37, z); s.scale.set(26, 26, 1); scene.add(s);
+  }
+  const ADS = [['#0b3d91', '#ffffff', 'ARENA NOTURNA'], ['#c8102e', '#ffffff', 'BOLA NA REDE'], ['#f2b632', '#14110a', 'PÊNALTI 3D'], ['#0f6b3f', '#ffffff', 'COPA DA CASA'], ['#14182a', '#f2b632', 'GOL DE PLACA']];
+  const boardMats = [];
+  function paintAds() {
+    boardMats.forEach(({ mat, ad }) => {
+      const c = makeCanvas(512, 84, (g, w, h) => {
+        const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, ad[0]); gr.addColorStop(1, '#000'); g.fillStyle = ad[0]; g.fillRect(0, 0, w, h);
+        g.globalAlpha = 0.25; g.fillStyle = gr; g.fillRect(0, h * 0.6, w, h); g.globalAlpha = 1;
+        g.fillStyle = ad[1]; g.font = `800 56px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ad[2], w / 2, h / 2 + 3, w * 0.9);
+      });
+      if (mat.map) mat.map.dispose(); mat.map = tex(c); mat.needsUpdate = true;
+    });
+  }
+  for (let i = 0, x = -33; x < 33; x += 6, i++) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff }); boardMats.push({ mat, ad: ADS[i % ADS.length] });
+    const b = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.95, 0.12), [darkMat, darkMat, darkMat, darkMat, darkMat, mat]);
+    b.position.set(x + 2.95, 0.475, C.BOARDS_Z); b.castShadow = true; scene.add(b);
+  }
+
+  // ---------- bola com gomos (pentágonos e hexágonos) ----------
+  const ballTex = makeCanvas(512, 256, (g, w, h) => {
+    const PHI = (1 + Math.sqrt(5)) / 2, ip = 1 / PHI, dodec = [];
+    for (const a of [-1, 1]) for (const b of [-1, 1]) { for (const c of [-1, 1]) dodec.push([a, b, c]); dodec.push([0, a * ip, b * PHI], [a * ip, b * PHI, 0], [a * PHI, 0, b * ip]); }
+    const sites = ICO.map(d => [d.x, d.y, d.z, 1]).concat(dodec.map(d => { const l = Math.hypot(...d); return [d[0] / l, d[1] / l, d[2] / l, 0]; }));
+    const id = g.createImageData(w, h);
+    for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) {
+      const th = (py + 0.5) / h * Math.PI, ph = (px + 0.5) / w * 2 * Math.PI;
+      const dx = -Math.cos(ph) * Math.sin(th), dy = Math.cos(th), dz = Math.sin(ph) * Math.sin(th);
+      let m1 = -2, m2 = -2, pent = 0;
+      for (const s of sites) { const d = s[0] * dx + s[1] * dy + s[2] * dz; if (d > m1) { m2 = m1; m1 = d; pent = s[3]; } else if (d > m2) m2 = d; }
+      let c = pent ? 26 : 240; if (m1 - m2 < 0.012) c = pent ? 60 : 150;
+      c += (Math.random() - 0.5) * 8;
+      const o = (py * w + px) * 4; id.data[o] = id.data[o + 1] = id.data[o + 2] = c; id.data[o + 3] = 255;
+    }
+    g.putImageData(id, 0, 0);
+  });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(C.BR, 40, 28), new THREE.MeshStandardMaterial({ map: tex(ballTex), roughness: 0.42 }));
+  ball.castShadow = true; scene.add(ball);
+
+  // ---------- jogadores ----------
+  const KITS = {
+    user: { shirt: '#f2c230', shorts: '#1d3f8f', socks: '#f4f4f4', skin: '#c48a63', hair: '#1b1410', boots: '#111318', num: '10', numColor: '#1d3f8f' },
+    cpu: { shirt: '#dfe3e8', shorts: '#b3202a', socks: '#b3202a', skin: '#e2b48f', hair: '#5a3a1c', boots: '#f3f3f3', num: '9', numColor: '#b3202a' },
+    gkUser: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', skin: '#c48a63', hair: '#1b1410', boots: '#111318', gloves: '#f5f5f5', num: '1', numColor: '#ffffff' },
+    gkCpu: { shirt: '#ff7a1a', shorts: '#202331', socks: '#ff7a1a', skin: '#e2b48f', hair: '#2b1d12', boots: '#111318', gloves: '#a6e22e', num: '1', numColor: '#111111' }
+  };
+  const CYL = new THREE.CylinderGeometry(1, 1, 1, 14, 1, true), SPH = new THREE.SphereGeometry(1, 16, 12);
+  const TORSO = new THREE.CylinderGeometry(0.2, 0.155, 1, 22), SHORTS = new THREE.CylinderGeometry(0.165, 0.178, 0.24, 22);
+  const HAIR = new THREE.SphereGeometry(0.116, 20, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), NUMG = new THREE.PlaneGeometry(0.21, 0.21);
+  const tA = new THREE.Vector3(), tB = new THREE.Vector3(), tD = new THREE.Vector3(), M4 = new THREE.Matrix4();
+  const numberMats = [];
+  class Body {
+    constructor(kit, gk) {
+      this.kit = kit; this.g = new THREE.Group(); scene.add(this.g);
+      const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 });
+      const m = { shirt: mat(kit.shirt), shorts: mat(kit.shorts), skin: mat(kit.skin), socks: mat(kit.socks), boots: mat(kit.boots), hair: mat(kit.hair), gloves: mat(kit.gloves || kit.skin) };
+      this.parts = [];
+      const cap = (fa, fb, r, mt) => {
+        const c = new THREE.Mesh(CYL, mt), s1 = new THREE.Mesh(SPH, mt), s2 = new THREE.Mesh(SPH, mt);
+        s1.scale.setScalar(r); s2.scale.setScalar(r);
+        for (const o of [c, s1, s2]) { o.castShadow = true; this.g.add(o); }
+        this.parts.push({ c, s1, s2, fa, fb, r });
+      };
+      for (const s of ['L', 'R']) {
+        cap(j => j['hip' + s], j => lerp(j['hip' + s], j['kn' + s], 0.5), 0.1, m.shorts);
+        cap(j => lerp(j['hip' + s], j['kn' + s], 0.45), j => j['kn' + s], 0.075, gk ? m.shorts : m.skin);
+        cap(j => j['kn' + s], j => j['an' + s], 0.064, m.socks);
+        cap(j => j['an' + s], j => j['to' + s], 0.052, m.boots);
+        cap(j => j['sh' + s], j => lerp(j['sh' + s], j['el' + s], 0.6), 0.062, m.shirt);
+        cap(j => lerp(j['sh' + s], j['el' + s], 0.55), j => j['el' + s], 0.05, gk ? m.shirt : m.skin);
+        cap(j => j['el' + s], j => j['hd' + s], 0.046, gk ? m.shirt : m.skin);
+        cap(j => j['hd' + s], j => j['hd' + s], gk ? 0.075 : 0.05, gk ? m.gloves : m.skin);
+      }
+      cap(j => j.neck, j => lerp(j.neck, j.head, 0.5), 0.05, m.skin);
+      this.torso = new THREE.Mesh(TORSO, m.shirt); this.shorts = new THREE.Mesh(SHORTS, m.shorts);
+      this.head = new THREE.Mesh(SPH, m.skin); this.head.scale.setScalar(0.107);
+      this.hair = new THREE.Mesh(HAIR, m.hair);
+      const nm = new THREE.MeshStandardMaterial({ transparent: true, roughness: 0.8 }); numberMats.push({ nm, kit });
+      this.num = new THREE.Mesh(NUMG, nm);
+      for (const o of [this.torso, this.shorts, this.head, this.hair]) { o.castShadow = true; this.g.add(o); }
+      this.g.add(this.num);
+    }
+    update(j) {
+      for (const p of this.parts) {
+        const a = p.fa(j), b = p.fb(j);
+        tA.set(a.x, a.y, a.z); tB.set(b.x, b.y, b.z);
+        p.s1.position.copy(tA); p.s2.position.copy(tB);
+        tD.copy(tB).sub(tA); const l = tD.length();
+        if (l < 1e-4) { p.c.visible = false; continue; }
+        p.c.visible = true; p.c.position.copy(tA).addScaledVector(tD, 0.5);
+        p.c.quaternion.setFromUnitVectors(Y, tD.divideScalar(l)); p.c.scale.set(p.r, l, p.r);
+      }
+      const sp = j.spine, x = norm(sub(j.r, mul(sp, dot(j.r, sp)))), z = cross(x, sp);
+      M4.makeBasis(v3(x), v3(sp), v3(z));
+      const t0 = add(j.pelvis, mul(sp, 0.08)), t1 = add(j.chest, mul(sp, 0.06));
+      this.torso.quaternion.setFromRotationMatrix(M4); this.torso.position.copy(v3(lerp(t0, t1, 0.5))); this.torso.scale.set(1, len(sub(t1, t0)), 0.62);
+      this.shorts.quaternion.copy(this.torso.quaternion); this.shorts.position.copy(v3(add(j.pelvis, mul(sp, -0.02)))); this.shorts.scale.set(1, 1, 0.72);
+      this.head.position.copy(v3(j.head));
+      this.hair.position.copy(v3(j.head)); this.hair.quaternion.setFromUnitVectors(Y, v3(norm(add(sp, mul(z, 0.45)))));
+      this.num.quaternion.copy(this.torso.quaternion); this.num.position.copy(v3(add(lerp(j.pelvis, j.chest, 0.64), mul(z, 0.129))));
+    }
+  }
+  function paintNumbers() {
+    numberMats.forEach(({ nm, kit }) => {
+      const c = makeCanvas(128, 128, g => { g.fillStyle = kit.numColor; g.font = `800 112px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(kit.num, 64, 70); });
+      if (nm.map) nm.map.dispose(); nm.map = tex(c); nm.needsUpdate = true;
+    });
+  }
+  const bodies = { user: new Body(KITS.user, false), cpu: new Body(KITS.cpu, false), gkUser: new Body(KITS.gkUser, true), gkCpu: new Body(KITS.gkCpu, true) };
+  paintAds(); paintNumbers();
+  if (document.fonts) document.fonts.load(`800 56px ${DISPLAY}`).then(() => { paintAds(); paintNumbers(); }).catch(() => {});
+
+  // ---------- mira ----------
+  const ret = new THREE.Group(); scene.add(ret);
+  const retMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthTest: false, side: THREE.DoubleSide });
+  const retParts = [new THREE.Mesh(new THREE.RingGeometry(0.16, 0.2, 40), retMat)];
+  for (const [x, y, w, h] of [[0.29, 0, 0.14, 0.03], [-0.29, 0, 0.14, 0.03], [0, 0.29, 0.03, 0.14], [0, -0.29, 0.03, 0.14]]) { const t = new THREE.Mesh(new THREE.PlaneGeometry(w, h), retMat); t.position.set(x, y, 0); retParts.push(t); }
+  const spread = new THREE.Mesh(new THREE.RingGeometry(0.95, 1, 56), new THREE.MeshBasicMaterial({ color: 0xf2c230, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide }));
+  retParts.push(spread);
+  retParts.forEach(p => { p.renderOrder = 20; ret.add(p); });
+
+  // ---------- câmera de transmissão ----------
+  const camPos = new THREE.Vector3(0.9, 2.55, -10.2), camLook = new THREE.Vector3(0, 1, 11), tgtP = new THREE.Vector3(), tgtL = new THREE.Vector3();
+  let snap = true, excite = 0;
+  game.on(t => { if (t === 'setup' || t === 'start') snap = true; if (t === 'goal') excite = 1; });
+  function camTargets(now) {
+    const st = game.state, b = game.ball.p;
+    if (game.turn === 'cpu' && st !== 'menu') return [V(-0.8, 2.3, C.GZ + 6.4), V(0, 0.9, 0)];
+    if (st === 'result' && now - game.resultT > 0.9) return [V(4.6, 1.9, C.GZ - 6.6), V(0, 1.0, C.GZ)];
+    if (st === 'flight' || st === 'result') return [V(b.x * 0.3 + 0.3, 1.9, Math.min(b.z - 7.5, C.GZ - 6)), lerp(b, V(0, 1.1, C.GZ), 0.6)];
+    return [V(0.9, 2.55, -10.2), V(0, 0.95, 11)];
+  }
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), goalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -C.GZ), hit = new THREE.Vector3();
+  function toGoal(cx, cy) {
+    const r = cv.getBoundingClientRect();
+    ndc.set((cx - r.left) / r.width * 2 - 1, -((cy - r.top) / r.height * 2 - 1));
+    ray.setFromCamera(ndc, camera);
+    return ray.ray.intersectPlane(goalPlane, hit) ? { x: hit.x, y: hit.y } : null;
+  }
+  const ui = PK.bindUI(game, { canvas: cv, toGoal });
+
+  let last = performance.now();
+  function frame(ts) {
+    let dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+    if (cv.clientWidth !== cw || cv.clientHeight !== ch) resize();
+    const real = dt;
+    if (game.slowmo) dt *= 0.35;
+    game.update(dt);
+    const now = game.now;
+    const kKey = game.kicker.kit === 'cpu' ? 'cpu' : 'user', gKey = game.turn === 'user' ? 'gkCpu' : 'gkUser';
+    for (const k in bodies) bodies[k].g.visible = k === kKey || k === gKey;
+    bodies[kKey].update(game.kicker.pose(now));
+    bodies[gKey].update(game.keeper.j);
+    const bp = game.ball.p, q = game.ball.q;
+    ball.position.set(bp.x, bp.y, bp.z); ball.quaternion.set(q[1], q[2], q[3], q[0]);
+    updateNet(now);
+    netMat.opacity = game.turn === 'cpu' && game.state !== 'menu' ? 0.3 : 0.5;
+
+    const [p, l] = camTargets(now), k = snap ? 1 : 1 - Math.exp(-real * 3.5);
+    tgtP.set(p.x, p.y, p.z); tgtL.set(l.x, l.y, l.z);
+    camPos.lerp(tgtP, k); camLook.lerp(tgtL, k); snap = false;
+    camera.position.copy(camPos); camera.lookAt(camLook);
+
+    const st = game.state, mine = game.turn === 'user';
+    const showUser = mine && (st === 'aim' || st === 'charging');
+    const showGk = !mine && !game.keeper.dive && (st === 'runup' || st === 'flight');
+    ret.visible = showUser || showGk;
+    if (ret.visible) {
+      ret.position.set(game.aim.x, game.aim.y, C.GZ - 0.03);
+      retMat.color.set(showGk ? 0x7fe3ff : 0xffffff);
+      spread.visible = showUser && st === 'charging' && !game.chip;
+      if (spread.visible) {
+        const sg = Math.max(0.02, PK.shotSigma(game.power, 1)), over = game.power > 0.82;
+        spread.scale.set(sg, sg * 0.6, 1); spread.position.y = over ? (game.power - 0.82) * 2.5 : 0;
+        spread.material.color.set(over ? 0xe5484d : 0xf2c230);
+      }
+    }
+    excite = Math.max(0, excite - real * 0.35);
+    crowdTextures.forEach((t, i) => { t.offset.y = Math.sin(now * 17 + i) * 0.006 * excite; });
+    renderer.render(scene, camera);
+    ui.frame();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
