@@ -149,10 +149,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="engine.js"></script>
-<script src="players3d.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, len, norm, lerp, ICO } = PK;
@@ -416,18 +413,6 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     });
   }
   const bodies = { user: new Body(KITS.user, false), cpu: new Body(KITS.cpu, false), gkUser: new Body(KITS.gkUser, true), gkCpu: new Body(KITS.gkCpu, true) };
-  // corpo humano real (modelo com esqueleto); os bonecos simples ficam até ele carregar ou se ele falhar
-  if (window.PKHumans && THREE.GLTFLoader && THREE.SkeletonUtils) {
-    PKHumans.loadHumans('assets/Xbot.glb').then(gltf => {
-      for (const [key, gk] of [['user', false], ['cpu', false], ['gkUser', true], ['gkCpu', true]]) {
-        const kit = KITS[key];
-        const numTex = tex(makeCanvas(128, 128, g => { g.fillStyle = kit.numColor; g.font = `800 112px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(kit.num, 64, 70); }));
-        const h = new PKHumans.Human(gltf, kit, gk, scene, numTex);
-        h.g.visible = bodies[key].g.visible;
-        scene.remove(bodies[key].g); bodies[key] = h;
-      }
-    }).catch(e => console.warn('Modelo 3D indisponível, usando bonecos simples.', e));
-  }
   paintAds(); paintNumbers();
   if (document.fonts) document.fonts.load(`800 56px ${DISPLAY}`).then(() => { paintAds(); paintNumbers(); }).catch(() => {});
 

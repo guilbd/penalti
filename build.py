@@ -18,8 +18,6 @@ DOCS.mkdir()
 for name in PAGES:
     body = (ROOT / name).read_text(encoding="utf-8")
     (DOCS / name).write_text('<!doctype html>\n<html lang="pt-BR">\n' + body + "\n</html>\n", encoding="utf-8")
-for name in ["engine.js", "players3d.js"]:
-    shutil.copy(ROOT / name, DOCS / name)
-shutil.copytree(ROOT / "assets", DOCS / "assets")
+shutil.copy(ROOT / "engine.js", DOCS / "engine.js")
 (DOCS / ".nojekyll").write_text("")
 print("docs/ gerado com", len(PAGES), "páginas")
