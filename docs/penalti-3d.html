@@ -125,7 +125,10 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="engine.js"></script>
+<script src="realplayers.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, len, norm, lerp, ICO } = PK;
@@ -387,7 +390,16 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       if (nm.map) nm.map.dispose(); nm.map = tex(c); nm.needsUpdate = true;
     });
   }
-  const bodies = { user: new Body(KITS.user, false), cpu: new Body(KITS.cpu, false), gkUser: new Body(KITS.gkUser, true), gkCpu: new Body(KITS.gkCpu, true) };
+  const bodies = window.penaltiBodies = { user: new Body(KITS.user, false), cpu: new Body(KITS.cpu, false), gkUser: new Body(KITS.gkUser, true), gkCpu: new Body(KITS.gkCpu, true) };
+  // jogadores realistas com animações capturadas; os bonecos simples ficam até eles carregarem (ou se falharem)
+  if (window.PKReal && THREE.GLTFLoader && THREE.SkeletonUtils) {
+    PKReal.load('assets/web/').then(rp => {
+      for (const [key, role] of [['user', 'kicker'], ['cpu', 'kicker'], ['gkUser', 'gk'], ['gkCpu', 'gk']]) {
+        const h = rp.create(KITS[key], role);
+        h.g.visible = bodies[key].g.visible; scene.add(h.g); scene.remove(bodies[key].g); bodies[key] = h;
+      }
+    }).catch(e => console.warn('Jogadores realistas indisponíveis, usando bonecos simples.', e));
+  }
   paintAds(); paintNumbers();
   if (document.fonts) document.fonts.load(`800 56px ${DISPLAY}`).then(() => { paintAds(); paintNumbers(); }).catch(() => {});
 
@@ -430,8 +442,9 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const now = game.now;
     const kKey = game.kicker.kit === 'cpu' ? 'cpu' : 'user', gKey = game.turn === 'user' ? 'gkCpu' : 'gkUser';
     for (const k in bodies) bodies[k].g.visible = k === kKey || k === gKey;
-    bodies[kKey].update(game.kicker.pose(now));
-    bodies[gKey].update(game.keeper.j);
+    const kb = bodies[kKey], gb = bodies[gKey];
+    if (kb.sync) kb.sync(game.kicker, now); else kb.update(game.kicker.pose(now));
+    if (gb.sync) { gb.sync(game.keeper, now); game.keeper.ext = gb.ext; } else { gb.update(game.keeper.j); game.keeper.ext = null; }
     const bp = game.ball.p, q = game.ball.q;
     ball.position.set(bp.x, bp.y, bp.z); ball.quaternion.set(q[1], q[2], q[3], q[0]);
     updateNet(now);

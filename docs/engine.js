@@ -330,7 +330,8 @@
       this.dive = { T: V(T.x, T.y, C.KEEPER_Z - 0.4), t0: now, hip0, hipF, thetaF, Td, big, feet0: this.readyFeet(hip0.x, C.KEEPER_Z) };
     }
     canCatch() { return !this.dive || Math.abs(this.theta) < 0.7; }
-    handsMid() { return lerp(this.j.hdL, this.j.hdR, 0.5); }
+    // ext: corpo animado externo (versão 3D com animações reais) que fornece cápsulas e mãos
+    handsMid() { return this.ext ? this.ext.hands() : lerp(this.j.hdL, this.j.hdR, 0.5); }
     update(now) {
       const j = { f: V(0, 0, -1) };
       let hands, feet, bend = V(0, 0.1, -1);
@@ -386,6 +387,7 @@
         { a: j.hipL, b: j.knL, r: 0.1 }, { a: j.knL, b: j.anL, r: 0.08 },
         { a: j.hipR, b: j.knR, r: 0.1 }, { a: j.knR, b: j.anR, r: 0.08 }
       ];
+      if (this.ext) this.caps = this.ext.caps();
     }
   }
 
