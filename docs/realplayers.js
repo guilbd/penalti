@@ -139,7 +139,7 @@
       }
       const qE = c.s[Math.min(c.s.length - 1, Math.round(tE * 30))];
       return {
-        d, name, ts: c.ts, tE, c,
+        d, name, ts: c.ts, tE, c, qE,
         rate: clamp((tE - c.ts) / d.Td, 0.6, 2.6),
         rx: clamp(Tx - (-qE.hand.x), -1.2, 1.2), ry: clamp(Ty - qE.hand.y, -0.6, 0.9)
       };
@@ -162,6 +162,9 @@
         // até o tempo do motor: clipe acelerado até a extensão; depois fica esticado no ar ~0,4 s e segue a queda
         const after = t - d.Td;
         const ct = Math.min(p.c.dur, after < 0 ? p.ts + t * p.rate : after < 0.4 ? p.tE + after * 0.3 : p.tE + 0.12 + (after - 0.4));
+        // o reflexo do motor (d.Tadj) move o alvo depois do chute: recalcula o deslocamento das mãos
+        const tg = d.Tadj || d.T;
+        p.rx = clamp(tg.x - d.hip0.x + p.qE.hand.x, -1.2, 1.2); p.ry = clamp(tg.y - p.qE.hand.y, -0.6, 0.9);
         const prog = smooth(p.ts, p.tE, ct);
         const zc = this.sample(p.c, ct).z - this.sample(p.c, p.ts).z;           // anula o avanço do clipe: o goleiro fica na linha
         const lift = prog * (1 - smooth(p.tE + 0.12, p.tE + 0.55, ct));        // altura extra só no voo

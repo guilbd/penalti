@@ -142,19 +142,26 @@
     // placas de publicidade
     if (p.z > C.BOARDS_Z - R && p.y < 0.95 && v.z > 0) { p.z = C.BOARDS_Z - R; emit('boards', len(v)); v.z *= -0.35; }
 
-    // goleiro (cápsulas do corpo)
+    // goleiro (cápsulas do corpo, cada uma com a própria velocidade)
     if (keeper && keeper.caps) {
       for (const c of keeper.caps) {
-        const q = closestOnSeg(p, c.a, c.b), d = sub(p, q), dl = len(d), m = c.r + R;
+        const ab = sub(c.b, c.a), l2 = dot(ab, ab), tt = l2 < 1e-9 ? 0 : clamp(dot(sub(p, c.a), ab) / l2, 0, 1);
+        const q = add(c.a, mul(ab, tt)), d = sub(p, q), dl = len(d), m = c.r + R;
         if (dl < m && dl > 1e-6) {
           const n = mul(d, 1 / dl);
           p.x = q.x + n.x * m; p.y = q.y + n.y * m; p.z = q.z + n.z * m;
-          const sp = len(v);
-          if (dot(v, n) < 0) {
+          const vk = c.va ? lerp(c.va, c.vb, tt) : V();
+          const vr = sub(v, vk), vn = dot(vr, n), sp = len(vr);
+          if (vn < 0) {
             b.touched = true;
-            if (c.grab && sp < 19 && keeper.canCatch()) { b.held = true; emit('catch', sp); return; }
-            reflect(v, n, c.hand ? 0.32 : 0.45);
-            v.x += n.x * 1.2; v.y += n.y * 1.2; v.z += n.z * 1.2;
+            // encaixe: bola de frente, velocidade controlável, mãos juntas (ou no peito)
+            const headOn = -vn / (sp || 1);
+            if (c.grab && sp < (c.hand ? 17 : 14) && headOn > 0.7 && keeper.canCatch() && (!c.hand || keeper.handsGap() < 0.45)) { b.held = true; emit('catch', sp); return; }
+            // espalmada: a luva amortece, há atrito, e a mão em movimento empurra a bola
+            const e = c.hand ? 0.22 : c.leg ? 0.5 : 0.38, mu = c.hand ? 0.7 : 0.85;
+            const vt = sub(vr, mul(n, vn)), nv = add(add(mul(vt, mu), mul(n, -vn * e)), vk);
+            v.x = nv.x; v.y = nv.y; v.z = nv.z;
+            if (c.hand && sp > 8) v.x += Math.sign(p.x || n.x) * 0.8;     // tende a espalmar para fora do gol
             b.w = mul(b.w, 0.3);
             emit('save', sp);
           }
@@ -185,6 +192,16 @@
     return vel;
   }
 
+  function predictCross(b, zPlane) {          // onde e quando a bola cruza o plano z = zPlane
+    const s = { p: V(b.p.x, b.p.y, b.p.z), v: V(b.v.x, b.v.y, b.v.z), w: V(b.w.x, b.w.y, b.w.z) };
+    if (s.p.z >= zPlane || s.v.z <= 0) return null;
+    for (let i = 0; i < 300; i++) {
+      const pz = s.p.z; aero(s, 1 / 120);
+      if (s.p.y < C.BR) { s.p.y = C.BR; if (s.v.y < 0) s.v.y *= -0.5; }
+      if (s.p.z >= zPlane) { const f = (zPlane - pz) / (s.p.z - pz || 1); return { x: s.p.x, y: Math.max(C.BR, s.p.y), t: (i + f) / 120 }; }
+    }
+    return null;
+  }
   const shotSigma = (power, skill) => skill * (0.08 + 0.32 * power * power + 2.6 * Math.max(0, power - 0.82));
   function shotError(t, power, skill, chip) {
     if (chip) return { x: t.x + gauss() * 0.25 * skill, y: t.y + gauss() * 0.2 * skill };
@@ -308,10 +325,14 @@
   }
 
   // ---------- goleiro ----------
+  // Mergulho balístico: impulso de ~0,1 s e depois voo sob gravidade. Velocidade de saída
+  // limitada (lateral 5 m/s, vertical 3,8 m/s), então o ângulo alto fica fora de alcance como
+  // na vida real. Depois do chute, com tempo de reação humano, as mãos se ajustam à bola.
   const REACH = 1.08;            // do quadril às mãos com o corpo esticado
+  const VX_MAX = 5.0, VY_MAX = 3.4, PUSH_T = 0.1, HAND_SPEED = 6.5, ADJ_MAX = 0.5;
   class Keeper {
     constructor() { this.x = 0; this.reset(0); }
-    reset(now) { this.x = 0; this.dive = null; this.theta = 0; this.update(now); }
+    reset(now) { this.x = 0; this.dive = null; this.theta = 0; this.capsPrev = null; this.capsPrevT = null; this.lastNow = now; this.update(now); }
     swayX(now) { return 0.12 * Math.sin(now * 1.7) + 0.04 * Math.sin(now * 4.1); }
     readyFeet(px, z) { return [V(px - 0.3, 0.06, z + 0.02), V(px + 0.3, 0.06, z + 0.02)]; }
     readyHands(hip) { return [add(hip, V(-0.46, 0.22, -0.34)), add(hip, V(0.46, 0.22, -0.34))]; }
@@ -320,19 +341,81 @@
       const hip0 = V(this.x + this.swayX(now), 0.84, C.KEEPER_Z);
       const Dx = T.x - hip0.x, Dy = T.y - hip0.y, dist = Math.hypot(Dx, Dy);
       const big = dist >= REACH * 0.9;
-      let disp;
-      if (!big) disp = V(Dx * 0.35, Math.min(0, Dy) * 0.25, 0);
-      else { const need = Math.min(dist - REACH, 2.6); disp = V(Dx / dist * need, Dy / dist * need, 0); }
-      const hipF = add(hip0, disp); hipF.y = Math.max(0.24, hipF.y); hipF.z = C.KEEPER_Z - 0.35;
-      const bd = norm(V(T.x - hipF.x, T.y - hipF.y, 0));
-      const thetaF = clamp(Math.atan2(bd.x, bd.y), -1.75, 1.75);
-      const Td = 0.15 + 0.165 * Math.hypot(disp.x, disp.y);
-      this.dive = { T: V(T.x, T.y, C.KEEPER_Z - 0.4), t0: now, hip0, hipF, thetaF, Td, big, feet0: this.readyFeet(hip0.x, C.KEEPER_Z) };
+      const d = { T: V(T.x, T.y, C.KEEPER_Z - 0.4), t0: now, hip0, big, feet0: this.readyFeet(hip0.x, C.KEEPER_Z), aim: null };
+      if (!big) {
+        const disp = V(Dx * 0.35, Math.min(0, Dy) * 0.25, 0);
+        d.hipF = add(hip0, disp); d.hipF.z = C.KEEPER_Z - 0.2;
+        d.Td = 0.12 + 0.2 * Math.hypot(disp.x, disp.y);
+      } else {
+        const need = Math.min(dist - REACH, 2.6);
+        let dx = Dx / dist * need, dy = Math.max(0.24 - hip0.y, Dy / dist * need);
+        const sx = Math.sign(dx) || 1, hipP = add(hip0, V(sx * Math.min(0.1, Math.abs(dx) * 0.3), -0.06, 0));
+        dx = hip0.x + dx - hipP.x; dy = hip0.y + dy - hipP.y;
+        // tempo de voo: o mínimo que a velocidade lateral permite; aumenta se a altura exigir
+        let tf = Math.max(0.2, Math.abs(dx) / VX_MAX), ok = false;
+        for (let k = 0; k < 40; k++) { if (dy <= VY_MAX * tf - 4.9 * tf * tf) { ok = true; break; } tf += 0.01; }
+        if (!ok) { tf = Math.max(tf - 0.4, VY_MAX / 9.8); dy = Math.min(dy, VY_MAX * tf - 4.9 * tf * tf); }   // fora do alcance: sobe o máximo possível
+        d.hipP = hipP; d.vx = dx / tf; d.vy = (dy + 4.9 * tf * tf) / tf; d.tf = tf;
+        d.hipF = V(hipP.x + dx, hipP.y + dy, C.KEEPER_Z - 0.35);
+        d.Td = PUSH_T + tf;
+        d.lateral = Math.abs(dx) > 0.9;
+        d.floorY = d.lateral ? 0.22 : 0.84;
+        const c = hipP.y - d.floorY;                       // instante em que volta ao chão
+        d.tLand = PUSH_T + (d.vy + Math.sqrt(Math.max(0, d.vy * d.vy + 19.6 * c))) / 9.8;
+      }
+      const bd = norm(V(T.x - d.hipF.x, T.y - d.hipF.y, 0));
+      d.thetaF = clamp(Math.atan2(bd.x, bd.y), -1.75, 1.75);
+      if (!big) { d.thetaF *= 0.6 * clamp(dist / REACH, 0, 1); d.lateral = Math.abs(Dx) > 0.6; }   // defesa curta: corpo quase em pé
+      this.dive = d;
+    }
+    // previsão da bola (instante e ponto em que cruza a frente do goleiro): ajusta as mãos ou dispara um reflexo
+    react(pr, now) {
+      const d = this.dive;
+      if (d) {
+        const dx = pr.x - d.T.x, dy = pr.y - d.T.y, l = Math.hypot(dx, dy), k = l > ADJ_MAX ? ADJ_MAX / l : 1;
+        d.Tadj = V(d.T.x + dx * k, d.T.y + dy * k, d.T.z);
+      } else if (pr.t > 0.08) {
+        const hx = this.x + this.swayX(now), dist = Math.hypot(pr.x - hx, pr.y - 0.84);
+        if (dist < REACH + 1.1) this.startDive(V(pr.x, pr.y, 0), now);
+      }
     }
     canCatch() { return !this.dive || Math.abs(this.theta) < 0.7; }
     // ext: corpo animado externo (versão 3D com animações reais) que fornece cápsulas e mãos
     handsMid() { return this.ext ? this.ext.hands() : lerp(this.j.hdL, this.j.hdR, 0.5); }
+    handsGap() {
+      const h = this.caps.filter(c => c.hand);
+      return h.length === 2 ? len(sub(h[0].a, h[1].a)) : 1;
+    }
+    hipAt(d, t) {               // quadril e ângulo do corpo no instante t do mergulho
+      if (!d.big) {
+        const p = clamp(t / d.Td, 0, 1), e = 1 - Math.pow(1 - p, 2.2);
+        const hip = lerp(d.hip0, d.hipF, e); hip.y += 0.08 * Math.sin(Math.PI * p);
+        const fall = clamp((t - d.Td) / 0.5, 0, 1), g = fall * fall;
+        let th = d.thetaF * e;
+        if (fall > 0) { if (d.lateral) { hip.y = lerpN(hip.y, 0.2, g); th = lerpN(th, Math.sign(d.thetaF) * 1.6, g); } else { hip.y = lerpN(hip.y, 0.84, g); th = lerpN(th, 0, g); } }
+        return { hip, th, p, e, landed: g };
+      }
+      let hip, landed = 0;
+      if (t < PUSH_T) hip = lerp(d.hip0, d.hipP, smooth(0, PUSH_T, t));
+      else {
+        const tau = Math.min(t, d.tLand) - PUSH_T;
+        // o impulso lateral leva o quadril até o ponto escolhido; dali em diante só a gravidade age
+        hip = V(d.hipP.x + d.vx * Math.min(tau, d.tf), d.hipP.y + d.vy * tau - 4.9 * tau * tau, 0);
+        if (t > d.tLand) {     // no chão: escorrega e perde velocidade
+          const s = t - d.tLand; hip.x += d.vx * 0.22 * (1 - Math.exp(-s * 5)); hip.y = d.floorY;
+          // mergulho lateral: deita no chão; esticão em pé: segura o braço esticado ~0,45 s antes de voltar
+          landed = d.lateral ? smooth(0, 0.3, s) : smooth(d.Td + 0.45, d.Td + 0.8, t);
+        }
+        hip.y = Math.max(hip.y, 0.2);
+      }
+      hip.z = lerpN(d.hip0.z, d.hipF.z, smooth(0, d.Td, t));
+      const p = clamp(t / d.Td, 0, 1), e = smooth(0, 1, p);
+      let th = d.thetaF * smooth(0, d.Td * 0.85, t);
+      if (landed > 0) th = d.lateral ? lerpN(th, Math.sign(d.thetaF) * 1.6, landed) : lerpN(th, 0, landed);
+      return { hip, th, p, e, landed };
+    }
     update(now) {
+      const dt = clamp(now - this.lastNow, 0, 0.05); this.lastNow = now;
       const j = { f: V(0, 0, -1) };
       let hands, feet, bend = V(0, 0.1, -1);
       if (!this.dive) {
@@ -342,22 +425,18 @@
         hands = this.readyHands(pel); feet = this.readyFeet(pel.x, C.KEEPER_Z);
       } else {
         const d = this.dive, t = now - d.t0;
-        const p = clamp(t / d.Td, 0, 1), e = 1 - Math.pow(1 - p, 2.2);
-        const hip = lerp(d.hip0, d.hipF, e);
-        hip.y += (d.big ? 0.22 : 0.08) * Math.sin(Math.PI * p);
-        let th = d.thetaF * e;
-        const fall = clamp((t - d.Td) / 0.5, 0, 1), g = fall * fall;
-        const lateral = Math.abs(d.thetaF) > 0.55;
-        if (fall > 0) {
-          if (lateral) { hip.y = lerpN(hip.y, 0.2, g); th = lerpN(th, Math.sign(d.thetaF) * 1.6, g); }
-          else { hip.y = lerpN(hip.y, 0.84, g); th = lerpN(th, 0, g); }
-        }
+        const { hip, th, p, e, landed } = this.hipAt(d, t);
+        const lateral = d.lateral, g = landed;
         this.theta = th;
         const spine = norm(V(Math.sin(th), Math.cos(th), -0.3 * (1 - e)));
         const r = V(Math.cos(th), -Math.sin(th), 0);
         torso(j, hip, spine, r);
-        const aimP = (fall > 0 && lateral) ? add(j.chest, mul(spine, 0.62)) : d.T;
-        const toA = sub(aimP, j.chest), ad = norm(toA), hc = add(j.chest, mul(ad, Math.min(0.6, len(toA))));
+        // mãos: vão até o alvo (ajustado pelo reflexo) com velocidade limitada
+        const target = (g > 0 && lateral) ? add(j.chest, mul(spine, 0.62)) : (d.Tadj || d.T);
+        if (!d.aim) d.aim = V(target.x, target.y, target.z);
+        const delta = sub(target, d.aim), dl = len(delta), step = HAND_SPEED * dt;
+        d.aim = dl > step ? add(d.aim, mul(delta, step / dl)) : V(target.x, target.y, target.z);
+        const toA = sub(d.aim, j.chest), ad = norm(toA), hc = add(j.chest, mul(ad, Math.min(0.6, len(toA))));
         const dh = [add(hc, mul(r, -0.09)), add(hc, mul(r, 0.09))];
         const rh = this.readyHands(hip);
         const w = smooth(0, 0.35, p) * (lateral ? 1 : 1 - g);
@@ -365,8 +444,7 @@
         const push = smooth(0.1, 0.55, p) * (lateral ? 1 : 1 - g);
         const trailA = add(hip, add(mul(spine, -0.88), mul(r, -0.14)));
         const trailB = add(hip, add(mul(spine, -0.6), mul(r, 0.2)));
-        const rf = this.readyFeet(hip.x, hip.z);
-        const base = lateral ? d.feet0 : rf;
+        const base = lateral ? d.feet0 : this.readyFeet(hip.x, hip.z);
         feet = [lerp(base[0], trailA, push), lerp(base[1], trailB, push)];
         feet.forEach(q => { q.y = Math.max(0.06, q.y); });
         bend = norm(add(V(0, 0, -1), mul(spine, 0.4)));
@@ -378,16 +456,27 @@
       const ha = ik(j.shL, hands[0], 0.3, 0.29, mul(j.r, -1)), hb = ik(j.shR, hands[1], 0.3, 0.29, j.r);
       j.elL = ha.mid; j.hdL = ha.end; j.elR = hb.mid; j.hdR = hb.end;
       this.j = j;
-      this.caps = [
+      let caps = [
         { a: j.pelvis, b: j.chest, r: 0.17, grab: true },
         { a: j.head, b: j.head, r: 0.12 },
         { a: j.shL, b: j.elL, r: 0.07 }, { a: j.elL, b: j.hdL, r: 0.07 },
         { a: j.shR, b: j.elR, r: 0.07 }, { a: j.elR, b: j.hdR, r: 0.07 },
-        { a: j.hdL, b: j.hdL, r: 0.13, hand: true, grab: true }, { a: j.hdR, b: j.hdR, r: 0.13, hand: true, grab: true },
-        { a: j.hipL, b: j.knL, r: 0.1 }, { a: j.knL, b: j.anL, r: 0.08 },
-        { a: j.hipR, b: j.knR, r: 0.1 }, { a: j.knR, b: j.anR, r: 0.08 }
+        { a: j.hdL, b: j.hdL, r: 0.11, hand: true, grab: true }, { a: j.hdR, b: j.hdR, r: 0.11, hand: true, grab: true },
+        { a: j.hipL, b: j.knL, r: 0.1, leg: true }, { a: j.knL, b: j.anL, r: 0.08, leg: true },
+        { a: j.hipR, b: j.knR, r: 0.1, leg: true }, { a: j.knR, b: j.anR, r: 0.08, leg: true }
       ];
-      if (this.ext) this.caps = this.ext.caps();
+      if (this.ext) caps = this.ext.caps();
+      // velocidade de cada parte do corpo, usada no contato com a bola
+      if (caps !== this.caps) {
+        const prev = this.capsPrev, pdt = this.capsPrevT == null ? 0 : now - this.capsPrevT;
+        const vel = (a0, a1) => { if (pdt <= 1e-4) return V(); const v = mul(sub(a1, a0), 1 / pdt), l = len(v); return l > 9 ? mul(v, 9 / l) : v; };
+        for (let i = 0; i < caps.length; i++) {
+          const c = caps[i], q = prev && prev.length === caps.length ? prev[i] : null;
+          c.va = q ? vel(q.a, c.a) : V(); c.vb = q ? vel(q.b, c.b) : V();
+        }
+        this.capsPrev = caps; this.capsPrevT = now;
+      }
+      this.caps = caps;
     }
   }
 
@@ -417,9 +506,9 @@
 
   // ---------- dificuldade ----------
   const DIFF = {
-    easy: { name: 'Fácil', kSkill: 1.35, read: 0.12, noise: 0.95, stay: 0.14, react: 0.1, retarget: 0.15, chip: 0 },
-    medium: { name: 'Médio', kSkill: 1.0, read: 0.3, noise: 0.6, stay: 0.1, react: 0.04, retarget: 0.45, chip: 0.03 },
-    hard: { name: 'Difícil', kSkill: 0.72, read: 0.45, noise: 0.42, stay: 0.08, react: 0, retarget: 0.75, chip: 0.05 }
+    easy: { name: 'Fácil', gkReact: 0.32, kSkill: 1.35, read: 0.12, noise: 0.95, stay: 0.14, react: 0.1, retarget: 0.15, chip: 0 },
+    medium: { name: 'Médio', gkReact: 0.25, kSkill: 1.0, read: 0.3, noise: 0.6, stay: 0.1, react: 0.04, retarget: 0.45, chip: 0.03 },
+    hard: { name: 'Difícil', gkReact: 0.19, kSkill: 0.72, read: 0.45, noise: 0.42, stay: 0.08, react: 0, retarget: 0.75, chip: 0.05 }
   };
 
   // ---------- partida ----------
@@ -533,6 +622,15 @@
     }
     tick(h) {
       const now = this.now, k = this.kicker, st = this.state;
+      // reflexo do goleiro: depois do tempo de reação, prevê onde a bola cruza e reage
+      if (st === 'flight' && this.ball.live && !this.ball.touched && !this.ball.held) {
+        const react = this.turn === 'user' ? this.D.gkReact : 0.22;
+        if (now - this.flightT0 >= react && now - (this.lastPred || -9) >= 1 / 30) {
+          this.lastPred = now;
+          const pr = predictCross(this.ball, C.KEEPER_Z - 0.3);
+          if (pr) this.keeper.react(pr, now);
+        }
+      }
       if (st === 'charging') this.power = Math.min(1, (now - this.chargeT0) / 1.05);
       if ((st === 'runup' || st === 'flight') && this.plan && !this.keeper.dive && now >= this.plan.at) this.keeper.startDive(this.plan.T, now);
       if (st === 'runup' && now >= k.contactAt) this.launch();
