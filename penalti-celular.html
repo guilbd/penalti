@@ -79,7 +79,8 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   .team { font-size: 16px; } .team::before { width: 7px; height: 14px; }
   .row b { font-size: 20px; }
   .dots i { width: 10px; height: 10px; border-width: 1.5px; } .dots { gap: 4px; }
-  .role { top: calc(12px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; right: 12px; font-size: 14px; padding: 6px 10px; }
+  .role { top: calc(88px + env(safe-area-inset-top, 0px)) !important; bottom: auto !important; right: 12px; font-size: 12px; padding: 6px 10px; max-width: 46vw; text-align: right; }
+  .mute { top: calc(12px + env(safe-area-inset-top, 0px)) !important; }
   .mute { right: 12px; top: calc(50px + env(safe-area-inset-top, 0px)); }
   .help { left: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; font-size: 13px; padding: 7px 10px; max-width: calc(100% - 24px - 140px); }
   .chip-btn { right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
@@ -148,6 +149,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 </div>
 
 <script src="engine.js"></script>
+<script src="menu.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, norm, lerp, UP, ICO, rotVec } = PK;
@@ -163,13 +165,16 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   let camMode = '';
   function setCamera() {
     const portrait = H > W * 1.05, far = portrait && game.turn === 'cpu';
-    camMode = (portrait ? 'p' : 'l') + (far ? 'f' : '') + W + 'x' + H;
+    camMode = (portrait ? 'p' : 'l') + (far ? 'f' : '') + W + 'x' + H + game.spot.x + ',' + game.spot.z;
     cam.portrait = portrait;
-    cam.pos = far ? V(0, 3.0, -6.6) : portrait ? V(0, 1.55, -2.6) : V(0, 2.1, -6.2);
+    const sp = game.spot, fg = norm(V(-sp.x, 0, C.GZ - sp.z));
+    const rel = far ? [3.0, -6.6] : portrait ? [1.55, -2.6] : [2.1, -6.2];
+    cam.pos = add(V(sp.x, rel[0], sp.z), mul(fg, rel[1]));
     F = far ? W / (2 * Math.tan(19 * Math.PI / 180)) : portrait ? W / (2 * Math.tan(21 * Math.PI / 180)) : Math.min(H / (2 * Math.tan(16 * Math.PI / 180)), W / (2 * Math.tan(34 * Math.PI / 180)));
-    const dz = C.GZ - cam.pos.z, g = Math.atan((1.2 - cam.pos.y) / dz);
+    const fh = norm(V(-cam.pos.x, 0, C.GZ - cam.pos.z)), dz = Math.hypot(cam.pos.x, C.GZ - cam.pos.z), g = Math.atan((1.2 - cam.pos.y) / dz);
+    if (portrait) F = Math.max(F, (far ? 0.5 : 0.55) * W * dz / C.GW);     // falta de longe: aproxima o gol
     const e = g - Math.atan((portrait ? 0.18 : 0.14) * H / F);
-    cam.fwd = norm(V(0, Math.tan(e), 1)); cam.right = norm(cross(cam.fwd, UP)); cam.up = cross(cam.right, cam.fwd);
+    cam.fwd = norm(add(fh, V(0, Math.tan(e), 0))); cam.right = norm(cross(cam.fwd, UP)); cam.up = cross(cam.right, cam.fwd);
   }
   function resize() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -227,7 +232,18 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   const ADS = [['#0b3d91', '#ffffff', 'ARENA NOTURNA'], ['#c8102e', '#ffffff', 'BOLA NA REDE'], ['#f2b632', '#14110a', 'PÊNALTI MOBILE'], ['#0f6b3f', '#ffffff', 'COPA DA CASA'], ['#14182a', '#f2b632', 'GOL DE PLACA']];
 
   // ---------- primitivas ----------
-  function path(pts) { ctx.beginPath(); pts.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
+  function path(pts) {
+    const f = cam.fwd, r = cam.right, u = cam.up, N = 0.25, cs = [], out = [];
+    for (const p of pts) { const dx = p.x - cam.pos.x, dy = p.y - cam.pos.y, dz = p.z - cam.pos.z; cs.push({ x: dx * r.x + dy * r.y + dz * r.z, y: dx * u.x + dy * u.y + dz * u.z, z: dx * f.x + dy * f.y + dz * f.z }); }
+    for (let i = 0; i < cs.length; i++) {
+      const a = cs[i], b = cs[(i + 1) % cs.length], ai = a.z > N, bi = b.z > N;
+      if (ai) out.push(a);
+      if (ai !== bi) { const t = (N - a.z) / (b.z - a.z); out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: N }); }
+    }
+    ctx.beginPath();
+    out.forEach((c, i) => { const sx = W / 2 + F * c.x / c.z, sy = H / 2 - F * c.y / c.z; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+    ctx.closePath();
+  }
   function groundLine(a, b, w = 0.12) {
     const zn = cam.pos.z + 0.6;
     if (a.z < zn && b.z < zn) return;
@@ -285,7 +301,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     ctx.globalCompositeOperation = 'source-over';
   }
   function drawPitch() {
-    const z0 = cam.pos.z + 0.8, Z = C.BOARDS_Z + 2.6;
+    const z0 = -48, Z = C.BOARDS_Z + 2.6;
     for (let z = z0, i = 0; z < Z; z += 4, i++) { path([V(-60, 0, z), V(60, 0, z), V(60, 0, Math.min(Z, z + 4)), V(-60, 0, Math.min(Z, z + 4))]); ctx.fillStyle = i % 2 ? '#2b6428' : '#2f6c2b'; ctx.fill(); }
     path([V(-60, 0, z0), V(60, 0, z0), V(60, 0, Z), V(-60, 0, Z)]);
     ctx.save(); ctx.clip();
@@ -353,6 +369,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     gkUser: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', skin: '#c48a63', hair: '#1b1410', boots: '#111318', gloves: '#f5f5f5', num: '1', numColor: '#fff' },
     gkCpu: { shirt: '#ff7a1a', shorts: '#202331', socks: '#ff7a1a', skin: '#e2b48f', hair: '#2b1d12', boots: '#111318', gloves: '#a6e22e', num: '1', numColor: '#111' }
   };
+  if (window.PKProfile) PKProfile.bindKits(KITS);
   function limbs(j, k, gk) {
     const S = [], seg = (a, b, r, c) => S.push({ a, b, r, c });
     for (const s of ['L', 'R']) {
@@ -446,7 +463,13 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const b = game.ball, c = P(b.p), r = Math.max(1.5, C.BR * c.s);
     if (trail.length > 1) {
       ctx.lineCap = 'round';
-      for (let i = 1; i < trail.length; i++) { const a = P(trail[i - 1]), d = P(trail[i]); ctx.strokeStyle = `rgba(255,255,255,${i / trail.length * 0.22})`; ctx.lineWidth = 2 * C.BR * d.s * i / trail.length; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+      const hot = game.info && game.info.charged;
+      for (let i = 1; i < trail.length; i++) { const a = P(trail[i - 1]), d = P(trail[i]); ctx.strokeStyle = hot ? `rgba(255,${120 + i * 12},40,${i / trail.length * 0.7})` : `rgba(255,255,255,${i / trail.length * 0.22})`; ctx.lineWidth = 2 * C.BR * d.s * i / trail.length; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+    }
+    if ((game.info && game.info.charged && b.live) || (game.mode === 'targets' && game.charged && game.state === 'aim')) {
+      const gl = ctx.createRadialGradient(c.x, c.y, r * 0.6, c.x, c.y, r * 3.2);
+      gl.addColorStop(0, 'rgba(255,190,60,.75)'); gl.addColorStop(1, 'rgba(255,90,20,0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(c.x, c.y, r * 3.2, 0, 7); ctx.fill();
     }
     const g = ctx.createRadialGradient(c.x - r * 0.35, c.y - r * 0.4, r * 0.1, c.x, c.y, r);
     g.addColorStop(0, '#ffffff'); g.addColorStop(0.6, '#e8ebee'); g.addColorStop(1, '#8e98a2');
@@ -460,6 +483,21 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
         ctx.beginPath(); ctx.ellipse(c.x + dot(q, cam.right) * r, c.y - dot(q, cam.up) * r, r * 0.3, r * 0.3 * f, Math.atan2(-dot(q, cam.up), dot(q, cam.right)) + Math.PI / 2, 0, 7); ctx.fill();
       }
       ctx.restore();
+    }
+  }
+
+  // ---------- alvos (modo Alvos) ----------
+  function drawTargets(now) {
+    for (const t of game.targets) {
+      const ring = [];
+      for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; ring.push(V(t.x + Math.cos(a) * t.r, t.y + Math.sin(a) * t.r, C.GZ - 0.02)); }
+      path(ring);
+      ctx.fillStyle = t.hit ? 'rgba(242,182,50,.55)' : 'rgba(255,255,255,.12)'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = t.pts >= 5 ? '#f2b632' : t.pts >= 3 ? '#ffffff' : '#7fe3ff'; ctx.stroke();
+      const inner = ring.map(q => V(t.x + (q.x - t.x) * 0.55, t.y + (q.y - t.y) * 0.55, q.z)); path(inner); ctx.lineWidth = 1.5; ctx.stroke();
+      const c = P(V(t.x, t.y, C.GZ));
+      ctx.fillStyle = '#ffffff'; ctx.font = `800 ${Math.max(12, t.r * 0.9 * c.s)}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+' + t.pts, c.x, c.y + 1);
     }
   }
 
@@ -491,13 +529,17 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   function draw(now) {
     drawSky(now); drawStands(now); drawFloodlights(); drawPitch(); drawBoards();
     drawNet(now);
+    drawTargets(now);
     const k = game.kicker, kj = k.pose(now), gj = game.keeper.j;
+    const wall = game.wall, wKit = game.turn === 'user' ? KITS.cpu : KITS.user;
+    const wallJ = wall ? wall.members.map((m, i) => wall.pose(i, now)) : [];
     const kKit = KITS[k.kit === 'cpu' ? 'cpu' : 'user'], gKit = game.turn === 'user' ? KITS.gkCpu : KITS.gkUser;
-    castShadows([{ j: kj, k: kKit, gk: false }, { j: gj, k: gKit, gk: true }]);
+    castShadows([{ j: kj, k: kKit, gk: false }, { j: gj, k: gKit, gk: true }].concat(wallJ.map(j => ({ j, k: wKit, gk: false }))));
     const items = [
       { z: P(V(0, 1, C.GZ)).z, draw: drawGoalFrame },
       { z: P(gj.pelvis).z, draw: () => drawFigure(gj, gKit, true) },
       { z: P(game.ball.p).z, draw: drawBall },
+      ...wallJ.map(j => ({ z: P(j.pelvis).z, draw: () => drawFigure(j, wKit, false) })),
       { z: P(kj.pelvis).z, draw: () => {
         // em pé, o batedor fica perto da câmera: depois do chute ele fica translúcido para não tampar o gol
         const fade = cam.portrait && game.turn === 'user' ? 1 - 0.65 * PK.smooth(k.contactAt - 0.05, k.contactAt + 0.25, now) : 1;
@@ -585,7 +627,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   function frame(ts) {
     const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
     if (cv.clientWidth !== W || cv.clientHeight !== H) resize();
-    else if (camMode !== ((H > W * 1.05 ? 'p' : 'l') + (H > W * 1.05 && game.turn === 'cpu' ? 'f' : '') + W + 'x' + H)) setCamera();
+    else if (camMode !== ((H > W * 1.05 ? 'p' : 'l') + (H > W * 1.05 && game.turn === 'cpu' ? 'f' : '') + W + 'x' + H + game.spot.x + ',' + game.spot.z)) setCamera();
     game.update(dt);
     excite = Math.max(0, excite - dt * 0.35);
     if (game.ball.live && !game.ball.held) { trail.push(V(game.ball.p.x, game.ball.p.y, game.ball.p.z)); if (trail.length > 9) trail.shift(); } else trail.length = 0;

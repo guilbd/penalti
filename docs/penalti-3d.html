@@ -65,7 +65,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 .actions .btn { flex: 1 1 160px; }
 .mute { position: absolute; right: 16px; top: calc(62px + env(safe-area-inset-top, 0px)); pointer-events: auto; font-family: var(--display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; background: var(--panel); color: var(--muted); border: 0; padding: 6px 10px; cursor: pointer; }
 @media (max-width: 860px) { .help { max-width: calc(100% - 32px); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
-@media (max-width: 640px) { .board { min-width: 0; } .row { grid-template-columns: 54px 1fr 28px; } .role { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 640px) { .role { font-size: 12px; max-width: 40vw; text-align: right; } .board { min-width: 0; } .row { grid-template-columns: 54px 1fr 28px; } .role { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
 @media (prefers-reduced-motion: reduce) { .banner { animation: none; } }
 </style>
 
@@ -128,6 +128,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="engine.js"></script>
+<script src="menu.js"></script>
 <script src="realplayers.js"></script>
 <script>
 (() => {
@@ -337,7 +338,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     constructor(kit, gk) {
       this.kit = kit; this.g = new THREE.Group(); scene.add(this.g);
       const mat = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 });
-      const m = { shirt: mat(kit.shirt), shorts: mat(kit.shorts), skin: mat(kit.skin), socks: mat(kit.socks), boots: mat(kit.boots), hair: mat(kit.hair), gloves: mat(kit.gloves || kit.skin) };
+      const m = this.m = { shirt: mat(kit.shirt), shorts: mat(kit.shorts), skin: mat(kit.skin), socks: mat(kit.socks), boots: mat(kit.boots), hair: mat(kit.hair), gloves: mat(kit.gloves || kit.skin) };
       this.parts = [];
       const cap = (fa, fb, r, mt) => {
         const c = new THREE.Mesh(CYL, mt), s1 = new THREE.Mesh(SPH, mt), s2 = new THREE.Mesh(SPH, mt);
@@ -363,6 +364,10 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       this.num = new THREE.Mesh(NUMG, nm);
       for (const o of [this.torso, this.shorts, this.head, this.hair]) { o.castShadow = true; this.g.add(o); }
       this.g.add(this.num);
+    }
+    recolor(kit) {
+      for (const k of ['shirt', 'shorts', 'skin', 'socks', 'boots', 'hair']) this.m[k].color.set(kit[k]);
+      this.m.gloves.color.set(kit.gloves || kit.skin);
     }
     update(j) {
       for (const p of this.parts) {
@@ -400,8 +405,41 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       }
     }).catch(e => console.warn('Jogadores realistas indisponíveis, usando bonecos simples.', e));
   }
+  const wallBodies = [0, 1, 2, 3].map(() => { const b = new Body(KITS.cpu, false); b.num.visible = false; b.g.visible = false; return b; });
+  window.penaltiWall = wallBodies;
+  if (window.PKReal && THREE.GLTFLoader && THREE.SkeletonUtils) {
+    PKReal.load('assets/web/').then(rp => {
+      wallBodies.forEach((b, i) => { const h = rp.create(KITS.cpu, 'wall'); h.g.visible = false; scene.add(h.g); scene.remove(b.g); wallBodies[i] = h; });
+    }).catch(() => {});
+  }
+  if (window.PKProfile) PKProfile.bindKits(KITS, () => { bodies.user.recolor(KITS.user); bodies.gkUser.recolor(KITS.gkUser); paintNumbers(); });
   paintAds(); paintNumbers();
   if (document.fonts) document.fonts.load(`800 56px ${DISPLAY}`).then(() => { paintAds(); paintNumbers(); }).catch(() => {});
+
+  // ---------- alvos (modo Alvos) e bola carregada ----------
+  const tgtGroup = new THREE.Group(); scene.add(tgtGroup);
+  let tgtFor = null;
+  function buildTargets() {
+    while (tgtGroup.children.length) { const o = tgtGroup.children.pop(); o.geometry && o.geometry.dispose(); }
+    tgtFor = game.targets;
+    for (const t of game.targets) {
+      const col = t.pts >= 5 ? 0xf2b632 : t.pts >= 3 ? 0xffffff : 0x7fe3ff;
+      const mk = (geo, mat) => { const m = new THREE.Mesh(geo, mat); m.position.set(t.x, t.y, C.GZ - 0.03); m.renderOrder = 5; tgtGroup.add(m); return m; };
+      const disc = mk(new THREE.CircleGeometry(t.r, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12, depthWrite: false, side: THREE.DoubleSide }));
+      mk(new THREE.RingGeometry(t.r - 0.035, t.r, 48), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+      mk(new THREE.RingGeometry(t.r * 0.52, t.r * 0.55, 40), new THREE.MeshBasicMaterial({ color: col, side: THREE.DoubleSide }));
+      const lab = makeCanvas(128, 64, g => { g.fillStyle = '#fff'; g.font = `800 52px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('+' + t.pts, 64, 34); });
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(lab), depthWrite: false, transparent: true }));
+      sp.position.set(t.x, t.y, C.GZ - 0.05); sp.scale.set(t.r * 0.9, t.r * 0.45, 1); tgtGroup.add(sp);
+      disc.userData.t = t;
+    }
+  }
+  function updateTargets() {
+    if (tgtFor !== game.targets) buildTargets();
+    for (const o of tgtGroup.children) if (o.userData.t && o.userData.t.hit) { o.material.color.set(0xf2b632); o.material.opacity = 0.5; }
+  }
+  const ballGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: 0xffa040, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true }));
+  ballGlow.scale.set(0.9, 0.9, 1); ballGlow.visible = false; scene.add(ballGlow);
 
   // ---------- mira ----------
   const ret = new THREE.Group(); scene.add(ret);
@@ -416,12 +454,21 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   const camPos = new THREE.Vector3(0.9, 2.55, -10.2), camLook = new THREE.Vector3(0, 1, 11), tgtP = new THREE.Vector3(), tgtL = new THREE.Vector3();
   let snap = true, excite = 0;
   game.on(t => { if (t === 'setup' || t === 'start') snap = true; if (t === 'goal') excite = 1; });
+  // ponto relativo à bola: dy de altura, back metros na direção do gol (negativo = atrás), side para o lado
+  const frameF = () => { const sp = game.spot; return norm(V(-sp.x, 0, C.GZ - sp.z)); };
+  const rel = (dy, back, side = 0) => { const sp = game.spot, f = frameF(); return V(sp.x + f.x * back + f.z * side, dy, sp.z + f.z * back - f.x * side); };
+  // segue a bola por trás; na falta para antes da barreira e fica mais alta que ela
+  const flightCam = b => {
+    const f = frameF(), sp = game.spot, prog = (b.x - sp.x) * f.x + (b.z - sp.z) * f.z;
+    const along = Math.min(prog - 7.5, game.wall ? 3.5 : 99);
+    const p = V(sp.x + f.x * along, game.wall ? 2.7 : 1.9, sp.z + f.z * along); p.z = Math.min(p.z, C.GZ - 6); return p;
+  };
   function camTargets(now) {
     const st = game.state, b = game.ball.p;
-    if (game.turn === 'cpu' && st !== 'menu') return [V(-0.8, 2.3, C.GZ + 6.4), V(0, 0.9, 0)];
+    if (game.turn === 'cpu' && st !== 'menu') return [V(-0.8, 2.3, C.GZ + 6.4), V(game.spot.x, 0.9, game.spot.z)];
     if (st === 'result' && now - game.resultT > 0.9) return [V(4.6, 1.9, C.GZ - 6.6), V(0, 1.0, C.GZ)];
-    if (st === 'flight' || st === 'result') return [V(b.x * 0.3 + 0.3, 1.9, Math.min(b.z - 7.5, C.GZ - 6)), lerp(b, V(0, 1.1, C.GZ), 0.6)];
-    return [V(0.9, 2.55, -10.2), V(0, 0.95, 11)];
+    if (st === 'flight' || st === 'result') return [flightCam(b), lerp(b, V(0, 1.1, C.GZ), 0.6)];
+    return [rel(2.55, -10.2, 0.9), V(0, 0.95, 11)];
   }
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), goalPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -C.GZ), hit = new THREE.Vector3();
   function toGoal(cx, cy) {
@@ -447,6 +494,16 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     if (gb.sync) { gb.sync(game.keeper, now); game.keeper.ext = gb.ext; } else { gb.update(game.keeper.j); game.keeper.ext = null; }
     const bp = game.ball.p, q = game.ball.q;
     ball.position.set(bp.x, bp.y, bp.z); ball.quaternion.set(q[1], q[2], q[3], q[0]);
+    const wall = game.wall, wKit = game.turn === 'user' ? KITS.cpu : KITS.user;
+    wallBodies.forEach((wb, i) => {
+      const m = wall && wall.members[i]; wb.g.visible = !!m; if (!m) return;
+      if (wb.kitRef !== wKit) { wb.recolor(wKit); wb.kitRef = wKit; }
+      if (wb.syncWall) wb.syncWall(m, wall.jumpY(m, now)); else wb.update(wall.pose(i, now));
+    });
+    updateTargets();
+    const hot = (game.info && game.info.charged && game.ball.live) || (game.mode === 'targets' && game.charged && game.state === 'aim');
+    ballGlow.visible = hot; if (hot) ballGlow.position.copy(ball.position);
+    ball.material.emissive.set(hot ? 0x803010 : 0x000000);
     updateNet(now);
     netMat.opacity = game.turn === 'cpu' && game.state !== 'menu' ? 0.3 : 0.5;
 

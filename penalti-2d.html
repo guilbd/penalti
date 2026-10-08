@@ -63,7 +63,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 .actions .btn { flex: 1 1 160px; }
 .mute { position: absolute; right: 16px; top: calc(62px + env(safe-area-inset-top, 0px)); pointer-events: auto; font-family: var(--display); font-size: 13px; letter-spacing: .1em; text-transform: uppercase; background: var(--panel); color: var(--muted); border: 0; padding: 6px 10px; cursor: pointer; }
 @media (max-width: 860px) { .help { max-width: calc(100% - 32px); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); } }
-@media (max-width: 640px) { .board { min-width: 0; } .row { grid-template-columns: 54px 1fr 28px; } .role { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 640px) { .role { font-size: 12px; max-width: 40vw; text-align: right; } .board { min-width: 0; } .row { grid-template-columns: 54px 1fr 28px; } .role { top: auto; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); } }
 @media (prefers-reduced-motion: reduce) { .banner { animation: none; } }
 </style>
 
@@ -123,6 +123,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 </div>
 
 <script src="engine.js"></script>
+<script src="menu.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, norm, lerp, UP, ICO, rotVec } = PK;
@@ -132,8 +133,14 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   let W = 1, H = 1, F = 1, DPR = 1;
 
   // câmera fixa atrás do batedor, como na transmissão
-  const cam = { pos: V(0, 2.45, -9.4), look: V(0, 0.9, 11) };
-  cam.fwd = norm(sub(cam.look, cam.pos)); cam.right = norm(cross(cam.fwd, UP)); cam.up = cross(cam.right, cam.fwd);
+  // câmera atrás da bola, olhando para o gol (em pênalti ou falta)
+  const cam = {};
+  function setCam() {
+    const s = game.spot, f = norm(V(-s.x, 0, C.GZ - s.z));
+    cam.pos = add(V(s.x, 2.45, s.z), mul(f, -9.4)); cam.look = V(0, 0.9, C.GZ);
+    cam.fwd = norm(sub(cam.look, cam.pos)); cam.right = norm(cross(cam.fwd, UP)); cam.up = cross(cam.right, cam.fwd);
+  }
+  setCam();
   function resize() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
     W = Math.max(1, cv.clientWidth); H = Math.max(1, cv.clientHeight);
@@ -183,7 +190,18 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   const ADS = [['#0b3d91', '#ffffff', 'ARENA NOTURNA'], ['#c8102e', '#ffffff', 'BOLA NA REDE'], ['#f2b632', '#14110a', 'PÊNALTI 2D'], ['#0f6b3f', '#ffffff', 'COPA DA CASA'], ['#14182a', '#f2b632', 'GOL DE PLACA']];
 
   // ---------- primitivas ----------
-  function path(pts) { ctx.beginPath(); pts.forEach((p, i) => { const q = P(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.closePath(); }
+  function path(pts) {
+    const f = cam.fwd, r = cam.right, u = cam.up, N = 0.25, cs = [], out = [];
+    for (const p of pts) { const dx = p.x - cam.pos.x, dy = p.y - cam.pos.y, dz = p.z - cam.pos.z; cs.push({ x: dx * r.x + dy * r.y + dz * r.z, y: dx * u.x + dy * u.y + dz * u.z, z: dx * f.x + dy * f.y + dz * f.z }); }
+    for (let i = 0; i < cs.length; i++) {
+      const a = cs[i], b = cs[(i + 1) % cs.length], ai = a.z > N, bi = b.z > N;
+      if (ai) out.push(a);
+      if (ai !== bi) { const t = (N - a.z) / (b.z - a.z); out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: N }); }
+    }
+    ctx.beginPath();
+    out.forEach((c, i) => { const sx = W / 2 + F * c.x / c.z, sy = H / 2 - F * c.y / c.z; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+    ctx.closePath();
+  }
   function groundLine(a, b, w = 0.12) {
     const d = norm(sub(b, a)), n = V(-d.z * w / 2, 0, d.x * w / 2);
     path([add(a, n), add(b, n), sub(b, n), sub(a, n)]); ctx.fill();
@@ -238,7 +256,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     ctx.globalCompositeOperation = 'source-over';
   }
   function drawPitch() {
-    const z0 = cam.pos.z + 0.8, Z = C.BOARDS_Z + 2.6;
+    const z0 = -48, Z = C.BOARDS_Z + 2.6;
     for (let z = z0, i = 0; z < Z; z += 4, i++) { path([V(-60, 0, z), V(60, 0, z), V(60, 0, Math.min(Z, z + 4)), V(-60, 0, Math.min(Z, z + 4))]); ctx.fillStyle = i % 2 ? '#2b6428' : '#2f6c2b'; ctx.fill(); }
     path([V(-60, 0, z0), V(60, 0, z0), V(60, 0, Z), V(-60, 0, Z)]);
     ctx.save(); ctx.clip();
@@ -306,6 +324,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     gkUser: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', skin: '#c48a63', hair: '#1b1410', boots: '#111318', gloves: '#f5f5f5', num: '1', numColor: '#fff' },
     gkCpu: { shirt: '#ff7a1a', shorts: '#202331', socks: '#ff7a1a', skin: '#e2b48f', hair: '#2b1d12', boots: '#111318', gloves: '#a6e22e', num: '1', numColor: '#111' }
   };
+  if (window.PKProfile) PKProfile.bindKits(KITS);
   function limbs(j, k, gk) {
     const S = [], seg = (a, b, r, c) => S.push({ a, b, r, c });
     for (const s of ['L', 'R']) {
@@ -389,7 +408,13 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const b = game.ball, c = P(b.p), r = Math.max(1.5, C.BR * c.s);
     if (trail.length > 1) {
       ctx.lineCap = 'round';
-      for (let i = 1; i < trail.length; i++) { const a = P(trail[i - 1]), d = P(trail[i]); ctx.strokeStyle = `rgba(255,255,255,${i / trail.length * 0.22})`; ctx.lineWidth = 2 * C.BR * d.s * i / trail.length; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+      const hot = game.info && game.info.charged;
+      for (let i = 1; i < trail.length; i++) { const a = P(trail[i - 1]), d = P(trail[i]); ctx.strokeStyle = hot ? `rgba(255,${120 + i * 12},40,${i / trail.length * 0.7})` : `rgba(255,255,255,${i / trail.length * 0.22})`; ctx.lineWidth = 2 * C.BR * d.s * i / trail.length; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+    }
+    if ((game.info && game.info.charged && b.live) || (game.mode === 'targets' && game.charged && game.state === 'aim')) {
+      const gl = ctx.createRadialGradient(c.x, c.y, r * 0.6, c.x, c.y, r * 3.2);
+      gl.addColorStop(0, 'rgba(255,190,60,.75)'); gl.addColorStop(1, 'rgba(255,90,20,0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(c.x, c.y, r * 3.2, 0, 7); ctx.fill();
     }
     const g = ctx.createRadialGradient(c.x - r * 0.35, c.y - r * 0.4, r * 0.1, c.x, c.y, r);
     g.addColorStop(0, '#ffffff'); g.addColorStop(0.6, '#e8ebee'); g.addColorStop(1, '#8e98a2');
@@ -403,6 +428,21 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
         ctx.beginPath(); ctx.ellipse(c.x + dot(q, cam.right) * r, c.y - dot(q, cam.up) * r, r * 0.3, r * 0.3 * f, Math.atan2(-dot(q, cam.up), dot(q, cam.right)) + Math.PI / 2, 0, 7); ctx.fill();
       }
       ctx.restore();
+    }
+  }
+
+  // ---------- alvos (modo Alvos) ----------
+  function drawTargets(now) {
+    for (const t of game.targets) {
+      const ring = [];
+      for (let i = 0; i < 40; i++) { const a = i / 40 * Math.PI * 2; ring.push(V(t.x + Math.cos(a) * t.r, t.y + Math.sin(a) * t.r, C.GZ - 0.02)); }
+      path(ring);
+      ctx.fillStyle = t.hit ? 'rgba(242,182,50,.55)' : 'rgba(255,255,255,.12)'; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = t.pts >= 5 ? '#f2b632' : t.pts >= 3 ? '#ffffff' : '#7fe3ff'; ctx.stroke();
+      const inner = ring.map(q => V(t.x + (q.x - t.x) * 0.55, t.y + (q.y - t.y) * 0.55, q.z)); path(inner); ctx.lineWidth = 1.5; ctx.stroke();
+      const c = P(V(t.x, t.y, C.GZ));
+      ctx.fillStyle = '#ffffff'; ctx.font = `800 ${Math.max(12, t.r * 0.9 * c.s)}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('+' + t.pts, c.x, c.y + 1);
     }
   }
 
@@ -434,13 +474,17 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   function draw(now) {
     drawSky(now); drawStands(now); drawFloodlights(); drawPitch(); drawBoards();
     drawNet(now);
+    drawTargets(now);
     const k = game.kicker, kj = k.pose(now), gj = game.keeper.j;
+    const wall = game.wall, wKit = game.turn === 'user' ? KITS.cpu : KITS.user;
+    const wallJ = wall ? wall.members.map((m, i) => wall.pose(i, now)) : [];
     const kKit = KITS[k.kit === 'cpu' ? 'cpu' : 'user'], gKit = game.turn === 'user' ? KITS.gkCpu : KITS.gkUser;
-    castShadows([{ j: kj, k: kKit, gk: false }, { j: gj, k: gKit, gk: true }]);
+    castShadows([{ j: kj, k: kKit, gk: false }, { j: gj, k: gKit, gk: true }].concat(wallJ.map(j => ({ j, k: wKit, gk: false }))));
     const items = [
       { z: P(V(0, 1, C.GZ)).z, draw: drawGoalFrame },
       { z: P(gj.pelvis).z, draw: () => drawFigure(gj, gKit, true) },
       { z: P(game.ball.p).z, draw: drawBall },
+      ...wallJ.map(j => ({ z: P(j.pelvis).z, draw: () => drawFigure(j, wKit, false) })),
       { z: P(kj.pelvis).z, draw: () => drawFigure(kj, kKit, false) }
     ];
     items.sort((a, b) => b.z - a.z).forEach(i => i.draw());
@@ -455,6 +499,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
     if (cv.clientWidth !== W || cv.clientHeight !== H) resize();
     game.update(dt);
+    setCam();
     excite = Math.max(0, excite - dt * 0.35);
     if (game.ball.live && !game.ball.held) { trail.push(V(game.ball.p.x, game.ball.p.y, game.ball.p.z)); if (trail.length > 9) trail.shift(); } else trail.length = 0;
     draw(game.now);

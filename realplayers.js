@@ -15,6 +15,7 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const smooth = (a, b, t) => { t = clamp((t - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   const plain = v => ({ x: v.x, y: v.y, z: v.z });
+  const tint = (m, c) => m.color.set(c).convertSRGBToLinear();
 
   function bonesOf(model) {
     const B = {};
@@ -68,7 +69,6 @@
       this.g = new T.Group(); this.g.add(this.model);
       this.B = bonesOf(this.model);
       this.mats = [];
-      const tint = (m, c) => m.color.set(c).convertSRGBToLinear();
       this.model.traverse(o => {
         if (!o.isMesh) return;
         o.frustumCulled = false; o.castShadow = true;
@@ -81,7 +81,7 @@
       });
       if (role === 'gk' && kit.gloves) {        // luvas de goleiro presas às mãos
         this.model.updateMatrixWorld(true);
-        const gm = new T.MeshStandardMaterial({ roughness: 0.6 }); tint(gm, kit.gloves); this.mats.push(gm);
+        const gm = new T.MeshStandardMaterial({ roughness: 0.6 }); tint(gm, kit.gloves); this.mats.push(gm); this.gloveMat = gm;
         for (const s of ['Left', 'Right']) {
           const hand = this.B[s + 'Hand'], mid = this.B[s + 'HandMiddle1'];
           const glove = new T.Mesh(new T.SphereGeometry(1, 16, 12), gm);
@@ -119,7 +119,7 @@
       const w = smooth(0, 0.22, ct);
       const [bx, bz] = rot(pr.ball.x, pr.ball.z), [ix, iz] = rot(pr.idleOff.x, pr.idleOff.z);
       this.g.rotation.y = yaw;
-      this.g.position.set(-bx + ix * (1 - w), 0, -bz + iz * (1 - w));
+      this.g.position.set(k.ball.x - bx + ix * (1 - w), 0, k.ball.z - bz + iz * (1 - w));
       this.pose({ idle: 1 - w, kick: w }, { idle: now % this.act.idle.getClip().duration, kick: clamp(ct, 0, pr.dur) });
     }
 
@@ -192,6 +192,18 @@
       this.handsPt = { x: (hl.x + hr.x) / 2, y: (hl.y + hr.y) / 2, z: (hl.z + hr.z) / 2 };
     }
 
+    recolor(kit) {           // troca o uniforme (perfil do jogador ou barreira do outro time)
+      for (const m of this.mats) {
+        if (/Shirt/.test(m.name)) tint(m, kit.shirt); else if (/Shorts/.test(m.name)) tint(m, kit.shorts); else if (/Socks/.test(m.name)) tint(m, kit.socks);
+      }
+      if (this.gloveMat && kit.gloves) tint(this.gloveMat, kit.gloves);
+    }
+    // jogador da barreira: parado de frente para a bola e subindo no pulo
+    syncWall(m, y) {
+      this.g.rotation.y = Math.atan2(m.f.x, m.f.z);
+      this.g.position.set(m.p.x, y, m.p.z);
+      this.pose({ idle: 1 }, { idle: 0.4 + m.delay * 10 });
+    }
     sync(obj, now) { if (this.role === 'gk') this.syncKeeper(obj, now); else this.syncKicker(obj, now); }
   }
 

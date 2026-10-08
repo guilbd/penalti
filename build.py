@@ -18,7 +18,7 @@ DOCS.mkdir()
 for name in PAGES:
     body = (ROOT / name).read_text(encoding="utf-8")
     (DOCS / name).write_text('<!doctype html>\n<html lang="pt-BR">\n' + body + "\n</html>\n", encoding="utf-8")
-for name in ["engine.js", "realplayers.js"]:
+for name in ["engine.js", "menu.js", "realplayers.js"]:
     shutil.copy(ROOT / name, DOCS / name)
 shutil.copytree(ROOT / "assets" / "web", DOCS / "assets" / "web")
 (DOCS / ".nojekyll").write_text("")
