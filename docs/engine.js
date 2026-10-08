@@ -150,7 +150,8 @@
           const n = mul(d, 1 / dl);
           p.x = q.x + n.x * m; p.y = q.y + n.y * m; p.z = q.z + n.z * m;
           const sp = len(v);
-          if (reflect(v, n, 0.35)) { v.x *= 0.8; v.y *= 0.8; v.z *= 0.8; b.w = mul(b.w, 0.3); if (!b.wallHit) emit('wall', sp); b.wallHit = true; }
+          if (reflect(v, n, 0.3)) { v.x *= 0.45; v.y *= 0.45; v.z *= 0.45;   // corpo amortece: a bola perde boa parte da velocidade
+            b.w = mul(b.w, 0.3); if (!b.wallHit) emit('wall', sp); b.wallHit = true; }
         }
       }
     }
@@ -214,6 +215,8 @@
     }
     return null;
   }
+  // velocidade do chute: força + evolução + um acréscimo pela distância (de longe ninguém chuta "colocado" devagar)
+  const shotSpeed = (power, dist, bonus) => 15 + 17 * power + (bonus || 0) + Math.max(0, dist - 12) * 0.6 * power;
   const shotSigma = (power, skill) => skill * (0.08 + 0.32 * power * power + 2.6 * Math.max(0, power - 0.82));
   function shotError(t, power, skill, chip) {
     if (chip) return { x: t.x + gauss() * 0.25 * skill, y: t.y + gauss() * 0.2 * skill };
@@ -350,12 +353,15 @@
   class Keeper {
     constructor() { this.x = 0; this.reset(0); }
     setPerks(reach, reflex) { this.vxMax = VX_MAX + 0.12 * reach; this.vyMax = VY_MAX + 0.06 * reach; this.handSpeed = HAND_SPEED + 0.4 * reflex; }
-    reset(now) { this.x = 0; this.dive = null; if (this.vxMax == null) this.setPerks(0, 0); this.theta = 0; this.capsPrev = null; this.capsPrevT = null; this.lastNow = now; this.update(now); }
+    reset(now) { this.x = 0; this.dive = null; this.readErr = null; if (this.readNoise == null) this.readNoise = 0; if (this.vxMax == null) this.setPerks(0, 0); this.theta = 0; this.capsPrev = null; this.capsPrevT = null; this.lastNow = now; this.update(now); }
     swayX(now) { return 0.12 * Math.sin(now * 1.7) + 0.04 * Math.sin(now * 4.1); }
     readyFeet(px, z) { return [V(px - 0.3, 0.06, z + 0.02), V(px + 0.3, 0.06, z + 0.02)]; }
     readyHands(hip) { return [add(hip, V(-0.46, 0.22, -0.34)), add(hip, V(0.46, 0.22, -0.34))]; }
     startDive(T, now) {
       if (this.dive) return;
+      this.dive = this.planDive(T, now);
+    }
+    planDive(T, now) {
       const hip0 = V(this.x + this.swayX(now), 0.84, C.KEEPER_Z);
       const Dx = T.x - hip0.x, Dy = T.y - hip0.y, dist = Math.hypot(Dx, Dy);
       const big = dist >= REACH * 0.9;
@@ -385,19 +391,27 @@
       const bd = norm(V(T.x - d.hipF.x, T.y - d.hipF.y, 0));
       d.thetaF = clamp(Math.atan2(bd.x, bd.y), -1.75, 1.75);
       if (!big) { d.thetaF *= 0.6 * clamp(dist / REACH, 0, 1); d.lateral = Math.abs(Dx) > 0.6; }   // defesa curta: corpo quase em pé
-      this.dive = d;
+      return d;
     }
     // previsão da bola (instante e ponto em que cruza a frente do goleiro): ajusta as mãos ou dispara um reflexo
     react(pr, now, wide) {
       const d = this.dive;
       if (d) {
-        const dx = pr.x - d.T.x, dy = pr.y - d.T.y, l = Math.hypot(dx, dy), k = l > ADJ_MAX ? ADJ_MAX / l : 1;
+        const ex = d.err ? d.err.x * 0.8 : 0, ey = d.err ? d.err.y * 0.8 : 0;
+        const dx = pr.x + ex - d.T.x, dy = pr.y + ey - d.T.y, l = Math.hypot(dx, dy), k = l > ADJ_MAX ? ADJ_MAX / l : 1;
         d.Tadj = V(d.T.x + dx * k, d.T.y + dy * k, d.T.z);
-      } else if (pr.t > 0.08) {
-        // alcance do reflexo: só perto do corpo, ou (goleiro do computador) o que der tempo de alcançar
+      } else if (pr.t > 0.04) {
+        // alcance do reflexo: só perto do corpo, ou (goleiro do computador) até onde o mergulho chega.
+        // Salta só quando o tempo do mergulho bate com a chegada da bola, senão cai antes dela passar.
         const hx = this.x + this.swayX(now), dist = Math.hypot(pr.x - hx, pr.y - 0.84);
-        const range = wide ? REACH + Math.min(2.6, this.vxMax * Math.max(0, pr.t - 0.12)) : REACH + 1.1;
-        if (dist < range) this.startDive(V(pr.x, pr.y, 0), now);
+        const range = wide ? REACH + 2.6 : REACH + 1.1;
+        if (dist < range) {
+          // leitura imperfeita da trajetória: o canto escolhido tem um erro que diminui com a bola perto
+          if (!this.readErr) this.readErr = V(gauss() * this.readNoise, gauss() * this.readNoise * 0.6, 0);
+          const k = clamp(pr.t / 0.6, 0.3, 1), e = mul(this.readErr, k);
+          const d = this.planDive(V(pr.x + e.x, clamp(pr.y + e.y, 0.15, 2.5), 0), now);
+          if (pr.t <= d.Td + 0.06) { d.err = e; this.dive = d; }
+        }
       }
     }
     canCatch() { return !this.dive || Math.abs(this.theta) < 0.7; }
@@ -572,9 +586,9 @@
 
   // ---------- dificuldade ----------
   const DIFF = {
-    easy: { name: 'Fácil', gkReact: 0.32, kSkill: 1.35, read: 0.12, noise: 0.95, stay: 0.14, react: 0.1, retarget: 0.15, chip: 0 },
-    medium: { name: 'Médio', gkReact: 0.25, kSkill: 1.0, read: 0.3, noise: 0.6, stay: 0.1, react: 0.04, retarget: 0.45, chip: 0.03 },
-    hard: { name: 'Difícil', gkReact: 0.19, kSkill: 0.72, read: 0.45, noise: 0.42, stay: 0.08, react: 0, retarget: 0.75, chip: 0.05 }
+    easy: { name: 'Fácil', gkReact: 0.32, gkRead: 1.0, kSkill: 1.35, read: 0.12, noise: 0.95, stay: 0.14, react: 0.1, retarget: 0.15, chip: 0 },
+    medium: { name: 'Médio', gkReact: 0.25, gkRead: 0.72, kSkill: 1.0, read: 0.3, noise: 0.6, stay: 0.1, react: 0.04, retarget: 0.45, chip: 0.03 },
+    hard: { name: 'Difícil', gkReact: 0.19, gkRead: 0.48, kSkill: 0.72, read: 0.45, noise: 0.42, stay: 0.08, react: 0, retarget: 0.75, chip: 0.05 }
   };
 
   // ---------- partida ----------
@@ -639,10 +653,11 @@
       const isFK = Math.hypot(spot.x, C.GZ - spot.z) > 16;
       const side = Math.abs(spot.x) > 1.5 ? Math.sign(spot.x) : (Math.random() < 0.5 ? -1 : 1);
       this.wall = isFK ? new Wall(spot, Math.hypot(spot.x, C.GZ - spot.z) < 22 ? 4 : 3, side) : null;
-      this.keeper.x = isFK ? -side * 0.55 : 0;                     // com barreira, o goleiro cobre o outro lado
+      this.keeper.x = isFK ? -side * 0.35 : 0;                     // com barreira, o goleiro cobre o outro lado
       this.keeper.update(this.now);
       this.targets = this.mode === 'targets' ? this.makeTargets() : [];
-      this.result = null; this.info = null; this.plan = null; this.power = 0;
+      this.result = null; this.info = null; this.plan = null; this.power = 0; this.pendingDive = null; this.passWallT = null;
+      this.keeper.readNoise = this.turn === 'user' ? this.D.gkRead : 0;
       if (this.turn === 'user') {
         this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'user', ball: spot });
         this.state = 'aim';
@@ -682,7 +697,7 @@
     simulateClear(c) {       // a bola passa pela barreira e entra (sem goleiro)?
       const b = new Ball(); b.reset(this.spot);
       const k = new Kicker(Object.assign({ t0: 0, wait: 0, ball: this.spot }, c));
-      const speed = 15 + 17 * c.power, spin = V(4 + 8 * c.power, -c.curve * 55, 0);
+      const speed = shotSpeed(c.power, Math.hypot(this.spot.x, C.GZ - this.spot.z), 0), spin = V(4 + 8 * c.power + 28 * Math.abs(c.curve), -c.curve * 55, 0);
       b.v = solveShot(b.p, c.target, speed, spin); b.w = spin; b.live = true;
       const w = new Wall(this.spot, this.wall.n, this.wall.side); w.members = this.wall.members.map(m => Object.assign({}, m)); w.jump(0);
       for (let t = 0; t < 2.5; t += 1 / 240) { stepBall(b, 1 / 240, null, t, () => {}, w); if (b.goal) return true; if (b.wallHit || b.v.z < 0) return false; }
@@ -729,6 +744,11 @@
     dive() {
       if (this.turn !== 'cpu' || this.keeper.dive || (this.state !== 'runup' && this.state !== 'flight')) return;
       const k = this.kicker;
+      if (this.wall) {        // falta: a bola demora ~1 s; o goleiro guarda o canto escolhido e salta na hora certa
+        if (!this.pendingDive) { this.memory.dives.push(Math.sign(this.aim.x)); this.emit('dive'); }
+        this.pendingDive = { x: this.aim.x, y: this.aim.y };          // dá para trocar de canto até o salto
+        return;
+      }
       if (this.state === 'runup' && this.now < k.contactAt - 0.28 && Math.random() < this.D.retarget) {
         const s = this.aim.x > 0.6 ? -1 : this.aim.x < -0.6 ? 1 : (Math.random() < 0.5 ? -1 : 1);
         k.shotTarget = { x: s * rand(1.9, 3.0), y: rand(0.3, 1.5) };
@@ -740,8 +760,10 @@
     launch() {
       const k = this.kicker;
       const tgt = shotError(k.shotTarget || k.target, k.power, k.skill, k.chip);
-      const speed = k.chip ? rand(12, 13.5) : 15 + 17 * k.power + k.speedBonus;
-      const spin = k.chip ? V(-30, 0, 0) : V(4 + 8 * k.power, -k.curve * 55 * k.curveMul, 0);
+      const dist = Math.hypot(this.ball.p.x, C.GZ - this.ball.p.z);
+      const speed = k.chip ? rand(12, 13.5) + Math.max(0, dist - 12) * 0.35 : shotSpeed(k.power, dist, k.speedBonus);
+      // chute com efeito tem o eixo de giro inclinado: além de curvar, a bola cai (topspin)
+      const spin = k.chip ? V(-30, 0, 0) : V(4 + 8 * k.power + 28 * Math.abs(k.curve), -k.curve * 55 * k.curveMul, 0);
       if (this.wall) this.wall.jump(this.now);
       const b = this.ball;
       b.v = solveShot(b.p, tgt, speed, spin); b.w = spin; b.live = true;
@@ -759,11 +781,22 @@
       // reflexo do goleiro: depois do tempo de reação, prevê onde a bola cruza e reage
       if (st === 'flight' && this.ball.live && !this.ball.touched && !this.ball.held) {
         const react = this.turn === 'user' ? this.D.gkReact : 0.22 - 0.015 * this.perks.reflex;
-        if (now - this.flightT0 >= react && now - (this.lastPred || -9) >= 1 / 30) {
+        if (this.wall && this.passWallT == null) {
+          const s = this.spot, b = this.ball.p, f = norm(V(-s.x, 0, C.GZ - s.z));
+          if ((b.x - s.x) * f.x + (b.z - s.z) * f.z > 9.4) this.passWallT = now;
+        }
+        const seen = !this.wall || (this.passWallT != null && now - this.passWallT >= 0.08);
+        if (seen && now - this.flightT0 >= react && now - (this.lastPred || -9) >= 1 / 30) {
           this.lastPred = now;
           const pr = predictCross(this.ball, C.KEEPER_Z - 0.3);
           if (pr) this.keeper.react(pr, now, this.turn === 'user');
         }
+      }
+      if (this.pendingDive && !this.keeper.dive && st === 'flight' && this.ball.live && !this.ball.touched && now - (this.lastPend || -9) >= 1 / 120) {
+        this.lastPend = now;
+        const pr = predictCross(this.ball, C.KEEPER_Z - 0.3), pd = this.pendingDive;
+        const d = this.keeper.planDive(V(pd.x, pd.y, 0), now);
+        if (!pr || pr.t <= d.Td + 0.05) { this.keeper.dive = d; this.pendingDive = null; }
       }
       if (st === 'charging') this.power = Math.min(1, (now - this.chargeT0) / 1.05);
       if ((st === 'runup' || st === 'flight') && this.plan && !this.keeper.dive && now >= this.plan.at) this.keeper.startDive(this.plan.T, now);
@@ -1023,6 +1056,7 @@
       el.chip.classList.toggle('on', game.chip);
       let help = '';
       if (playing && mine && (st === 'aim' || st === 'charging')) help = opt.helpShoot || 'Mire com o mouse. Segure o clique (ou Espaço) para carregar a força e solte para chutar. Q/E ou roda do mouse: efeito. C: cavadinha.';
+      else if (playing && !mine && game.wall && !game.keeper.dive && (st === 'runup' || st === 'flight')) help = game.pendingDive ? 'Canto escolhido. O goleiro salta na hora certa; você ainda pode trocar.' : 'Escolha o canto onde a bola vai entrar. O goleiro espera e salta no tempo certo.';
       else if (playing && !mine && st === 'runup' && !game.keeper.dive) help = opt.helpKeep || 'Mova o mouse até o canto e clique para saltar. Se saltar cedo demais, o batedor pode trocar de lado.';
       el.help.textContent = help; el.help.hidden = !help;
       if (game.info && (st === 'flight' || st === 'result')) {
