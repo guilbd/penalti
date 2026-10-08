@@ -216,7 +216,7 @@
     return null;
   }
   // velocidade do chute: força + evolução + um acréscimo pela distância (de longe ninguém chuta "colocado" devagar)
-  const shotSpeed = (power, dist, bonus) => 15 + 17 * power + (bonus || 0) + Math.max(0, dist - 12) * 0.6 * power;
+  const shotSpeed = (power, dist, bonus) => 15 + 17 * power + (bonus || 0) + Math.max(0, dist - 12) * 0.6 * (0.55 + 0.45 * power);
   const shotSigma = (power, skill) => skill * (0.08 + 0.32 * power * power + 2.6 * Math.max(0, power - 0.82));
   function shotError(t, power, skill, chip) {
     if (chip) return { x: t.x + gauss() * 0.25 * skill, y: t.y + gauss() * 0.2 * skill };

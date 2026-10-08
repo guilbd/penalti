@@ -572,6 +572,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   function say(t) { toast.textContent = t; toast.hidden = false; toastT = performance.now(); }
   function local(e) { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top, t: performance.now() }; }
   const goalBottomY = () => P(V(0, 0, C.GZ)).y;
+  const scr = window.penaltiScr = (x, y, z) => P(V(x, y, z));
   cv.addEventListener('pointerdown', e => {
     ui.sound.init();
     if (swipe || !e.isPrimary) return;
@@ -602,15 +603,25 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const S = pts[0], E = pts[pts.length - 1], dx = E.x - S.x, dy = E.y - S.y, L = Math.hypot(dx, dy);
     if (L < 40 || dy > -25) { say('Arraste para cima, em direção ao gol'); return; }
     // força: velocidade do dedo em alturas de tela por segundo (trecho final e média)
-    let i = pts.length - 1; while (i > 0 && E.t - pts[i - 1].t < 90) i--;
-    const A = pts[i], vEnd = Math.hypot(E.x - A.x, E.y - A.y) / Math.max(16, E.t - A.t) * 1000 / H;
-    const vAvg = L / Math.max(16, E.t - S.t) * 1000 / H;
-    const power = Math.max(0.05, Math.min(1, (Math.max(vEnd, vAvg) - 0.8) / 3.2));
-    // mira: onde o dedo soltou; se soltou antes do gol, prolonga o traço até a meia altura
-    const gb = goalBottomY();
+    // força: pico de velocidade do dedo, medido em "distâncias bola→gol da tela" por segundo
+    // (um traço curvo por cima da barreira é mais longo e mais lento, mas não deve virar chute fraco)
+    const gTop = scr(0, C.GH, C.GZ).y, gBot = scr(0, 0, C.GZ).y, span = Math.max(60, S.y - (gTop + gBot) / 2);
+    const vAvg = L / Math.max(16, E.t - S.t) * 1000;
+    // força pela velocidade em linha reta (início→fim): traço curvo e calmo = chute colocado; reto e rápido = chute forte
+    const vn = vAvg / span;
+    // no dedo não existe "segurar demais": o arrasto mais rápido dá a força máxima sem a penalidade de isolar a bola
+    const power = Math.max(0.3, Math.min(0.86, 0.45 + 0.125 * (vn - 2.4)));
+    // mira: último ponto do traço dentro do gol; se o dedo passou do gol no embalo, não manda a bola para o alto
+    const ga = scr(C.GW / 2, 0, C.GZ).x, gb2 = scr(-C.GW / 2, 0, C.GZ).x, xl = Math.min(ga, gb2), xr = Math.max(ga, gb2), mg = (gBot - gTop) * 0.12;
+    const inside = q => q.x >= xl - mg && q.x <= xr + mg && q.y >= gTop - mg && q.y <= gBot + mg;
+    let lastIn = -1;
+    for (let q = 0; q < pts.length; q++) if (inside(pts[q])) lastIn = q;
     let tx = E.x, ty = E.y;
-    if (E.y > gb) { const my = P(V(0, 1.0, C.GZ)).y, k = (S.y - my) / (S.y - E.y); tx = S.x + dx * k; ty = my; }
+    let capY = false;
+    if (lastIn >= 0 && !inside(E)) { tx = pts[lastIn].x; ty = pts[lastIn].y; capY = true; }
+    else if (lastIn < 0 && E.y > gBot) { const my = scr(0, 1.0, C.GZ).y, k = (S.y - my) / (S.y - E.y); tx = S.x + dx * k; ty = my; }
     const T = toGoalLocal(tx, ty); if (!T) return;
+    if (capY) T.y = Math.min(T.y, C.GH - 0.25);          // passou do gol no embalo: mira fica abaixo do travessão
     // efeito: quanto o traço se afasta da reta (barriga para a esquerda = curva para a direita)
     const cx = dx / L, cy = dy / L; let dev = 0;
     for (const p of pts) { const d = (p.x - S.x) * -cy + (p.y - S.y) * cx; if (Math.abs(d) > Math.abs(dev)) dev = d; }
