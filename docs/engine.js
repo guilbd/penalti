@@ -591,6 +591,8 @@
     hard: { name: 'Difícil', gkReact: 0.19, gkRead: 0.48, kSkill: 0.72, read: 0.45, noise: 0.42, stay: 0.08, react: 0, retarget: 0.75, chip: 0.05 }
   };
 
+  const OVER_WALL_READ = 0.44;    // erro de leitura do goleiro quando a bola passa por cima da barreira
+
   // ---------- partida ----------
   class Game {
     constructor() {
@@ -656,7 +658,7 @@
       this.keeper.x = isFK ? -side * 0.35 : 0;                     // com barreira, o goleiro cobre o outro lado
       this.keeper.update(this.now);
       this.targets = this.mode === 'targets' ? this.makeTargets() : [];
-      this.result = null; this.info = null; this.plan = null; this.power = 0; this.pendingDive = null; this.passWallT = null;
+      this.result = null; this.info = null; this.plan = null; this.power = 0; this.pendingDive = null; this.passWallT = null; this.overWall = false;
       this.keeper.readNoise = this.turn === 'user' ? this.D.gkRead : 0;
       if (this.turn === 'user') {
         this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'user', ball: spot });
@@ -783,9 +785,14 @@
         const react = this.turn === 'user' ? this.D.gkReact : 0.22 - 0.015 * this.perks.reflex;
         if (this.wall && this.passWallT == null) {
           const s = this.spot, b = this.ball.p, f = norm(V(-s.x, 0, C.GZ - s.z));
-          if ((b.x - s.x) * f.x + (b.z - s.z) * f.z > 9.4) this.passWallT = now;
+          if ((b.x - s.x) * f.x + (b.z - s.z) * f.z > 9.4) {
+            this.passWallT = now;
+            // passou POR CIMA da barreira: a bola tende ao canto do lado dela, o goleiro lê melhor e reage sem atraso
+            this.overWall = b.y > 1.9;
+            if (this.overWall) this.keeper.readNoise *= OVER_WALL_READ;
+          }
         }
-        const seen = !this.wall || (this.passWallT != null && now - this.passWallT >= 0.08);
+        const seen = !this.wall || (this.passWallT != null && now - this.passWallT >= (this.overWall ? 0 : 0.08));
         if (seen && now - this.flightT0 >= react && now - (this.lastPred || -9) >= 1 / 30) {
           this.lastPred = now;
           const pr = predictCross(this.ball, C.KEEPER_Z - 0.3);
