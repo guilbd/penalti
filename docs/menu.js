@@ -7,7 +7,8 @@
   const DEF = {
     coins: 0, xp: 0, played: 0,
     upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 },
-    kit: { shirt: '#f2c230', shorts: '#1d3f8f', socks: '#f4f4f4', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'lisa', backName: '' },
+    // uniforme padrão: Next Player 2.2 (preto com detalhes verdes, nome nas costas)
+    kit: { shirt: '#f2c230', shorts: '#17181c', socks: '#17181c', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'nextplayer', backName: 'HULK' },
     gk: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', gloves: '#f5f5f5' },
     best: { targets: 0 }
   };
