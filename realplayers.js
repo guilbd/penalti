@@ -96,7 +96,7 @@
     for (let i = 0; i < n; i++) { mesh.boneTransform(i, v); mesh.localToWorld(v); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; top = Math.max(top, v.y); bot = Math.min(bot, v.y); }
     return { P, top, bot };
   }
-  function nextPlayerShirtTexture(mesh, srcMap, rest, backName) {
+  function nextPlayerShirtTexture(mesh, srcMap, rest, backName, longSleeve) {
     const src = srcMap.image, S = src.width;
     const c = document.createElement('canvas'); c.width = c.height = S;
     const g = c.getContext('2d'); g.drawImage(src, 0, 0);
@@ -112,7 +112,7 @@
     const color = (x, y, z, out) => {
       const ax = Math.abs(x), front = z > 0, dTop = top - y;
       // manga curta: o modelo não tem braço sob a manga longa, então a parte de baixo dela vira "pele"
-      if (ax > 0.37 * k) { out[0] = NP.skin[0]; out[1] = NP.skin[1]; out[2] = NP.skin[2]; out[3] = 1; out.skin = true; return; }
+      if (!longSleeve && ax > 0.37 * k) { out[0] = NP.skin[0]; out[1] = NP.skin[1]; out[2] = NP.skin[2]; out[3] = 1; out.skin = true; return; }
       out.skin = false;
       let c = NP.base;
       // losangos discretos no tronco
@@ -123,7 +123,7 @@
         const yb = y - bot;
         if (yb < 0.24 * k && Math.abs(ax - (0.165 * k + yb * 0.18)) < 0.005 * k) c = NP.greenDark;
       }
-      if (ax > 0.33 * k) c = NP.green;                                                     // punho
+      if (longSleeve ? ax > 0.63 * k : ax > 0.33 * k) c = NP.green;                       // punho (no pulso, na camisa de goleiro)
       if (ax > 0.07 * k && ax < 0.27 * k && dTop < (front ? 0.025 * k + (ax - 0.07 * k) * 0.28 : 0.075 * k)) c = NP.green;   // ombros
       if (front && ax < 0.11 * k) {                                                       // gola V: miolo de pele, faixa verde
         const vEdge = 0.11 * k - (ax / (0.085 * k)) * 0.1 * k;
@@ -297,13 +297,13 @@
 
     applyStyle(kit) {        // camisa lisa (cor) ou modelo estampado "Next Player 2.2"
       const m = this.shirt && this.shirt.material; if (!m) return;
-      const key = kit.style === 'nextplayer' ? 'np:' + (kit.backName || '') : 'lisa';
+      const key = kit.style === 'nextplayer' ? 'np:' + (kit.backName || '') + (kit.longSleeve ? '|longa' : '') : 'lisa';
       if (this.styleKey === key) return;
       this.styleKey = key;
       if (kit.style === 'nextplayer') {
         // textura compartilhada entre jogadores (o modelo é o mesmo): gera uma vez por nome
-        const ck = kit.backName || '';
-        if (!NP_CACHE[ck]) NP_CACHE[ck] = nextPlayerShirtTexture(this.shirt, this.shirtMap0, this.shirtRest, kit.backName);
+        const long = !!kit.longSleeve, ck = (kit.backName || '') + (long ? '|longa' : '');
+        if (!NP_CACHE[ck]) NP_CACHE[ck] = nextPlayerShirtTexture(this.shirt, this.shirtMap0, this.shirtRest, kit.backName, long);
         m.map = NP_CACHE[ck]; m.color.set(0xffffff); m.alphaTest = 0.5;
       } else { m.map = this.shirtMap0; m.alphaTest = 0; tint(m, kit.shirt); }
       m.needsUpdate = true;

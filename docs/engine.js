@@ -527,10 +527,21 @@
       const toPost = norm(sub(post, ball)), c = add(ball, mul(toPost, 9.15));
       let perp = norm(V(-toPost.z, 0, toPost.x));
       if (dot(perp, sub(V(0, 0, C.GZ), c)) < 0) perp = mul(perp, -1);              // os demais vão para o centro
+      this.c0 = c; this.perp = perp; this.f = mul(toPost, -1); this.offset = 0;
+      // sorteia pulo de até 5 jogadores (o goleiro pode mudar a quantidade antes da cobrança)
+      this.pool = [];
+      for (let i = 0; i < Wall.MAX; i++) this.pool.push({ delay: rnd(0, 0.08), h: rnd(0.3, 0.42) });
+      this.layout(0, n);
+    }
+    // reposiciona: offset em metros ao longo da barreira (positivo = em direção ao centro do gol)
+    layout(offset, n) {
+      this.offset = clamp(offset, -2.5, 2.5); this.n = clamp(Math.round(n), Wall.MIN, Wall.MAX);
       this.members = [];
-      for (let i = 0; i < n; i++) this.members.push({ p: add(c, mul(perp, (i - 0.4) * 0.5)), f: mul(toPost, -1), delay: rnd(0, 0.08), h: rnd(0.3, 0.42) });
+      for (let i = 0; i < this.n; i++) this.members.push(Object.assign({ p: add(this.c0, mul(this.perp, (i - 0.4) * 0.5 + this.offset)), f: this.f }, this.pool[i]));
     }
     jump(now) { if (this.jumpT == null) this.jumpT = now + 0.05; }
+    static get MIN() { return 2; }
+    static get MAX() { return 5; }
     jumpY(m, now) {
       if (this.jumpT == null) return 0;
       const u = (now - this.jumpT - m.delay) / 0.5;
@@ -594,6 +605,33 @@
   };
 
   const OVER_WALL_READ = 0.44;    // erro de leitura do goleiro quando a bola passa por cima da barreira
+
+  // logo Next Player desenhado em vetor (placas e camisa): escudo, figura, "NEXT PLAYER" e U verde vazado
+  function drawNextPlayerLogo(g, w, h, opts) {
+    const o = Object.assign({ text: '#fff', u: '#2bb52b' }, opts);
+    g.save(); g.lineWidth = h * 0.07; g.strokeStyle = o.u;
+    g.beginPath(); g.moveTo(w * 0.52, h * 0.12); g.lineTo(w * 0.52, h * 0.62); g.quadraticCurveTo(w * 0.52, h * 0.92, w * 0.7, h * 0.92); g.quadraticCurveTo(w * 0.88, h * 0.92, w * 0.88, h * 0.62); g.lineTo(w * 0.88, h * 0.12); g.stroke(); g.restore();
+    const sx = w * 0.04, sw = w * 0.26, sy = h * 0.1, sh = h * 0.8;
+    const gr = g.createLinearGradient(sx, sy, sx + sw, sy + sh); gr.addColorStop(0, '#e6f23a'); gr.addColorStop(1, '#22a83a');
+    const shield = (inset, fill) => { g.beginPath(); g.moveTo(sx + inset, sy + inset); g.quadraticCurveTo(sx + sw / 2, sy + inset - sh * 0.08, sx + sw - inset, sy + inset); g.lineTo(sx + sw - inset, sy + sh * 0.45); g.quadraticCurveTo(sx + sw - inset, sy + sh * 0.8, sx + sw / 2, sy + sh - inset); g.quadraticCurveTo(sx + inset, sy + sh * 0.8, sx + inset, sy + sh * 0.45); g.closePath(); g.fillStyle = fill; g.fill(); };
+    shield(0, gr); shield(sw * 0.13, '#111');
+    g.fillStyle = gr; g.beginPath(); g.arc(sx + sw / 2, sy + sh * 0.33, sw * 0.12, 0, 7); g.fill();
+    g.lineWidth = sw * 0.13; g.strokeStyle = gr; g.lineCap = 'round'; g.beginPath(); g.moveTo(sx + sw * 0.25, sy + sh * 0.38); g.quadraticCurveTo(sx + sw / 2, sy + sh * 0.78, sx + sw * 0.75, sy + sh * 0.38); g.stroke();
+    g.fillStyle = o.text; g.font = `italic 900 ${h * 0.32}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`; g.textBaseline = 'alphabetic'; g.textAlign = 'left';
+    g.fillText('NEXT', w * 0.32, h * 0.47, w * 0.6); g.fillText('PLAYER', w * 0.32, h * 0.84, w * 0.62);
+  }
+  // placa de publicidade Next Player: preta com logo, ou verde com o nome
+  function paintNextPlayerBoard(g, w, h, variant) {
+    if (variant % 2 === 0) {
+      g.fillStyle = '#0d0f0d'; g.fillRect(0, 0, w, h);
+      const lw = h * 2.0, lh = h * 0.92; g.save(); g.translate((w - lw) / 2, (h - lh) / 2); drawNextPlayerLogo(g, lw, lh); g.restore();
+    } else {
+      const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#1f8f2a'); gr.addColorStop(0.5, '#2bb52b'); gr.addColorStop(1, '#1f8f2a');
+      g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#0d0f0d'; g.font = `italic 900 ${h * 0.62}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('NEXT PLAYER', w / 2, h * 0.54, w * 0.9);
+    }
+  }
 
   // ---------- partida ----------
   class Game {
@@ -670,8 +708,15 @@
       this.result = null; this.info = null; this.plan = null; this.power = 0; this.pendingDive = null; this.passWallT = null; this.overWall = false;
       this.sentDive = null; this.localOutcome = null; this.remoteResult = null;
       this.keeper.readNoise = this.turn === 'user' && !this.online ? this.D.gkRead : 0;
-      if (this.online) this.online.send('ready', { idx: this.kickIndex });
-      if (this.turn === 'user') {
+      // goleiro (usuário) numa falta: primeiro ajusta a barreira; o "pronto" sai quando ele confirmar
+      const setupWall = this.turn === 'cpu' && !!this.wall;
+      if (this.online && !setupWall) this.online.send('ready', { idx: this.kickIndex });
+      if (setupWall) {
+        this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'cpu', ball: spot });
+        this.aim = { x: 0, y: 1.0 };
+        this.state = 'wallSetup'; this.wallSetupT = this.now;
+      } else if (this.turn === 'user') {
+        const wl = this.inbox['wall:' + this.kickIndex]; if (wl && this.wall) this.wall.layout(wl.offset, wl.n);
         this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'user', ball: spot });
         // online: só chuta quando o goleiro do outro lado também estiver pronto para esta cobrança
         this.state = this.online && !this.inbox['ready:' + this.kickIndex] ? 'waitReady' : 'aim';
@@ -719,7 +764,7 @@
       const k = new Kicker(Object.assign({ t0: 0, wait: 0, ball: this.spot }, c));
       const speed = shotSpeed(c.power, Math.hypot(this.spot.x, C.GZ - this.spot.z), 0), spin = V(4 + 8 * c.power + 28 * Math.abs(c.curve), -c.curve * 55, 0);
       b.v = solveShot(b.p, c.target, speed, spin); b.w = spin; b.live = true;
-      const w = new Wall(this.spot, this.wall.n, this.wall.side); w.members = this.wall.members.map(m => Object.assign({}, m)); w.jump(0);
+      const w = new Wall(this.spot, this.wall.n, this.wall.side); w.members = this.wall.members.map(m => Object.assign({}, m)); w.n = this.wall.n; w.jump(0);
       for (let t = 0; t < 2.5; t += 1 / 240) { stepBall(b, 1 / 240, null, t, () => {}, w); if (b.goal) return true; if (b.wallHit || b.v.z < 0) return false; }
       return false;
     }
@@ -768,8 +813,25 @@
       return { tgt, speed, spin };
     }
     // ---------- eventos vindos do adversário (partida online) ----------
+    moveWall(d) { if (this.state === 'wallSetup' && this.wall) { this.wall.layout(this.wall.offset + d, this.wall.n); this.emit('wallmove'); } }
+    wallCount(d) { if (this.state === 'wallSetup' && this.wall) { this.wall.layout(this.wall.offset, this.wall.n + d); this.emit('wallmove'); } }
+    confirmWall() {
+      if (this.state !== 'wallSetup') return;
+      if (this.online) {
+        this.online.send('ready', { idx: this.kickIndex, wall: { offset: this.wall.offset, n: this.wall.n } });
+        this.state = 'waitRemote';
+        const early = this.inbox['shot:' + this.kickIndex];
+        if (early) this.remoteShot(early);
+      } else {
+        this.kicker = new Kicker(Object.assign({ t0: this.now, wait: 0.9, kit: 'cpu', ball: this.spot }, this.cpuFreeKick()));
+        this.state = 'runup';
+      }
+      this.emit('wallset');
+    }
     remoteReady(m) {
       if (!this.online) return;
+      if (m.wall && this.wall && m.idx === this.kickIndex) this.wall.layout(m.wall.offset, m.wall.n);   // barreira ajustada pelo goleiro adversário
+      else if (m.wall) this.inbox['wall:' + m.idx] = m.wall;
       this.inbox['ready:' + m.idx] = true;
       if (this.state === 'waitReady' && m.idx === this.kickIndex) this.state = 'aim';
     }
@@ -857,6 +919,7 @@
         const d = this.sentDive = this.keeper.dive;
         this.online.send('dive', { idx: this.kickIndex, x: d.T.x, y: d.T.y, tRel: d.t0 - k.contactAt });
       }
+      if (st === 'wallSetup' && now - this.wallSetupT > 25) this.confirmWall();     // não trava a partida
       if (st === 'charging') this.power = Math.min(1, (now - this.chargeT0) / 1.05);
       if ((st === 'runup' || st === 'flight') && this.plan && !this.keeper.dive && now >= this.plan.at) this.keeper.startDive(this.plan.T, now);
       if (st === 'runup' && now >= k.contactAt) this.launch();
@@ -1018,6 +1081,18 @@
     const charge = document.createElement('div'); charge.className = 'charge'; charge.hidden = true;
     charge.innerHTML = '<span id="chargeLbl">Chute carregado</span><div class="cb"><i id="chargeFill"></i></div>';
     (document.querySelector('.hud') || document.body).appendChild(charge);
+    const wp = document.createElement('div'); wp.className = 'wallpanel'; wp.hidden = true;
+    wp.innerHTML = '<div class="wp-t">Ajuste a barreira</div><div class="wp-row"><button type="button" data-w="left" aria-label="Mover barreira para a esquerda">◀</button><button type="button" data-w="right" aria-label="Mover barreira para a direita">▶</button><button type="button" data-w="minus" aria-label="Tirar um jogador">− jogador</button><button type="button" data-w="plus" aria-label="Colocar um jogador">+ jogador</button><button type="button" class="wp-ok" data-w="ok">Pronto</button></div><div class="wp-h">Teclado: ← → move · ↑ ↓ jogadores · Enter confirma</div>';
+    (document.querySelector('.hud') || document.body).appendChild(wp);
+    // ◀ ▶ seguem a tela: a câmera do goleiro pode estar atrás do gol (3D) ou atrás da bola
+    const wallDir = d => { const c = opt.screenDir ? opt.screenDir(game.wall) : 1; game.moveWall(d * 0.25 * c); };
+    wp.addEventListener('click', e => {
+      const b = e.target.closest('[data-w]'); if (!b) return; sound.init();
+      ({ left: () => wallDir(-1), right: () => wallDir(1), minus: () => game.wallCount(-1), plus: () => game.wallCount(1), ok: () => game.confirmWall() })[b.dataset.w]();
+    });
+    const wcss = document.createElement('style');
+    wcss.textContent = '.wallpanel{position:absolute;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel);border-top:3px solid var(--gold);padding:10px 12px;pointer-events:auto;font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;max-width:calc(100% - 32px);box-sizing:border-box;text-align:center}.wp-t{font-weight:800;font-size:18px;margin-bottom:8px}.wp-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.wallpanel button{font:700 16px var(--display);letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--line);padding:10px 14px;min-height:44px;cursor:pointer}.wallpanel .wp-ok{background:var(--gold);color:#1a1406;border-color:var(--gold)}.wallpanel button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}.wp-h{font-family:var(--body);text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted);margin-top:6px}@media (pointer:coarse){.wp-h{display:none}}';
+    document.head.appendChild(wcss);
     const rewardsEl = document.createElement('div'); rewardsEl.className = 'rewards';
     el.overScore.after(rewardsEl);
     const begin = () => {
@@ -1089,6 +1164,13 @@
     root.addEventListener('keydown', e => {
       if (e.repeat) return;
       const k = e.key.toLowerCase();
+      if (game.state === 'wallSetup') {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); wallDir(-1); return; }
+        if (e.key === 'ArrowRight') { e.preventDefault(); wallDir(1); return; }
+        if (e.key === 'ArrowUp') { e.preventDefault(); game.wallCount(1); return; }
+        if (e.key === 'ArrowDown') { e.preventDefault(); game.wallCount(-1); return; }
+        if (e.key === 'Enter') { e.preventDefault(); game.confirmWall(); return; }
+      }
       if (k === 'q') game.adjustCurve(-0.25);
       else if (k === 'e') game.adjustCurve(0.25);
       else if (k === 'c') game.toggleChip();
@@ -1131,6 +1213,8 @@
       else if (playing && mine && (st === 'aim' || st === 'charging')) help = opt.helpShoot || 'Mire com o mouse. Segure o clique (ou Espaço) para carregar a força e solte para chutar. Q/E ou roda do mouse: efeito. C: cavadinha.';
       else if (playing && !mine && game.wall && !game.keeper.dive && (st === 'runup' || st === 'flight')) help = game.pendingDive ? 'Canto escolhido. O goleiro salta na hora certa; você ainda pode trocar.' : 'Escolha o canto onde a bola vai entrar. O goleiro espera e salta no tempo certo.';
       else if (playing && !mine && st === 'runup' && !game.keeper.dive) help = opt.helpKeep || 'Mova o mouse até o canto e clique para saltar. Se saltar cedo demais, o batedor pode trocar de lado.';
+      wp.hidden = !(playing && st === 'wallSetup');
+      if (!wp.hidden) help = '';
       el.help.textContent = help; el.help.hidden = !help;
       if (game.info && (st === 'flight' || st === 'result')) {
         el.info.textContent = game.info.chip ? `Cavadinha · ${game.info.kmh} km/h` : `Bola ${game.info.kmh} km/h · pé ${game.info.foot.toFixed(1)} m/s`;
@@ -1143,6 +1227,6 @@
 
   root.PK = {
     C, V, add, sub, mul, dot, cross, len, norm, lerp, lerpN, clamp, smooth, UP, rightOf, rotVec, ICO,
-    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
+    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, drawNextPlayerLogo, paintNextPlayerBoard, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
   };
 })(typeof window !== 'undefined' ? window : globalThis);

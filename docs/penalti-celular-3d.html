@@ -313,15 +313,11 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: glow, color: 0xfff1d8, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, fog: false }));
     s.position.set(x, 37, z); s.scale.set(26, 26, 1); scene.add(s);
   }
-  const ADS = [['#0b3d91', '#ffffff', 'ARENA NOTURNA'], ['#c8102e', '#ffffff', 'BOLA NA REDE'], ['#f2b632', '#14110a', 'PÊNALTI MOBILE'], ['#0f6b3f', '#ffffff', 'COPA DA CASA'], ['#14182a', '#f2b632', 'GOL DE PLACA']];
+  const ADS = [0, 1];
   const boardMats = [];
   function paintAds() {
-    boardMats.forEach(({ mat, ad }) => {
-      const c = makeCanvas(512, 84, (g, w, h) => {
-        const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, ad[0]); gr.addColorStop(1, '#000'); g.fillStyle = ad[0]; g.fillRect(0, 0, w, h);
-        g.globalAlpha = 0.25; g.fillStyle = gr; g.fillRect(0, h * 0.6, w, h); g.globalAlpha = 1;
-        g.fillStyle = ad[1]; g.font = `800 56px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(ad[2], w / 2, h / 2 + 3, w * 0.9);
-      });
+    boardMats.forEach(({ mat }, i) => {
+      const c = makeCanvas(512, 84, (g, w, h) => PK.paintNextPlayerBoard(g, w, h, i));   // placas Next Player
       if (mat.map) mat.map.dispose(); mat.map = tex(c); mat.needsUpdate = true;
     });
   }
@@ -436,7 +432,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       }
     }).catch(e => console.warn('Jogadores realistas indisponíveis, usando bonecos simples.', e));
   }
-  const wallBodies = [0, 1, 2, 3].map(() => { const b = new Body(KITS.cpu, false); b.num.visible = false; b.g.visible = false; return b; });
+  const wallBodies = [0, 1, 2, 3, 4].map(() => { const b = new Body(KITS.cpu, false); b.num.visible = false; b.g.visible = false; return b; });
   window.penaltiWall = wallBodies;
   if (window.PKReal && THREE.GLTFLoader && THREE.SkeletonUtils) {
     PKReal.load('assets/web/').then(rp => {
@@ -523,7 +519,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     return ray.ray.intersectPlane(goalPlane, hit) ? { x: hit.x, y: hit.y } : null;
   }
   const ui = PK.bindUI(game, {
-    canvas: cv, toGoal, pointer: false,
+    canvas: cv, toGoal, pointer: false, screenDir: w => { const r = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0); return Math.sign(w.perp.x * r.x + w.perp.z * r.z) || 1; },
     helpShoot: 'Arraste o dedo da bola até o ponto do gol e solte. Mais rápido, mais forte. Traço curvo dá efeito.',
     helpKeep: 'Toque ou arraste até o canto e solte para saltar. Saltar cedo demais denuncia o lado.'
   });

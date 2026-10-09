@@ -162,7 +162,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const t = (C.GZ - cam.pos.z) / d.z;
     return t > 0 ? add(cam.pos, mul(d, t)) : null;
   }
-  const ui = PK.bindUI(game, { canvas: cv, toGoal });
+  const ui = PK.bindUI(game, { canvas: cv, toGoal, screenDir: w => Math.sign(dot(w.perp, cam.right)) || 1 });
 
   // ---------- texturas geradas ----------
   function makeCanvas(w, h, fn) { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'), w, h); return c; }
@@ -189,7 +189,9 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   });
   const crowdPat = ctx.createPattern(crowdTex, 'repeat'), grassPat = ctx.createPattern(grassTex, 'repeat');
   const NET = PK.netLines();
-  const ADS = [['#0b3d91', '#ffffff', 'ARENA NOTURNA'], ['#c8102e', '#ffffff', 'BOLA NA REDE'], ['#f2b632', '#14110a', 'PÊNALTI 2D'], ['#0f6b3f', '#ffffff', 'COPA DA CASA'], ['#14182a', '#f2b632', 'GOL DE PLACA']];
+  // placas de publicidade Next Player (preta com logo / verde com o nome)
+  const boardImgs = [0, 1].map(i => makeCanvas(512, 84, (g, w, h) => PK.paintNextPlayerBoard(g, w, h, i)));
+  if (document.fonts) document.fonts.load('italic 900 40px "Barlow Condensed"').then(() => boardImgs.forEach((c, i) => PK.paintNextPlayerBoard(c.getContext('2d'), 512, 84, i))).catch(() => {});
 
   // ---------- primitivas ----------
   function path(pts) {
@@ -287,13 +289,11 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   function drawBoards() {
     const Z = C.BOARDS_Z;
     for (let i = 0, x = 33; x > -33; x -= 6, i++) {
-      const ad = ADS[i % ADS.length];
-      path([V(x, 0, Z), V(x - 5.9, 0, Z), V(x - 5.9, 0.95, Z), V(x, 0.95, Z)]);
-      ctx.fillStyle = ad[0]; ctx.fill();
-      const a = P(V(x, 0.47, Z)), b = P(V(x - 5.9, 0.47, Z)), h = 0.95 * a.s;
-      ctx.fillStyle = ad[1]; ctx.font = `800 ${h * 0.62}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(ad[2], (a.x + b.x) / 2, a.y + h * 0.04, Math.abs(b.x - a.x) * 0.88);
+      // placa Next Player desenhada numa imagem e aplicada no retângulo da placa (perspectiva aproximada)
+      const tl = P(V(x, 0.95, Z)), tr = P(V(x - 5.9, 0.95, Z)), bl = P(V(x, 0, Z));
+      if (tl.z <= 0.3 || tr.z <= 0.3) continue;
+      const img = boardImgs[i % 2], w = img.width, h = img.height;
+      ctx.save(); ctx.transform((tr.x - tl.x) / w, (tr.y - tl.y) / w, (bl.x - tl.x) / h, (bl.y - tl.y) / h, tl.x, tl.y); ctx.drawImage(img, 0, 0); ctx.restore();
     }
     const gl = ctx.createLinearGradient(0, P(V(0, 0.95, Z)).y, 0, P(V(0, 0, Z)).y);
     gl.addColorStop(0, 'rgba(255,255,255,.12)'); gl.addColorStop(1, 'rgba(0,0,0,.25)');
@@ -336,7 +336,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       seg(kn, an, 0.064, k.socks);
       seg(an, to, 0.052, k.boots);
       seg(sh, lerp(sh, el, 0.6), 0.062, k.shirt);
-      if (k.accent && !gk) { seg(sh, lerp(sh, el, 0.18), 0.066, k.accent); seg(lerp(sh, el, 0.5), lerp(sh, el, 0.6), 0.066, k.accent); }
+      if (k.accent) { seg(sh, lerp(sh, el, 0.18), 0.066, k.accent); if (gk) seg(lerp(el, hd, 0.7), lerp(el, hd, 0.85), 0.052, k.accent); else seg(lerp(sh, el, 0.5), lerp(sh, el, 0.6), 0.066, k.accent); }
       seg(lerp(sh, el, 0.55), el, 0.05, gk ? k.shirt : k.skin);
       seg(el, hd, 0.046, gk ? k.shirt : k.skin);
       seg(hd, hd, gk ? 0.075 : 0.05, gk ? k.gloves : k.skin);

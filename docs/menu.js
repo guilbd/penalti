@@ -9,7 +9,7 @@
     upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 },
     // uniforme padrão: Next Player 2.2 (preto com detalhes verdes, nome nas costas)
     kit: { shirt: '#f2c230', shorts: '#17181c', socks: '#17181c', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'nextplayer', backName: 'HULK' },
-    gk: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', gloves: '#f5f5f5' },
+    gk: { shirt: '#18a36a', shorts: '#17181c', socks: '#17181c', gloves: '#2bb52b', style: 'nextplayer' },
     best: { targets: 0 }
   };
   const clone = o => JSON.parse(JSON.stringify(o));
@@ -40,7 +40,7 @@
   const SKIN = [['#f1c9a5', 'Clara', 1], ['#e0b08c', 'Média-clara', 1], ['#c48a63', 'Média', 1], ['#8d5a3b', 'Morena', 1], ['#5b3a26', 'Escura', 1]];
   const HAIR = [['#1b1410', 'Preto', 1], ['#5a3a1c', 'Castanho', 1], ['#b07a3a', 'Loiro escuro', 1], ['#e3c27a', 'Loiro', 2], ['#9a3b1e', 'Ruivo', 3], ['#d9d9d9', 'Platinado', 6]];
   const GK_SHIRTS = [['#18a36a', 'Verde', 1], ['#f07a1a', 'Laranja', 1], ['#17181c', 'Preto', 1], ['#a6e22e', 'Limão', 2], ['#e85a9b', 'Rosa', 4], ['#5bb8f0', 'Celeste', 5]];
-  const GLOVES = [['#f5f5f5', 'Brancas', 1], ['#17181c', 'Pretas', 1], ['#a6e22e', 'Limão', 2], ['#f07a1a', 'Laranjas', 3]];
+  const GLOVES = [['#2bb52b', 'Verdes', 1], ['#f5f5f5', 'Brancas', 1], ['#17181c', 'Pretas', 1], ['#a6e22e', 'Limão', 2], ['#f07a1a', 'Laranjas', 3]];
 
   const kitBindings = [];
   // modelo "Next Player 2.2": camisa preta com gola, ombros e punhos verdes e nome verde nas costas
@@ -49,10 +49,14 @@
     if (k.style === 'nextplayer') return { shirt: '#141414', shorts: k.shorts, socks: k.socks, boots: k.boots, skin: k.skin, hair: k.hair, style: 'nextplayer', backName: k.backName || '', accent: NP_GREEN, num: (k.backName || k.num || '').toUpperCase(), numColor: NP_GREEN };
     return { shirt: k.shirt, shorts: k.shorts, socks: k.socks, boots: k.boots, skin: k.skin, hair: k.hair, style: 'lisa', backName: '', accent: null, num: k.num, numColor: contrast(k.shirt, k.shorts) };
   }
+  function kitForGk(g, k) {        // goleiro: mesmo modelo, com manga longa e o nome nas costas
+    if (g.style === 'nextplayer') return { shirt: '#141414', shorts: g.shorts, socks: g.socks, gloves: g.gloves, skin: k.skin, hair: k.hair, style: 'nextplayer', longSleeve: true, accent: NP_GREEN, backName: k.backName || '', num: (k.backName || '1').toUpperCase(), numColor: NP_GREEN };
+    return { shirt: g.shirt, shorts: g.shorts, socks: g.socks, gloves: g.gloves, skin: k.skin, hair: k.hair, style: 'lisa', longSleeve: false, accent: null, backName: '', num: '1', numColor: contrast(g.shirt, '#ffffff') };
+  }
   function applyKits(KITS) {
     const k = data.kit, g = data.gk;
     Object.assign(KITS.user, kitFor(k));
-    Object.assign(KITS.gkUser, { shirt: g.shirt, shorts: g.shorts, socks: g.socks, gloves: g.gloves, skin: k.skin, hair: k.hair, numColor: contrast(g.shirt, '#ffffff') });
+    Object.assign(KITS.gkUser, kitForGk(g, k));
   }
   function contrast(bg, pref) {          // cor do número legível sobre a camisa
     const lum = h => { const n = parseInt(h.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
@@ -71,7 +75,7 @@
         if (!K.__cpu0) { K.__cpu0 = Object.assign({}, K.cpu); K.__gk0 = Object.assign({}, K.gkCpu); }
         Object.assign(K.cpu, K.__cpu0); Object.assign(K.gkCpu, K.__gk0);
         if (kit && (kit.shirt !== data.kit.shirt || kit.style !== data.kit.style)) Object.assign(K.cpu, kitFor(Object.assign({ style: 'lisa' }, kit)));
-        if (gk && gk.shirt !== data.gk.shirt) Object.assign(K.gkCpu, { shirt: gk.shirt, shorts: gk.shorts, socks: gk.socks, gloves: gk.gloves, numColor: contrast(gk.shirt, '#ffffff') });
+        if (gk && (gk.shirt !== data.gk.shirt || gk.style !== data.gk.style)) Object.assign(K.gkCpu, kitForGk(Object.assign({ style: 'lisa' }, gk), Object.assign({}, data.kit, kit || {})));
         if (fn) fn();
       });
     },
@@ -177,13 +181,14 @@
   function openPlayer() { document.getElementById('menu').hidden = true; ov.hidden = false; renderPlayer(); }
 
   function preview(k, gk) {      // camisa, calção, meião e chuteira em silhueta
-    const np = !gk && k.style === 'nextplayer';
+    const np = k.style === 'nextplayer';
     return `<svg viewBox="0 0 110 170" aria-hidden="true">
       <circle cx="55" cy="18" r="13" fill="${k.skin || data.kit.skin}"/><path d="M42 13 q13 -14 26 0 q-2 -6 -13 -8 q-11 2 -13 8z" fill="${data.kit.hair}"/>
       <path d="M30 36 L80 36 L96 66 L84 72 L78 60 L78 100 L32 100 L32 60 L26 72 L14 66 Z" fill="${np ? '#141414' : k.shirt}"/>
       ${np ? `<path d="M30 36 L46 36 L55 52 L64 36 L80 36 L84 44 L70 42 L55 60 L40 42 L26 44 Z" fill="${NP_GREEN}"/><path d="M14 66 L26 72 L28 67 L16 61 Z M96 66 L84 72 L82 67 L94 61 Z" fill="${NP_GREEN}"/><text x="60" y="58" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-style="italic" font-size="7" fill="#fff">NEXT</text><text x="60" y="65" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-style="italic" font-size="7" fill="#fff">PLAYER</text>` : ''}
-      ${gk ? `<circle cx="17" cy="74" r="7" fill="${k.gloves}"/><circle cx="93" cy="74" r="7" fill="${k.gloves}"/>` : `<rect x="12" y="66" width="10" height="16" fill="${data.kit.skin}"/><rect x="88" y="66" width="10" height="16" fill="${data.kit.skin}"/>`}
-      <text x="55" y="80" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-size="24" fill="${np ? NP_GREEN : contrast(k.shirt, '#ffffff')}">${gk ? '1' : np ? '' : data.kit.num}</text>
+      ${gk && np ? `<path d="M14 66 L26 72 L22 82 L12 76 Z M96 66 L84 72 L88 82 L98 76 Z" fill="#141414"/>` : ''}
+      ${gk ? `<circle cx="17" cy="80" r="7" fill="${k.gloves}"/><circle cx="93" cy="80" r="7" fill="${k.gloves}"/>` : `<rect x="12" y="66" width="10" height="16" fill="${data.kit.skin}"/><rect x="88" y="66" width="10" height="16" fill="${data.kit.skin}"/>`}
+      <text x="55" y="80" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-size="24" fill="${np ? NP_GREEN : contrast(k.shirt, '#ffffff')}">${np ? '' : gk ? '1' : data.kit.num}</text>
       <path d="M32 100 L78 100 L80 124 L58 124 L55 112 L52 124 L30 124 Z" fill="${k.shorts}"/>
       <rect x="35" y="124" width="14" height="14" fill="${data.kit.skin}"/><rect x="61" y="124" width="14" height="14" fill="${data.kit.skin}"/>
       <rect x="35" y="138" width="14" height="20" fill="${k.socks}"/><rect x="61" y="138" width="14" height="20" fill="${k.socks}"/>
@@ -221,8 +226,16 @@
       body.querySelector('#plNum').onchange = e => { const n = Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 10)); k.num = String(n); changed(); renderPlayer(); };
     } else if (tab === 'gk') {
       const g = data.gk;
-      body.innerHTML = `<div class="pl-preview">${preview(Object.assign({}, g, { boots: '#111318' }), true)}<div>${swatches('Camisa', GK_SHIRTS, g, 'shirt')}${swatches('Calção', SHORTS, g, 'shorts')}${swatches('Meião', GK_SHIRTS.concat(SOCKS), g, 'socks')}${swatches('Luvas', GLOVES, g, 'gloves')}</div></div>`;
-      body.onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; g[b.dataset.set] = b.dataset.val; changed(); renderPlayer(); };
+      const gnp = g.style === 'nextplayer';
+      body.innerHTML = `<div class="pl-preview">${preview(Object.assign({}, g, { boots: '#111318' }), true)}<div>
+        <div class="opt-row"><div class="lbl">Modelo da camisa</div><div class="sws" role="group" aria-label="Modelo da camisa do goleiro">
+          <button type="button" class="np-opt" data-gstyle="lisa" aria-pressed="${!gnp}">Lisa</button><button type="button" class="np-opt" data-gstyle="nextplayer" aria-pressed="${gnp}">Next Player 2.2</button></div></div>
+        ${gnp ? '' : swatches('Camisa', GK_SHIRTS, g, 'shirt')}${swatches('Calção', SHORTS, g, 'shorts')}${swatches('Meião', GK_SHIRTS.concat(SOCKS), g, 'socks')}${swatches('Luvas', GLOVES, g, 'gloves')}</div></div>`;
+      body.onclick = e => {
+        const st = e.target.closest('[data-gstyle]');
+        if (st) { g.style = st.dataset.gstyle; if (g.style === 'nextplayer') { g.shorts = '#17181c'; g.socks = '#17181c'; g.gloves = '#2bb52b'; } changed(); renderPlayer(); return; }
+        const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; g[b.dataset.set] = b.dataset.val; changed(); renderPlayer();
+      };
     } else {
       body.innerHTML = UPG.map(u => {
         const lv = data.upgrades[u.k], max = lv >= PK.PERK_MAX, c = cost(lv);
