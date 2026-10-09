@@ -58,6 +58,16 @@
     level: () => levelOf(data.xp),
     perks: () => Object.assign({}, data.upgrades),
     bindKits(KITS, onChange) { kitBindings.push([KITS, onChange]); applyKits(KITS); },
+    // partida online: o time "cpu" passa a usar o uniforme do adversário (null volta ao padrão)
+    setOpponentKit(kit, gk) {
+      kitBindings.forEach(([K, fn]) => {
+        if (!K.__cpu0) { K.__cpu0 = Object.assign({}, K.cpu); K.__gk0 = Object.assign({}, K.gkCpu); }
+        Object.assign(K.cpu, K.__cpu0); Object.assign(K.gkCpu, K.__gk0);
+        if (kit && kit.shirt !== data.kit.shirt) Object.assign(K.cpu, { shirt: kit.shirt, shorts: kit.shorts, socks: kit.socks, boots: kit.boots, skin: kit.skin, hair: kit.hair, num: kit.num, numColor: contrast(kit.shirt, kit.shorts) });
+        if (gk && gk.shirt !== data.gk.shirt) Object.assign(K.gkCpu, { shirt: gk.shirt, shorts: gk.shorts, socks: gk.socks, gloves: gk.gloves, numColor: contrast(gk.shirt, '#ffffff') });
+        if (fn) fn();
+      });
+    },
     addRewards(d) {
       const before = levelOf(data.xp);
       data.coins += d.rewards.coins; data.xp += d.rewards.xp; data.played++;

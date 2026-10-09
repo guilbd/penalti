@@ -126,6 +126,8 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 
 <script src="engine.js"></script>
 <script src="menu.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="online.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, norm, lerp, UP, ICO, rotVec } = PK;
@@ -496,6 +498,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
   }
 
+  if (window.PKOnline) PKOnline.attach(game, ui);
   let last = performance.now();
   function frame(ts) {
     const dt = Math.min(0.05, (ts - last) / 1000); last = ts;

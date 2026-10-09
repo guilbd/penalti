@@ -127,6 +127,8 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="engine.js"></script>
 <script src="menu.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="online.js"></script>
 <script src="realplayers.js"></script>
 <script>
 (() => {
@@ -410,7 +412,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       wallBodies.forEach((b, i) => { const h = rp.create(KITS.cpu, 'wall'); h.g.visible = false; scene.add(h.g); scene.remove(b.g); wallBodies[i] = h; });
     }).catch(() => {});
   }
-  if (window.PKProfile) PKProfile.bindKits(KITS, () => { bodies.user.recolor(KITS.user); bodies.gkUser.recolor(KITS.gkUser); paintNumbers(); });
+  if (window.PKProfile) PKProfile.bindKits(KITS, () => { for (const k of ['user', 'cpu', 'gkUser', 'gkCpu']) bodies[k].recolor(KITS[k]); paintNumbers(); });
   paintAds(); paintNumbers();
   if (document.fonts) document.fonts.load(`800 56px ${DISPLAY}`).then(() => { paintAds(); paintNumbers(); }).catch(() => {});
 
@@ -477,6 +479,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   }
   const ui = PK.bindUI(game, { canvas: cv, toGoal });
 
+  if (window.PKOnline) PKOnline.attach(game, ui);
   let last = performance.now();
   function frame(ts) {
     let dt = Math.min(0.05, (ts - last) / 1000); last = ts;

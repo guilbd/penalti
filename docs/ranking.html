@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060b16">
+<title>Ranking Pênalti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Tabela de classificação de transmissão esportiva: noite de estádio, filete dourado, números tabulares. */
+:root {
+  --night: #060b16; --panel: #0d1730; --row: rgba(255, 255, 255, .03); --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --win: #3cc47a; --loss: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 880px; margin: 0 auto; padding: calc(32px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(48px, 10vw, 84px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .04em; margin: 36px 0 10px; }
+.lead { color: var(--muted); line-height: 1.5; max-width: 62ch; margin: 12px 0 24px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 9px 14px; }
+.links a.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.links a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.me { background: var(--panel); border-left: 4px solid var(--gold); padding: 12px 16px; margin-bottom: 16px; font-family: var(--display); font-size: 18px; letter-spacing: .04em; text-transform: uppercase; }
+.me b { color: var(--gold); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 520px; }
+th { font-family: var(--display); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--line); font-weight: 700; }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+tr:nth-child(even) td { background: var(--row); }
+td.pos { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--muted); width: 48px; }
+tr.top3 td.pos { color: var(--gold); }
+td.nick { font-weight: 600; }
+td.pts { font-family: var(--display); font-weight: 800; font-size: 22px; }
+tr.mine td { background: rgba(242, 182, 50, .12) !important; }
+tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 500; }
+.w { color: var(--win); } .l { color: var(--loss); }
+.recent { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.recent li { display: grid; grid-template-columns: 1fr auto 1fr auto; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; font-variant-numeric: tabular-nums; }
+.recent .a { text-align: right; } .recent .sc { font-family: var(--display); font-weight: 800; font-size: 22px; padding: 0 6px; }
+.recent .meta { color: var(--muted); font-size: 13px; text-align: right; }
+.recent .win { color: var(--gold); font-weight: 700; }
+.empty, .err { color: var(--muted); padding: 18px; }
+.err { color: #ff8a8a; }
+@media (max-width: 560px) { .recent li { grid-template-columns: 1fr auto 1fr; } .recent .meta { grid-column: 1 / -1; text-align: center; } }
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Pênalti online</div><h1>Ranking</h1></div>
+    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="#" id="reload">Atualizar</a></div>
+  </div>
+  <p class="lead">Pontuação Elo: todo mundo começa com 1000. Vencer alguém com mais pontos rende mais; perder para quem tem menos custa mais. Só contam partidas online em que os dois jogadores confirmaram o placar, ou vitórias por W.O.</p>
+  <div class="me" id="me" hidden></div>
+  <div class="tablewrap"><table>
+    <thead><tr><th>#</th><th>Jogador</th><th>Pontos</th><th>Jogos</th><th>V</th><th>E</th><th>D</th><th>Saldo</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="8" class="empty">Carregando…</td></tr></tbody>
+  </table></div>
+  <h2>Últimas partidas</h2>
+  <ul class="recent" id="recent"><li class="empty">Carregando…</li></ul>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
+  let me = null; try { me = JSON.parse(localStorage.getItem('penalti.online.v1')); } catch (e) { }
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const MODE = { penalties: 'Pênaltis', freekick: 'Faltas' };
+  async function load() {
+    const rows = document.getElementById('rows'), recent = document.getElementById('recent'), meEl = document.getElementById('me');
+    const { data, error } = await sb.from('penalti_players').select('id,nickname,rating,matches,wins,draws,losses,goals_for,goals_against').gt('matches', 0).order('rating', { ascending: false }).order('wins', { ascending: false }).limit(100);
+    if (error) { rows.innerHTML = '<tr><td colspan="8" class="err">Não foi possível carregar o ranking. Verifique a internet.</td></tr>'; return; }
+    rows.innerHTML = data.length ? data.map((p, i) => {
+      const sd = p.goals_for - p.goals_against;
+      return `<tr class="${i < 3 ? 'top3' : ''} ${me && me.id === p.id ? 'mine' : ''}"><td class="pos">${i + 1}</td><td class="nick">${esc(p.nickname)}</td><td class="pts">${p.rating}</td><td>${p.matches}</td><td class="w">${p.wins}</td><td>${p.draws}</td><td class="l">${p.losses}</td><td>${sd > 0 ? '+' : ''}${sd}</td></tr>`;
+    }).join('') : '<tr><td colspan="8" class="empty">Ninguém jogou online ainda. Seja o primeiro!</td></tr>';
+    if (me) {
+      const { data: mine } = await sb.from('penalti_players').select('rating,matches').eq('id', me.id).maybeSingle();
+      if (mine) {
+        const pos = data.findIndex(p => p.id === me.id);
+        meEl.innerHTML = `${esc(me.nickname)} · <b>${mine.rating}</b> pontos · ${mine.matches ? (pos >= 0 ? `${pos + 1}º lugar` : 'fora do top 100') : 'jogue uma partida online para entrar no ranking'}`;
+        meEl.hidden = false;
+      }
+    }
+    const { data: ms } = await sb.from('penalti_matches')
+      .select('mode,score_a,score_b,finalized_at,forfeit,disputed,winner,player_a,player_b,a:penalti_players!penalti_matches_player_a_fkey(nickname),b:penalti_players!penalti_matches_player_b_fkey(nickname)')
+      .not('finalized_at', 'is', null).eq('disputed', false).order('finalized_at', { ascending: false }).limit(15);
+    recent.innerHTML = ms && ms.length ? ms.map(m => {
+      const when = new Date(m.finalized_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const wa = m.winner === m.player_a, wb = m.winner === m.player_b;
+      return `<li><span class="a ${wa ? 'win' : ''}">${esc(m.a ? m.a.nickname : '?')}</span><span class="sc">${m.score_a} × ${m.score_b}</span><span class="${wb ? 'win' : ''}">${esc(m.b ? m.b.nickname : '?')}</span><span class="meta">${MODE[m.mode] || m.mode}${m.forfeit ? ' · W.O.' : ''} · ${when}</span></li>`;
+    }).join('') : '<li class="empty">Nenhuma partida ainda.</li>';
+  }
+  document.getElementById('reload').addEventListener('click', e => { e.preventDefault(); load(); });
+  load();
+})();
+</script>
+
+</html>

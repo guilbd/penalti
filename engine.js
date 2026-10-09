@@ -31,6 +31,7 @@
   const rand = (a, b) => a + Math.random() * (b - a);
   const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
   const UP = V(0, 1, 0);
+  const seeded = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   const rightOf = f => V(-f.z, 0, f.x);          // f × up
 
   function rotVec(q, v) {                          // q = [w, x, y, z]
@@ -354,7 +355,7 @@
     constructor() { this.x = 0; this.reset(0); }
     setPerks(reach, reflex) { this.vxMax = VX_MAX + 0.12 * reach; this.vyMax = VY_MAX + 0.06 * reach; this.handSpeed = HAND_SPEED + 0.4 * reflex; }
     reset(now) { this.x = 0; this.dive = null; this.readErr = null; if (this.readNoise == null) this.readNoise = 0; if (this.vxMax == null) this.setPerks(0, 0); this.theta = 0; this.capsPrev = null; this.capsPrevT = null; this.lastNow = now; this.update(now); }
-    swayX(now) { return 0.12 * Math.sin(now * 1.7) + 0.04 * Math.sin(now * 4.1); }
+    swayX(now) { return this.noSway ? 0 : 0.12 * Math.sin(now * 1.7) + 0.04 * Math.sin(now * 4.1); }
     readyFeet(px, z) { return [V(px - 0.3, 0.06, z + 0.02), V(px + 0.3, 0.06, z + 0.02)]; }
     readyHands(hip) { return [add(hip, V(-0.46, 0.22, -0.34)), add(hip, V(0.46, 0.22, -0.34))]; }
     startDive(T, now) {
@@ -394,13 +395,13 @@
       return d;
     }
     // previsão da bola (instante e ponto em que cruza a frente do goleiro): ajusta as mãos ou dispara um reflexo
-    react(pr, now, wide) {
+    react(pr, now, wide, allowStart = true) {
       const d = this.dive;
       if (d) {
         const ex = d.err ? d.err.x * 0.8 : 0, ey = d.err ? d.err.y * 0.8 : 0;
         const dx = pr.x + ex - d.T.x, dy = pr.y + ey - d.T.y, l = Math.hypot(dx, dy), k = l > ADJ_MAX ? ADJ_MAX / l : 1;
         d.Tadj = V(d.T.x + dx * k, d.T.y + dy * k, d.T.z);
-      } else if (pr.t > 0.04) {
+      } else if (allowStart && pr.t > 0.04) {
         // alcance do reflexo: só perto do corpo, ou (goleiro do computador) até onde o mergulho chega.
         // Salta só quando o tempo do mergulho bate com a chegada da bola, senão cai antes dela passar.
         const hx = this.x + this.swayX(now), dist = Math.hypot(pr.x - hx, pr.y - 0.84);
@@ -519,14 +520,15 @@
   // Fica a 9,15 m da bola cobrindo a trave do lado da bola; o primeiro jogador fica um pouco
   // por fora da linha da trave e os outros em direção ao centro. Pula logo depois do chute.
   class Wall {
-    constructor(spot, n, side) {
+    constructor(spot, n, side, rng) {
+      const rnd = rng ? (a, b) => a + rng() * (b - a) : rand;
       this.n = n; this.side = side; this.jumpT = null;
       const ball = V(spot.x, 0, spot.z), post = V(side * (C.GW / 2 + 0.2), 0, C.GZ);
       const toPost = norm(sub(post, ball)), c = add(ball, mul(toPost, 9.15));
       let perp = norm(V(-toPost.z, 0, toPost.x));
       if (dot(perp, sub(V(0, 0, C.GZ), c)) < 0) perp = mul(perp, -1);              // os demais vão para o centro
       this.members = [];
-      for (let i = 0; i < n; i++) this.members.push({ p: add(c, mul(perp, (i - 0.4) * 0.5)), f: mul(toPost, -1), delay: rand(0, 0.08), h: rand(0.3, 0.42) });
+      for (let i = 0; i < n; i++) this.members.push({ p: add(c, mul(perp, (i - 0.4) * 0.5)), f: mul(toPost, -1), delay: rnd(0, 0.08), h: rnd(0.3, 0.42) });
     }
     jump(now) { if (this.jumpT == null) this.jumpT = now + 0.05; }
     jumpY(m, now) {
@@ -605,22 +607,27 @@
       this.mode = 'penalties'; this.spot = V(0, 0, 0); this.wall = null; this.targets = [];
       this.points = 0; this.charge = 0; this.charged = false; this.shotsTaken = 0; this.perks = {};
       this.stats = { goals: 0, saves: 0, targets: 0 };
+      this.online = null; this.acc = 0; this.inbox = {};
       this.emitFn = (t, d) => this.emit(t, d);
     }
+    get kickIndex() { return this.score.user.length + this.score.cpu.length; }
     get totalShots() { return this.mode === 'targets' ? 10 : 5; }
     on(fn) { this.handlers.push(fn); }
     emit(t, d) { for (const h of this.handlers) h(t, d); }
     get D() { return DIFF[this.diff]; }
     get slowmo() { const b = this.ball; return this.state === 'flight' && b.live && !!this.keeper.dive && b.p.z > C.GZ - 2.6 && b.p.z < C.GZ + 0.3; }
-    start(diff, mode) {
+    // opts.online: { role, seed, spots, firstTurn, latency, oppPerks, send(tipo, dados) } — partida contra outra pessoa
+    start(diff, mode, opts) {
       if (diff) this.diff = diff;
       if (mode) this.mode = mode;
-      this.score = { user: [], cpu: [] }; this.turn = 'user'; this.memory = { shots: [], dives: [] };
+      this.online = opts && opts.online ? opts.online : null; this.inbox = {};
+      this.keeper.noSway = !!this.online;
+      this.score = { user: [], cpu: [] }; this.turn = this.online ? this.online.firstTurn : 'user'; this.memory = { shots: [], dives: [] };
       this.points = 0; this.charge = 0; this.charged = false; this.shotsTaken = 0;
       this.stats = { goals: 0, saves: 0, targets: 0 };
       const P = root.PKProfile && root.PKProfile.perks ? root.PKProfile.perks() : {};
       this.perks = Object.assign({ power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, P);
-      this.spots = this.makeSpots();
+      this.spots = this.online ? this.online.spots.map(q => V(q.x, 0, q.z)) : this.makeSpots();
       this.emit('start'); this.setupKick();
     }
     makeSpots() {           // posições das cobranças: faltas entre 17,5 e 26 m, fora da grande área
@@ -650,19 +657,30 @@
       const spot = this.spot = this.spotFor();
       this.ball.reset(spot);
       const pk = this.perks;
-      if (this.turn === 'cpu') this.keeper.setPerks(pk.reach, pk.reflex); else this.keeper.setPerks(0, 0);
+      const op = this.online && this.online.oppPerks || { reach: 0, reflex: 0 };
+      if (this.turn === 'cpu') this.keeper.setPerks(pk.reach, pk.reflex); else if (this.online) this.keeper.setPerks(op.reach || 0, op.reflex || 0); else this.keeper.setPerks(0, 0);
       this.keeper.reset(this.now);
       const isFK = Math.hypot(spot.x, C.GZ - spot.z) > 16;
-      const side = Math.abs(spot.x) > 1.5 ? Math.sign(spot.x) : (Math.random() < 0.5 ? -1 : 1);
-      this.wall = isFK ? new Wall(spot, Math.hypot(spot.x, C.GZ - spot.z) < 22 ? 4 : 3, side) : null;
+      const rng = this.online ? seeded(this.online.seed + this.kickIndex * 7919) : Math.random;
+      const side = Math.abs(spot.x) > 1.5 ? Math.sign(spot.x) : (rng() < 0.5 ? -1 : 1);
+      this.wall = isFK ? new Wall(spot, Math.hypot(spot.x, C.GZ - spot.z) < 22 ? 4 : 3, side, this.online ? rng : null) : null;
       this.keeper.x = isFK ? -side * 0.35 : 0;                     // com barreira, o goleiro cobre o outro lado
       this.keeper.update(this.now);
       this.targets = this.mode === 'targets' ? this.makeTargets() : [];
       this.result = null; this.info = null; this.plan = null; this.power = 0; this.pendingDive = null; this.passWallT = null; this.overWall = false;
-      this.keeper.readNoise = this.turn === 'user' ? this.D.gkRead : 0;
+      this.sentDive = null; this.localOutcome = null; this.remoteResult = null;
+      this.keeper.readNoise = this.turn === 'user' && !this.online ? this.D.gkRead : 0;
+      if (this.online) this.online.send('ready', { idx: this.kickIndex });
       if (this.turn === 'user') {
         this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'user', ball: spot });
-        this.state = 'aim';
+        // online: só chuta quando o goleiro do outro lado também estiver pronto para esta cobrança
+        this.state = this.online && !this.inbox['ready:' + this.kickIndex] ? 'waitReady' : 'aim';
+      } else if (this.online) {          // vez do adversário: espera o chute dele chegar pela rede
+        this.kicker = new Kicker({ t0: this.now, wait: 1e9, kit: 'cpu', ball: spot });
+        this.aim = { x: 0, y: 1.0 };
+        this.state = 'waitRemote';
+        const early = this.inbox['shot:' + this.kickIndex];
+        if (early) this.remoteShot(early);
       } else {
         this.kicker = new Kicker(Object.assign({ t0: this.now, wait: 1.8, kit: 'cpu', ball: spot }, this.wall ? this.cpuFreeKick() : this.cpuShot()));
         this.aim = { x: 0, y: 1.0 };
@@ -732,9 +750,42 @@
       this.kicker = new Kicker({ t0: this.now, wait: 0.12, power: p, target: { x: this.aim.x, y: this.aim.y }, curve: this.curve, chip: this.chip,
         skill: 1 - 0.08 * pk.accuracy, speedBonus: 0.6 * pk.power, curveMul: 1 + 0.12 * pk.curve, kit: 'user', ball: this.spot });
       this.memory.shots.push(Math.sign(this.aim.x));
-      this.plan = this.wall ? null : this.cpuKeeperPlan();     // na falta o goleiro espera a bola
+      const k = this.kicker;
+      k.shot = this.computeShot(k);
+      if (this.online) {
+        k.t0 += this.online.latency || 0;                       // começa junto com o aparelho do adversário
+        this.plan = null;
+        this.online.send('shot', { idx: this.kickIndex, power: k.power, curve: k.curve, chip: k.chip, target: k.target, tgt: k.shot.tgt, speed: k.shot.speed, spin: k.shot.spin });
+      } else this.plan = this.wall ? null : this.cpuKeeperPlan();     // na falta o goleiro espera a bola
       this.state = 'runup';
     }
+    computeShot(k) {
+      const tgt = shotError(k.shotTarget || k.target, k.power, k.skill, k.chip);
+      const dist = Math.hypot(this.ball.p.x, C.GZ - this.ball.p.z);
+      const speed = k.chip ? rand(12, 13.5) + Math.max(0, dist - 12) * 0.35 : shotSpeed(k.power, dist, k.speedBonus);
+      // chute com efeito tem o eixo de giro inclinado: além de curvar, a bola cai (topspin)
+      const spin = k.chip ? V(-30, 0, 0) : V(4 + 8 * k.power + 28 * Math.abs(k.curve), -k.curve * 55 * k.curveMul, 0);
+      return { tgt, speed, spin };
+    }
+    // ---------- eventos vindos do adversário (partida online) ----------
+    remoteReady(m) {
+      if (!this.online) return;
+      this.inbox['ready:' + m.idx] = true;
+      if (this.state === 'waitReady' && m.idx === this.kickIndex) this.state = 'aim';
+    }
+    remoteShot(m) {
+      if (!this.online) return;
+      if (m.idx > this.kickIndex || (m.idx === this.kickIndex && this.state !== 'waitRemote')) { this.inbox['shot:' + m.idx] = m; return; }
+      if (this.state !== 'waitRemote' || m.idx !== this.kickIndex) return;
+      const k = this.kicker = new Kicker({ t0: this.now, wait: 0.12, power: m.power, target: m.target, curve: m.curve, chip: m.chip, kit: 'cpu', ball: this.spot });
+      k.shot = { tgt: m.tgt, speed: m.speed, spin: V(m.spin.x, m.spin.y, m.spin.z) };
+      this.state = 'runup';
+    }
+    remoteDive(m) {         // salto do goleiro do adversário, no tempo relativo ao toque na bola
+      if (!this.online || this.turn !== 'user' || m.idx !== this.kickIndex || this.keeper.dive) return;
+      this.keeper.dive = this.keeper.planDive(V(m.x, m.y, 0), this.kicker.contactAt + m.tRel);
+    }
+    remoteResultMsg(m) { if (this.online && this.turn === 'user' && m.idx === this.kickIndex) this.remoteResult = m; }
     shoot(o) {                       // chute vindo de um gesto (celular): alvo, força e efeito de uma vez
       if (this.state !== 'aim' && this.state !== 'charging') return false;
       this.aim = { x: clamp(o.x, -5.2, 5.2), y: clamp(o.y, 0.05, 3.6) };
@@ -751,7 +802,7 @@
         this.pendingDive = { x: this.aim.x, y: this.aim.y };          // dá para trocar de canto até o salto
         return;
       }
-      if (this.state === 'runup' && this.now < k.contactAt - 0.28 && Math.random() < this.D.retarget) {
+      if (!this.online && this.state === 'runup' && this.now < k.contactAt - 0.28 && Math.random() < this.D.retarget) {
         const s = this.aim.x > 0.6 ? -1 : this.aim.x < -0.6 ? 1 : (Math.random() < 0.5 ? -1 : 1);
         k.shotTarget = { x: s * rand(1.9, 3.0), y: rand(0.3, 1.5) };
       }
@@ -761,11 +812,7 @@
     }
     launch() {
       const k = this.kicker;
-      const tgt = shotError(k.shotTarget || k.target, k.power, k.skill, k.chip);
-      const dist = Math.hypot(this.ball.p.x, C.GZ - this.ball.p.z);
-      const speed = k.chip ? rand(12, 13.5) + Math.max(0, dist - 12) * 0.35 : shotSpeed(k.power, dist, k.speedBonus);
-      // chute com efeito tem o eixo de giro inclinado: além de curvar, a bola cai (topspin)
-      const spin = k.chip ? V(-30, 0, 0) : V(4 + 8 * k.power + 28 * Math.abs(k.curve), -k.curve * 55 * k.curveMul, 0);
+      const { tgt, speed, spin } = k.shot || this.computeShot(k);
       if (this.wall) this.wall.jump(this.now);
       const b = this.ball;
       b.v = solveShot(b.p, tgt, speed, spin); b.w = spin; b.live = true;
@@ -774,9 +821,9 @@
       this.emit('kick', { speed });
     }
     update(dt) {
-      dt = Math.min(dt, 0.05);
-      const n = Math.max(1, Math.ceil(dt / (1 / 480))), h = dt / n;
-      for (let i = 0; i < n; i++) { this.now += h; this.tick(h); }
+      const H = 1 / 480;
+      this.acc = Math.min(this.acc + Math.min(dt, 0.05), 0.1);
+      while (this.acc >= H) { this.acc -= H; this.now += H; this.tick(H); }
     }
     tick(h) {
       const now = this.now, k = this.kicker, st = this.state;
@@ -796,7 +843,8 @@
         if (seen && now - this.flightT0 >= react && now - (this.lastPred || -9) >= 1 / 30) {
           this.lastPred = now;
           const pr = predictCross(this.ball, C.KEEPER_Z - 0.3);
-          if (pr) this.keeper.react(pr, now, this.turn === 'user');
+          // online: o goleiro do adversário só ajusta as mãos aqui; o salto vem pela rede
+          if (pr) this.keeper.react(pr, now, this.turn === 'user' && !this.online, !(this.online && this.turn === 'user'));
         }
       }
       if (this.pendingDive && !this.keeper.dive && st === 'flight' && this.ball.live && !this.ball.touched && now - (this.lastPend || -9) >= 1 / 120) {
@@ -805,12 +853,24 @@
         const d = this.keeper.planDive(V(pd.x, pd.y, 0), now);
         if (!pr || pr.t <= d.Td + 0.05) { this.keeper.dive = d; this.pendingDive = null; }
       }
+      if (this.online && this.turn === 'cpu' && this.keeper.dive && this.keeper.dive !== this.sentDive) {   // meu salto vai para o adversário
+        const d = this.sentDive = this.keeper.dive;
+        this.online.send('dive', { idx: this.kickIndex, x: d.T.x, y: d.T.y, tRel: d.t0 - k.contactAt });
+      }
       if (st === 'charging') this.power = Math.min(1, (now - this.chargeT0) / 1.05);
       if ((st === 'runup' || st === 'flight') && this.plan && !this.keeper.dive && now >= this.plan.at) this.keeper.startDive(this.plan.T, now);
       if (st === 'runup' && now >= k.contactAt) this.launch();
       this.keeper.update(now);
       stepBall(this.ball, h, this.keeper, now, this.emitFn, this.wall);
-      if (this.state === 'flight') { const o = this.outcome(now - this.flightT0); if (o) this.finish(o); }
+      if (this.state === 'flight') {
+        const o = this.localOutcome || this.outcome(now - this.flightT0);
+        if (o && this.online && this.turn === 'user') {
+          // batedor online: quem decide é o aparelho do goleiro; espera o resultado dele (até 3 s)
+          if (!this.localOutcome) { this.localOutcome = o; this.localOutcomeT = now; }
+          if (this.remoteResult) this.finish(this.remoteResult.o, this.remoteResult.high);
+          else if (now - this.localOutcomeT > 6) this.finish(o);
+        } else if (o) this.finish(o);
+      }
       else if (this.state === 'result' && now - this.resultT > 2.9) this.next();
     }
     outcome(tf) {
@@ -822,9 +882,10 @@
       if ((b.p.z > C.GZ + 0.3 && !b.inGoal) || (b.v.z < 0 && b.p.z < C.GZ) || (sp < 1.5 && b.p.y < 0.2)) return fail();
       return null;
     }
-    finish(o) {
+    finish(o, highRemote) {
       const c = this.ball.cross;
-      this.result = { outcome: o, turn: this.turn, high: o === 'miss' && c && c.y > C.GH };
+      this.result = { outcome: o, turn: this.turn, high: highRemote != null ? highRemote : o === 'miss' && c && c.y > C.GH };
+      if (this.online && this.turn === 'cpu') this.online.send('result', { idx: this.kickIndex, o, high: this.result.high });
       this.score[this.turn].push(o === 'goal');
       if (this.turn === 'user' && o === 'goal') this.stats.goals++;
       if (this.turn === 'cpu' && o === 'save') this.stats.saves++;
@@ -862,7 +923,7 @@
         const gu = this.score.user.filter(Boolean).length, gc = this.score.cpu.filter(Boolean).length;
         const win = this.mode === 'targets' ? true : gu > gc;
         this.state = 'over';
-        this.emit('over', { mode: this.mode, winner: win ? 'user' : 'cpu', gu, gc, points: this.points, stats: Object.assign({}, this.stats), rewards: this.rewards(win) });
+        this.emit('over', { mode: this.mode, online: !!this.online, winner: win ? 'user' : 'cpu', gu, gc, points: this.points, stats: Object.assign({}, this.stats), rewards: this.rewards(win) });
         return;
       }
       if (this.mode !== 'targets') this.turn = this.turn === 'user' ? 'cpu' : 'user';
@@ -966,6 +1027,7 @@
       el.diffLbl.textContent = DIFF[diff].name;
       if (head) head.textContent = MODE_NAME[game.mode];
       if (rowC) rowC.hidden = game.mode === 'targets';
+      const tc = document.querySelector('.team.cpu'); if (tc) tc.textContent = 'CPU';
       if (teamU) teamU.textContent = game.mode === 'targets' ? 'Pts' : 'Você';
       lastKey = '';
     };
@@ -990,7 +1052,7 @@
         }
         const txt = {
           wall: ['NA BARREIRA', kmh, mine ? 'bad' : 'good'],
-          goal: [mine ? 'GOL!' : 'GOL DA CPU', kmh, mine ? 'good' : 'bad'],
+          goal: [mine ? 'GOL!' : (game.online ? 'GOL DE ' + game.online.oppNick.toUpperCase() : 'GOL DA CPU'), kmh, mine ? 'good' : 'bad'],
           save: [mine ? 'DEFENDEU O GOLEIRO' : 'QUE DEFESA!', kmh, mine ? 'bad' : 'good'],
           post: ['NA TRAVE!', kmh, mine ? 'bad' : 'good'],
           miss: [d.high ? 'POR CIMA!' : 'PRA FORA!', kmh, mine ? 'bad' : 'good']
@@ -999,6 +1061,7 @@
       }
       if (t === 'over') {
         const r = root.PKProfile ? root.PKProfile.addRewards(d) : null;
+        if (d.online) { rewardsEl.textContent = r ? `+${d.rewards.coins} moedas · +${d.rewards.xp} XP` : ''; return; }   // o restante é mostrado pelo módulo online
         if (d.mode === 'targets') {
           el.overTitle.textContent = `${d.points} pontos`;
           el.overScore.textContent = `${d.stats.targets} alvos acertados em 10 chutes.` + (r ? (r.record ? ' Novo recorde!' : ` Recorde: ${r.best} pontos.`) : '');
@@ -1062,7 +1125,10 @@
       el.chip.textContent = game.chip ? 'ligada' : 'desligada';
       el.chip.classList.toggle('on', game.chip);
       let help = '';
-      if (playing && mine && (st === 'aim' || st === 'charging')) help = opt.helpShoot || 'Mire com o mouse. Segure o clique (ou Espaço) para carregar a força e solte para chutar. Q/E ou roda do mouse: efeito. C: cavadinha.';
+      const opp = game.online ? game.online.oppNick : 'CPU';
+      if (playing && game.online && st === 'waitRemote') help = `Aguardando ${opp} bater. Você é o goleiro.`;
+      else if (playing && game.online && st === 'waitReady') help = `Aguardando ${opp} ficar pronto…`;
+      else if (playing && mine && (st === 'aim' || st === 'charging')) help = opt.helpShoot || 'Mire com o mouse. Segure o clique (ou Espaço) para carregar a força e solte para chutar. Q/E ou roda do mouse: efeito. C: cavadinha.';
       else if (playing && !mine && game.wall && !game.keeper.dive && (st === 'runup' || st === 'flight')) help = game.pendingDive ? 'Canto escolhido. O goleiro salta na hora certa; você ainda pode trocar.' : 'Escolha o canto onde a bola vai entrar. O goleiro espera e salta no tempo certo.';
       else if (playing && !mine && st === 'runup' && !game.keeper.dive) help = opt.helpKeep || 'Mova o mouse até o canto e clique para saltar. Se saltar cedo demais, o batedor pode trocar de lado.';
       el.help.textContent = help; el.help.hidden = !help;
@@ -1077,6 +1143,6 @@
 
   root.PK = {
     C, V, add, sub, mul, dot, cross, len, norm, lerp, lerpN, clamp, smooth, UP, rightOf, rotVec, ICO,
-    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
+    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
   };
 })(typeof window !== 'undefined' ? window : globalThis);
