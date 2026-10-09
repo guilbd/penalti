@@ -393,7 +393,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   }
   function paintNumbers() {
     numberMats.forEach(({ nm, kit }) => {
-      const c = makeCanvas(128, 128, g => { g.fillStyle = kit.numColor; g.font = `800 112px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(kit.num, 64, 70); });
+      const c = makeCanvas(128, 128, g => { const t = String(kit.num); g.fillStyle = kit.numColor; g.font = `800 ${t.length > 3 ? 46 : 112}px ${DISPLAY}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, 64, 70, 124); });
       if (nm.map) nm.map.dispose(); nm.map = tex(c); nm.needsUpdate = true;
     });
   }

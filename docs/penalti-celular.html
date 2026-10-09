@@ -383,6 +383,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       seg(kn, an, 0.064, k.socks);
       seg(an, to, 0.052, k.boots);
       seg(sh, lerp(sh, el, 0.6), 0.062, k.shirt);
+      if (k.accent && !gk) { seg(sh, lerp(sh, el, 0.18), 0.066, k.accent); seg(lerp(sh, el, 0.5), lerp(sh, el, 0.6), 0.066, k.accent); }
       seg(lerp(sh, el, 0.55), el, 0.05, gk ? k.shirt : k.skin);
       seg(el, hd, 0.046, gk ? k.shirt : k.skin);
       seg(hd, hd, gk ? 0.075 : 0.05, gk ? k.gloves : k.skin);
@@ -443,7 +444,8 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       sh.addColorStop(0, 'rgba(255,255,255,.12)'); sh.addColorStop(1, 'rgba(0,0,0,.22)'); path(torsoPts); ctx.fillStyle = sh; ctx.fill();
       if (back) {
         const n = P(lerp(j.pelvis, j.chest, 0.66));
-        ctx.fillStyle = k.numColor; ctx.font = `800 ${0.24 * n.s}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
+        const lbl = String(k.num), fs = lbl.length > 3 ? 0.13 : 0.24;
+        ctx.fillStyle = k.numColor; ctx.font = `800 ${fs * n.s}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(k.num, n.x, n.y);
       }
     } });

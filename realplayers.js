@@ -62,6 +62,108 @@
     return out;
   }
 
+  // ---------- camisa "Next Player 2.2" (preta, gola V e ombros verdes, manga curta com punho verde) ----------
+  const NP_CACHE = {};
+  const NP = { base: [20, 20, 20], line: [34, 36, 34], green: [43, 181, 43], greenDark: [24, 110, 30], skin: [212, 158, 128] };
+  function drawNextPlayerLogo(g, w, h) {           // escudo + "NEXT PLAYER" + U verde vazado
+    g.clearRect(0, 0, w, h);
+    g.save(); g.lineWidth = h * 0.07; g.strokeStyle = '#2bb52b';
+    g.beginPath(); g.moveTo(w * 0.52, h * 0.12); g.lineTo(w * 0.52, h * 0.62); g.quadraticCurveTo(w * 0.52, h * 0.92, w * 0.7, h * 0.92); g.quadraticCurveTo(w * 0.88, h * 0.92, w * 0.88, h * 0.62); g.lineTo(w * 0.88, h * 0.12); g.stroke(); g.restore();
+    const sx = w * 0.04, sw = w * 0.26, sy = h * 0.1, sh = h * 0.8;
+    const gr = g.createLinearGradient(sx, sy, sx + sw, sy + sh); gr.addColorStop(0, '#e6f23a'); gr.addColorStop(1, '#22a83a');
+    const shield = (inset, fill) => { g.beginPath(); g.moveTo(sx + inset, sy + inset); g.quadraticCurveTo(sx + sw / 2, sy + inset - sh * 0.08, sx + sw - inset, sy + inset); g.lineTo(sx + sw - inset, sy + sh * 0.45); g.quadraticCurveTo(sx + sw - inset, sy + sh * 0.8, sx + sw / 2, sy + sh - inset); g.quadraticCurveTo(sx + inset, sy + sh * 0.8, sx + inset, sy + sh * 0.45); g.closePath(); g.fillStyle = fill; g.fill(); };
+    shield(0, gr); shield(sw * 0.13, '#111');
+    g.fillStyle = gr; g.beginPath(); g.arc(sx + sw / 2, sy + sh * 0.33, sw * 0.12, 0, 7); g.fill();
+    g.lineWidth = sw * 0.13; g.strokeStyle = gr; g.lineCap = 'round'; g.beginPath(); g.moveTo(sx + sw * 0.25, sy + sh * 0.38); g.quadraticCurveTo(sx + sw / 2, sy + sh * 0.78, sx + sw * 0.75, sy + sh * 0.38); g.stroke();
+    g.fillStyle = '#fff'; g.font = `italic 900 ${h * 0.32}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`; g.textBaseline = 'alphabetic';
+    g.fillText('NEXT', w * 0.32, h * 0.47, w * 0.6); g.fillText('PLAYER', w * 0.32, h * 0.84, w * 0.62);
+  }
+  function drawBackName(g, w, h, name) {
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = '#2bb52b'; g.font = `900 ${h * 0.86}px "Barlow Condensed", "Arial Narrow", Arial, sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const t = (name || '').toUpperCase().slice(0, 12), sp = t.length > 6 ? 0 : h * 0.06;
+    let tw = 0; for (const ch of t) tw += g.measureText(ch).width + sp;
+    let x = w / 2 - tw / 2;
+    const scale = Math.min(1, w * 0.96 / tw); g.save(); g.translate(w / 2, h / 2); g.scale(scale, 1); g.translate(-w / 2, -h / 2);
+    g.textAlign = 'left'; for (const ch of t) { g.fillText(ch, x, h * 0.55); x += g.measureText(ch).width + sp; }
+    g.restore();
+  }
+  // gera a textura da camisa percorrendo cada triângulo no espaço UV e pintando conforme a posição no corpo
+  function shirtRest(mesh) {
+    const n = mesh.geometry.attributes.uv.count, P = new Float32Array(n * 3), v = new T.Vector3();
+    let top = -1e9, bot = 1e9;
+    for (let i = 0; i < n; i++) { mesh.boneTransform(i, v); mesh.localToWorld(v); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; top = Math.max(top, v.y); bot = Math.min(bot, v.y); }
+    return { P, top, bot };
+  }
+  function nextPlayerShirtTexture(mesh, srcMap, rest, backName) {
+    const src = srcMap.image, S = src.width;
+    const c = document.createElement('canvas'); c.width = c.height = S;
+    const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+    const img = g.getImageData(0, 0, S, S), D = img.data;
+    const L = document.createElement('canvas'); L.width = 512; L.height = 256; drawNextPlayerLogo(L.getContext('2d'), 512, 256);
+    const N = document.createElement('canvas'); N.width = 512; N.height = 128; drawBackName(N.getContext('2d'), 512, 128, backName);
+    const LD = L.getContext('2d').getImageData(0, 0, 512, 256).data, ND = N.getContext('2d').getImageData(0, 0, 512, 128).data;
+    const geo = mesh.geometry, uv = geo.attributes.uv, n = uv.count, idx = geo.index;
+    const { P, top, bot } = rest;                 // em metros (modelo em escala 0,01)
+    const H = top - bot;                      // ~0,63 m do ombro à barra
+    const k = H / 0.63;                       // medidas abaixo em metros para esse tamanho de camisa
+    const sample = (data, w, h, u, vv) => { const x = Math.min(w - 1, Math.max(0, u * w | 0)), y = Math.min(h - 1, Math.max(0, vv * h | 0)), o = (y * w + x) * 4; return [data[o], data[o + 1], data[o + 2], data[o + 3] / 255]; };
+    const color = (x, y, z, out) => {
+      const ax = Math.abs(x), front = z > 0, dTop = top - y;
+      // manga curta: o modelo não tem braço sob a manga longa, então a parte de baixo dela vira "pele"
+      if (ax > 0.37 * k) { out[0] = NP.skin[0]; out[1] = NP.skin[1]; out[2] = NP.skin[2]; out[3] = 1; out.skin = true; return; }
+      out.skin = false;
+      let c = NP.base;
+      // losangos discretos no tronco
+      if (ax < 0.24 * k) {
+        const a = (x + y) / (0.11 * k), b = (x - y) / (0.11 * k), fa = a - Math.floor(a), fb = b - Math.floor(b);
+        if (fa < 0.05 || fb < 0.05) c = NP.line;
+        // filete verde curvo na lateral inferior
+        const yb = y - bot;
+        if (yb < 0.24 * k && Math.abs(ax - (0.165 * k + yb * 0.18)) < 0.005 * k) c = NP.greenDark;
+      }
+      if (ax > 0.33 * k) c = NP.green;                                                     // punho
+      if (ax > 0.07 * k && ax < 0.27 * k && dTop < (front ? 0.025 * k + (ax - 0.07 * k) * 0.28 : 0.075 * k)) c = NP.green;   // ombros
+      if (front && ax < 0.11 * k) {                                                       // gola V: miolo de pele, faixa verde
+        const vEdge = 0.11 * k - (ax / (0.085 * k)) * 0.1 * k;
+        if (dTop < vEdge) { out[0] = NP.skin[0]; out[1] = NP.skin[1]; out[2] = NP.skin[2]; out[3] = 1; out.skin = true; return; }
+        if (dTop < vEdge + 0.026 * k) c = NP.green;
+      }
+      if (!front && ax < 0.1 * k && dTop < 0.035 * k) c = NP.green;                       // gola atrás
+      out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; out[3] = 1;
+      // logo no peito esquerdo (lado +x do jogador)
+      if (front) {
+        const u = (x - 0.025 * k) / (0.14 * k), vv = (dTop - (0.105 * k)) / (0.07 * k);
+        if (u >= 0 && u <= 1 && vv >= 0 && vv <= 1) { const s = sample(LD, 512, 256, u, vv); for (let q = 0; q < 3; q++) out[q] = out[q] * (1 - s[3]) + s[q] * s[3]; }
+      } else if (backName) {   // nome nas costas (visto por trás, a direita da tela é -x)
+        const u = (0.16 * k - x) / (0.32 * k), vv = (dTop - 0.1 * k) / (0.075 * k);
+        if (u >= 0 && u <= 1 && vv >= 0 && vv <= 1) { const s = sample(ND, 512, 128, u, vv); for (let q = 0; q < 3; q++) out[q] = out[q] * (1 - s[3]) + s[q] * s[3]; }
+      }
+    };
+    const col = [0, 0, 0, 1], ntri = idx ? idx.count : n, vi = t => idx ? idx.getX(t) : t;
+    for (let t = 0; t < ntri; t += 3) {
+      const a = vi(t), b = vi(t + 1), d = vi(t + 2);
+      const ax = uv.getX(a) * S, ay = uv.getY(a) * S, bx = uv.getX(b) * S, by = uv.getY(b) * S, dx = uv.getX(d) * S, dy = uv.getY(d) * S;
+      const den = (by - dy) * (ax - dx) + (dx - bx) * (ay - dy); if (Math.abs(den) < 1e-9) continue;
+      const x0 = Math.max(0, Math.floor(Math.min(ax, bx, dx)) - 1), x1 = Math.min(S - 1, Math.ceil(Math.max(ax, bx, dx)) + 1);
+      const y0 = Math.max(0, Math.floor(Math.min(ay, by, dy)) - 1), y1 = Math.min(S - 1, Math.ceil(Math.max(ay, by, dy)) + 1);
+      for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
+        const qx = px + 0.5, qy = py + 0.5;
+        let w0 = ((by - dy) * (qx - dx) + (dx - bx) * (qy - dy)) / den, w1 = ((dy - ay) * (qx - dx) + (ax - dx) * (qy - dy)) / den, w2 = 1 - w0 - w1;
+        if (w0 < -0.02 || w1 < -0.02 || w2 < -0.02) continue;     // pequena margem para não deixar fresta entre triângulos
+        const X = P[a * 3] * w0 + P[b * 3] * w1 + P[d * 3] * w2, Yv = P[a * 3 + 1] * w0 + P[b * 3 + 1] * w1 + P[d * 3 + 1] * w2, Z = P[a * 3 + 2] * w0 + P[b * 3 + 2] * w1 + P[d * 3 + 2] * w2;
+        color(X, Yv, Z, col);
+        const o = (py * S + px) * 4, lum = (D[o] * 0.3 + D[o + 1] * 0.59 + D[o + 2] * 0.11) / 255;
+        const sh = col.skin ? Math.min(1.05, Math.max(0.8, 0.55 + lum * 0.5)) : Math.min(1.15, Math.max(0.45, lum / 0.86));    // mantém as dobras do tecido (suavizadas na "pele")
+        D[o] = Math.min(255, col[0] * sh); D[o + 1] = Math.min(255, col[1] * sh); D[o + 2] = Math.min(255, col[2] * sh); D[o + 3] = col[3] ? 255 : 0;
+      }
+    }
+    g.putImageData(img, 0, 0);
+    const tx = new T.CanvasTexture(c); tx.flipY = srcMap.flipY; tx.encoding = T.sRGBEncoding; tx.wrapS = srcMap.wrapS; tx.wrapT = srcMap.wrapT;
+    return tx;
+  }
+
   class RealPlayer {
     constructor(cg, clips, probe, kit, role) {
       this.role = role; this.probe = probe;
@@ -74,7 +176,7 @@
         o.frustumCulled = false; o.castShadow = true;
         o.material = o.material.clone();
         const n = o.material.name;
-        if (/Shirt/.test(n)) tint(o.material, kit.shirt);
+        if (/Shirt/.test(n)) { tint(o.material, kit.shirt); this.shirt = o; this.shirtMap0 = o.material.map; }
         else if (/Shorts/.test(n)) tint(o.material, kit.shorts);
         else if (/Socks/.test(n)) tint(o.material, kit.socks);
         this.mats.push(o.material);
@@ -91,6 +193,7 @@
           this.g.add(glove); hand.attach(glove);
         }
       }
+      if (this.shirt) { this.model.updateMatrixWorld(true); this.shirtRest = shirtRest(this.shirt); this.applyStyle(kit); }
       this.mixer = new T.AnimationMixer(this.model);
       this.act = {};
       for (const k in clips) {
@@ -192,9 +295,22 @@
       this.handsPt = { x: (hl.x + hr.x) / 2, y: (hl.y + hr.y) / 2, z: (hl.z + hr.z) / 2 };
     }
 
+    applyStyle(kit) {        // camisa lisa (cor) ou modelo estampado "Next Player 2.2"
+      const m = this.shirt && this.shirt.material; if (!m) return;
+      const key = kit.style === 'nextplayer' ? 'np:' + (kit.backName || '') : 'lisa';
+      if (this.styleKey === key) return;
+      this.styleKey = key;
+      if (kit.style === 'nextplayer') {
+        // textura compartilhada entre jogadores (o modelo é o mesmo): gera uma vez por nome
+        const ck = kit.backName || '';
+        if (!NP_CACHE[ck]) NP_CACHE[ck] = nextPlayerShirtTexture(this.shirt, this.shirtMap0, this.shirtRest, kit.backName);
+        m.map = NP_CACHE[ck]; m.color.set(0xffffff); m.alphaTest = 0.5;
+      } else { m.map = this.shirtMap0; m.alphaTest = 0; tint(m, kit.shirt); }
+      m.needsUpdate = true;
+    }
     recolor(kit) {           // troca o uniforme (perfil do jogador ou barreira do outro time)
       for (const m of this.mats) {
-        if (/Shirt/.test(m.name)) tint(m, kit.shirt); else if (/Shorts/.test(m.name)) tint(m, kit.shorts); else if (/Socks/.test(m.name)) tint(m, kit.socks);
+        if (/Shirt/.test(m.name)) { this.styleKey = null; this.applyStyle(kit); if (kit.style !== 'nextplayer') tint(m, kit.shirt); } else if (/Shorts/.test(m.name)) tint(m, kit.shorts); else if (/Socks/.test(m.name)) tint(m, kit.socks);
       }
       if (this.gloveMat && kit.gloves) tint(this.gloveMat, kit.gloves);
     }
@@ -214,5 +330,5 @@
     return { create: (kit, role) => new RealPlayer(cg, clips, probe, kit, role) };
   }
 
-  root.PKReal = { load: loadRealPlayers };
+  root.PKReal = { load: loadRealPlayers, drawNextPlayerLogo };
 })(typeof window !== 'undefined' ? window : globalThis);

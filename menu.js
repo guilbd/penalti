@@ -7,7 +7,7 @@
   const DEF = {
     coins: 0, xp: 0, played: 0,
     upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 },
-    kit: { shirt: '#f2c230', shorts: '#1d3f8f', socks: '#f4f4f4', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10' },
+    kit: { shirt: '#f2c230', shorts: '#1d3f8f', socks: '#f4f4f4', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'lisa', backName: '' },
     gk: { shirt: '#18a36a', shorts: '#14161c', socks: '#18a36a', gloves: '#f5f5f5' },
     best: { targets: 0 }
   };
@@ -42,9 +42,15 @@
   const GLOVES = [['#f5f5f5', 'Brancas', 1], ['#17181c', 'Pretas', 1], ['#a6e22e', 'Limão', 2], ['#f07a1a', 'Laranjas', 3]];
 
   const kitBindings = [];
+  // modelo "Next Player 2.2": camisa preta com gola, ombros e punhos verdes e nome verde nas costas
+  const NP_GREEN = '#2bb52b';
+  function kitFor(k) {
+    if (k.style === 'nextplayer') return { shirt: '#141414', shorts: k.shorts, socks: k.socks, boots: k.boots, skin: k.skin, hair: k.hair, style: 'nextplayer', backName: k.backName || '', accent: NP_GREEN, num: (k.backName || k.num || '').toUpperCase(), numColor: NP_GREEN };
+    return { shirt: k.shirt, shorts: k.shorts, socks: k.socks, boots: k.boots, skin: k.skin, hair: k.hair, style: 'lisa', backName: '', accent: null, num: k.num, numColor: contrast(k.shirt, k.shorts) };
+  }
   function applyKits(KITS) {
     const k = data.kit, g = data.gk;
-    Object.assign(KITS.user, { shirt: k.shirt, shorts: k.shorts, socks: k.socks, boots: k.boots, skin: k.skin, hair: k.hair, num: k.num, numColor: contrast(k.shirt, k.shorts) });
+    Object.assign(KITS.user, kitFor(k));
     Object.assign(KITS.gkUser, { shirt: g.shirt, shorts: g.shorts, socks: g.socks, gloves: g.gloves, skin: k.skin, hair: k.hair, numColor: contrast(g.shirt, '#ffffff') });
   }
   function contrast(bg, pref) {          // cor do número legível sobre a camisa
@@ -63,7 +69,7 @@
       kitBindings.forEach(([K, fn]) => {
         if (!K.__cpu0) { K.__cpu0 = Object.assign({}, K.cpu); K.__gk0 = Object.assign({}, K.gkCpu); }
         Object.assign(K.cpu, K.__cpu0); Object.assign(K.gkCpu, K.__gk0);
-        if (kit && kit.shirt !== data.kit.shirt) Object.assign(K.cpu, { shirt: kit.shirt, shorts: kit.shorts, socks: kit.socks, boots: kit.boots, skin: kit.skin, hair: kit.hair, num: kit.num, numColor: contrast(kit.shirt, kit.shorts) });
+        if (kit && (kit.shirt !== data.kit.shirt || kit.style !== data.kit.style)) Object.assign(K.cpu, kitFor(Object.assign({ style: 'lisa' }, kit)));
         if (gk && gk.shirt !== data.gk.shirt) Object.assign(K.gkCpu, { shirt: gk.shirt, shorts: gk.shorts, socks: gk.socks, gloves: gk.gloves, numColor: contrast(gk.shirt, '#ffffff') });
         if (fn) fn();
       });
@@ -108,6 +114,8 @@
   .sw[aria-pressed="true"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--night), 0 0 0 4px var(--gold); }
   .sw:disabled { cursor: not-allowed; opacity: .35; }
   .sw:disabled::after { content: attr(data-lv); position: absolute; inset: 0; display: grid; place-items: center; font: 700 11px var(--display); color: #fff; text-shadow: 0 1px 2px #000; }
+  .np-opt { font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .06em; text-transform: uppercase; border: 1px solid var(--line); background: transparent; color: var(--ink); padding: 7px 12px; cursor: pointer; }
+  .np-opt[aria-pressed="true"] { background: #2bb52b; border-color: #2bb52b; color: #08140a; }
   .num-in { width: 70px; font: 700 20px var(--display); background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 6px 8px; }
   .upg { display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
   .upg .nm { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; }
@@ -168,11 +176,13 @@
   function openPlayer() { document.getElementById('menu').hidden = true; ov.hidden = false; renderPlayer(); }
 
   function preview(k, gk) {      // camisa, calção, meião e chuteira em silhueta
+    const np = !gk && k.style === 'nextplayer';
     return `<svg viewBox="0 0 110 170" aria-hidden="true">
       <circle cx="55" cy="18" r="13" fill="${k.skin || data.kit.skin}"/><path d="M42 13 q13 -14 26 0 q-2 -6 -13 -8 q-11 2 -13 8z" fill="${data.kit.hair}"/>
-      <path d="M30 36 L80 36 L96 66 L84 72 L78 60 L78 100 L32 100 L32 60 L26 72 L14 66 Z" fill="${k.shirt}"/>
+      <path d="M30 36 L80 36 L96 66 L84 72 L78 60 L78 100 L32 100 L32 60 L26 72 L14 66 Z" fill="${np ? '#141414' : k.shirt}"/>
+      ${np ? `<path d="M30 36 L46 36 L55 52 L64 36 L80 36 L84 44 L70 42 L55 60 L40 42 L26 44 Z" fill="${NP_GREEN}"/><path d="M14 66 L26 72 L28 67 L16 61 Z M96 66 L84 72 L82 67 L94 61 Z" fill="${NP_GREEN}"/><text x="60" y="58" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-style="italic" font-size="7" fill="#fff">NEXT</text><text x="60" y="65" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-style="italic" font-size="7" fill="#fff">PLAYER</text>` : ''}
       ${gk ? `<circle cx="17" cy="74" r="7" fill="${k.gloves}"/><circle cx="93" cy="74" r="7" fill="${k.gloves}"/>` : `<rect x="12" y="66" width="10" height="16" fill="${data.kit.skin}"/><rect x="88" y="66" width="10" height="16" fill="${data.kit.skin}"/>`}
-      <text x="55" y="80" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-size="24" fill="${contrast(k.shirt, '#ffffff')}">${gk ? '1' : data.kit.num}</text>
+      <text x="55" y="80" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="800" font-size="24" fill="${np ? NP_GREEN : contrast(k.shirt, '#ffffff')}">${gk ? '1' : np ? '' : data.kit.num}</text>
       <path d="M32 100 L78 100 L80 124 L58 124 L55 112 L52 124 L30 124 Z" fill="${k.shorts}"/>
       <rect x="35" y="124" width="14" height="14" fill="${data.kit.skin}"/><rect x="61" y="124" width="14" height="14" fill="${data.kit.skin}"/>
       <rect x="35" y="138" width="14" height="20" fill="${k.socks}"/><rect x="61" y="138" width="14" height="20" fill="${k.socks}"/>
@@ -189,10 +199,24 @@
     const body = ov.querySelector('#plBody');
     if (tab === 'kit') {
       const k = data.kit;
-      body.innerHTML = `<div class="pl-preview">${preview(k, false)}<div>${swatches('Camisa', SHIRTS, k, 'shirt')}${swatches('Calção', SHORTS, k, 'shorts')}${swatches('Meião', SOCKS, k, 'socks')}${swatches('Chuteira', BOOTS, k, 'boots')}${swatches('Pele', SKIN, k, 'skin')}${swatches('Cabelo', HAIR, k, 'hair')}
+      const np = k.style === 'nextplayer';
+      body.innerHTML = `<div class="pl-preview">${preview(k, false)}<div>
+        <div class="opt-row"><div class="lbl">Modelo da camisa</div><div class="sws" role="group" aria-label="Modelo da camisa">
+          <button type="button" class="np-opt" data-style="lisa" aria-pressed="${!np}">Lisa</button><button type="button" class="np-opt" data-style="nextplayer" aria-pressed="${np}">Next Player 2.2</button></div></div>
+        ${np ? `<div class="opt-row"><div class="lbl">Nome nas costas</div><input class="num-in" style="width:160px" id="plBack" maxlength="10" value="${(k.backName || '').replace(/"/g, '')}" placeholder="HULK" aria-label="Nome nas costas"></div>` : swatches('Camisa', SHIRTS, k, 'shirt')}${swatches('Calção', SHORTS, k, 'shorts')}${swatches('Meião', SOCKS, k, 'socks')}${swatches('Chuteira', BOOTS, k, 'boots')}${swatches('Pele', SKIN, k, 'skin')}${swatches('Cabelo', HAIR, k, 'hair')}
         <div class="opt-row"><div class="lbl">Número</div><input class="num-in" id="plNum" type="number" min="1" max="99" value="${k.num}" aria-label="Número da camisa"></div></div></div>
         <p style="font-size:13px;margin:8px 0 0">Nas versões 3D com jogador realista, pele e cabelo vêm do modelo e não mudam.</p>`;
-      body.onclick = e => { const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; k[b.dataset.set] = b.dataset.val; changed(); renderPlayer(); };
+      body.onclick = e => {
+        const st = e.target.closest('[data-style]');
+        if (st) {
+          k.style = st.dataset.style;
+          if (k.style === 'nextplayer') { if (!k.backName) k.backName = 'HULK'; k.shorts = '#17181c'; k.socks = '#17181c'; }
+          changed(); renderPlayer(); return;
+        }
+        const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; k[b.dataset.set] = b.dataset.val; changed(); renderPlayer();
+      };
+      const back = body.querySelector('#plBack');
+      if (back) back.onchange = e => { k.backName = e.target.value.replace(/[^A-Za-zÀ-ÿ0-9 .-]/g, '').trim().slice(0, 10).toUpperCase(); changed(); renderPlayer(); };
       body.querySelector('#plNum').onchange = e => { const n = Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 10)); k.num = String(n); changed(); renderPlayer(); };
     } else if (tab === 'gk') {
       const g = data.gk;
