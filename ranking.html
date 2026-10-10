@@ -80,14 +80,18 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
   const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false } });
   let me = null; try { me = JSON.parse(localStorage.getItem('penalti.online.v1')); } catch (e) { }
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // foto redonda do jogador (ou a inicial do apelido)
+  const av = (src, nick) => src && /^data:image\/(jpeg|webp|png);base64,/.test(src)
+    ? `<img src="${src}" alt="" width="28" height="28" style="width:28px;height:28px;border-radius:50%;object-fit:cover">`
+    : `<span aria-hidden="true" style="display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#1b2c4e;color:#f2b632;font:800 14px var(--display)">${esc(String(nick || '?').charAt(0).toUpperCase())}</span>`;
   const MODE = { penalties: 'Pênaltis', freekick: 'Faltas' };
   async function load() {
     const rows = document.getElementById('rows'), recent = document.getElementById('recent'), meEl = document.getElementById('me');
-    const { data, error } = await sb.from('penalti_players').select('id,nickname,rating,matches,wins,draws,losses,goals_for,goals_against').gt('matches', 0).order('rating', { ascending: false }).order('wins', { ascending: false }).limit(100);
+    const { data, error } = await sb.from('penalti_players').select('id,nickname,avatar,rating,matches,wins,draws,losses,goals_for,goals_against').gt('matches', 0).order('rating', { ascending: false }).order('wins', { ascending: false }).limit(100);
     if (error) { rows.innerHTML = '<tr><td colspan="8" class="err">Não foi possível carregar o ranking. Verifique a internet.</td></tr>'; return; }
     rows.innerHTML = data.length ? data.map((p, i) => {
       const sd = p.goals_for - p.goals_against;
-      return `<tr class="${i < 3 ? 'top3' : ''} ${me && me.id === p.id ? 'mine' : ''}"><td class="pos">${i + 1}</td><td class="nick">${esc(p.nickname)}</td><td class="pts">${p.rating}</td><td>${p.matches}</td><td class="w">${p.wins}</td><td>${p.draws}</td><td class="l">${p.losses}</td><td>${sd > 0 ? '+' : ''}${sd}</td></tr>`;
+      return `<tr class="${i < 3 ? 'top3' : ''} ${me && me.id === p.id ? 'mine' : ''}"><td class="pos">${i + 1}</td><td class="nick"><span style="display:inline-flex;align-items:center;gap:8px">${av(p.avatar, p.nickname)}<span>${esc(p.nickname)}</span></span></td><td class="pts">${p.rating}</td><td>${p.matches}</td><td class="w">${p.wins}</td><td>${p.draws}</td><td class="l">${p.losses}</td><td>${sd > 0 ? '+' : ''}${sd}</td></tr>`;
     }).join('') : '<tr><td colspan="8" class="empty">Ninguém jogou online ainda. Seja o primeiro!</td></tr>';
     if (me) {
       const { data: mine } = await sb.from('penalti_players').select('rating,matches').eq('id', me.id).maybeSingle();

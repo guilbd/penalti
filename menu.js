@@ -24,12 +24,13 @@
   const levelOf = xp => Math.floor((Math.sqrt(1 + 8 * xp / 100) - 1) / 2) + 1;
   const xpFor = lv => 100 * (lv - 1) * lv / 2;
 
+  // skills: o efeito de cada nível segue os números usados em engine.js
   const UPG = [
-    { k: 'power', name: 'Força', desc: 'Bola mais rápida no chute forte' },
-    { k: 'accuracy', name: 'Precisão', desc: 'Menos desvio em relação à mira' },
-    { k: 'curve', name: 'Efeito', desc: 'Curva mais acentuada' },
-    { k: 'reflex', name: 'Reflexo', desc: 'Goleiro reage e ajusta as mãos mais rápido' },
-    { k: 'reach', name: 'Impulsão', desc: 'Goleiro salta mais longe e mais alto' }
+    { k: 'power', name: 'Força', who: 'Batedor', desc: 'Bola mais rápida no chute forte: o goleiro tem menos tempo.', lvl: '+0,6 m/s por nível' },
+    { k: 'accuracy', name: 'Precisão', who: 'Batedor', desc: 'A bola sai mais perto de onde você mirou.', lvl: '−8% de desvio por nível' },
+    { k: 'curve', name: 'Efeito', who: 'Batedor', desc: 'Curva mais forte no chute com efeito.', lvl: '+12% de curva por nível' },
+    { k: 'reflex', name: 'Reflexo', who: 'Goleiro', desc: 'Seu goleiro move as mãos mais rápido para alcançar a bola.', lvl: '+6% de velocidade das mãos por nível' },
+    { k: 'reach', name: 'Impulsão', who: 'Goleiro', desc: 'Seu goleiro salta mais longe e mais alto.', lvl: '+2,4% de alcance por nível' }
   ];
   const cost = lv => 60 * (lv + 1);
   // cores: [valor, nome, nível necessário]
@@ -79,6 +80,8 @@
         if (fn) fn();
       });
     },
+    // moedas vindas de fora da partida (prêmio da rodada das ligas)
+    addCoins(n) { data.coins += Math.max(0, n | 0); save(); renderStrip(); },
     addRewards(d) {
       const before = levelOf(data.xp);
       data.coins += d.rewards.coins; data.xp += d.rewards.xp; data.played++;
@@ -126,6 +129,12 @@
   .upg .nm { font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; }
   .upg .ds { color: var(--muted); font-size: 13px; margin-top: 2px; }
   .upg .pips { display: flex; gap: 4px; margin-top: 6px; }
+  .upg .who { font-family: var(--display); font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); padding: 0 6px; margin-left: 8px; vertical-align: middle; }
+  .upg .lvl { color: var(--gold); font-size: 13px; margin-top: 2px; }
+  .sk-help { background: rgba(242,194,48,.08); border: 1px solid rgba(242,194,48,.35); padding: 12px 14px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+  .sk-help summary { font-family: var(--display); font-weight: 700; font-size: 16px; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); cursor: pointer; }
+  .sk-help ul { margin: 8px 0 0; padding-left: 18px; } .sk-help li { margin: 4px 0; }
+  .sk-coins { font-family: var(--display); font-weight: 800; font-size: 22px; margin: 4px 0 6px; } .sk-coins b { color: var(--gold); }
   .upg .pips i { width: 18px; height: 6px; background: rgba(255,255,255,.12); }
   .upg .pips i.on { background: var(--gold); }
   .upg button:disabled { opacity: .45; cursor: not-allowed; }
@@ -162,7 +171,7 @@
   function renderStrip() {
     if (!strip) return;
     const lv = levelOf(data.xp), a = xpFor(lv), b = xpFor(lv + 1), pct = Math.round((data.xp - a) / (b - a) * 100);
-    strip.innerHTML = `<div><div class="lv">Nível <b>${lv}</b> · ${data.coins} moedas</div><div class="xpbar" title="${data.xp - a} de ${b - a} XP"><i style="width:${pct}%"></i></div></div><button type="button" id="openPlayer">Seu jogador</button>`;
+    strip.innerHTML = `<div><div class="lv">Nível <b>${lv}</b> · ${data.coins} moedas</div><div class="xpbar" title="${data.xp - a} de ${b - a} XP"><i style="width:${pct}%"></i></div></div><button type="button" id="openPlayer">Jogador e skills</button>`;
     strip.querySelector('#openPlayer').addEventListener('click', openPlayer);
   }
   renderStrip();
@@ -171,7 +180,7 @@
   const ov = document.createElement('div'); ov.className = 'overlay player'; ov.id = 'player'; ov.hidden = true;
   ov.innerHTML = `<div class="card" role="dialog" aria-label="Seu jogador">
     <div class="pl-top"><div><div class="eyebrow">Seu jogador</div><h1 style="font-size:clamp(34px,6vw,48px);margin:4px 0 0">Vestiário</h1></div><div class="pl-coins" id="plCoins"></div></div>
-    <div class="pl-tabs" role="tablist"><button type="button" role="tab" data-tab="kit" aria-selected="true">Batedor</button><button type="button" role="tab" data-tab="gk" aria-selected="false">Goleiro</button><button type="button" role="tab" data-tab="upg" aria-selected="false">Evolução</button></div>
+    <div class="pl-tabs" role="tablist"><button type="button" role="tab" data-tab="kit" aria-selected="true">Batedor</button><button type="button" role="tab" data-tab="gk" aria-selected="false">Goleiro</button><button type="button" role="tab" data-tab="upg" aria-selected="false">Skills</button></div>
     <div id="plBody"></div>
     <button class="btn primary" id="plClose" type="button" style="margin-top:18px">Voltar ao menu</button></div>`;
   document.getElementById('app').appendChild(ov);
@@ -237,11 +246,18 @@
         const b = e.target.closest('[data-set]'); if (!b || b.disabled) return; g[b.dataset.set] = b.dataset.val; changed(); renderPlayer();
       };
     } else {
-      body.innerHTML = UPG.map(u => {
+      body.innerHTML = `<div class="sk-coins">Você tem <b>${data.coins}</b> moedas</div>
+        <details class="sk-help" ${data.upgrades && Object.values(data.upgrades).some(v => v > 0) ? '' : 'open'}><summary>Como funcionam as skills</summary><ul>
+          <li><b>O que são:</b> melhorias do seu jogador. Força, Precisão e Efeito deixam seu <b>chute</b> melhor; Reflexo e Impulsão deixam seu <b>goleiro</b> melhor.</li>
+          <li><b>Onde valem:</b> em todas as partidas, inclusive nas <b>partidas online contra outras pessoas</b> e nos jogos das ligas e do mata-mata. O adversário também joga com as skills dele.</li>
+          <li><b>Como comprar:</b> toque em "Melhorar". Cada skill tem 5 níveis e o preço sobe a cada nível: 60, 120, 180, 240 e 300 moedas.</li>
+          <li><b>Como ganhar moedas:</b> fazendo gols, defesas e vencendo partidas (contra o computador ou online), acertando alvos no modo Alvos e com o <b>prêmio da rodada</b> das ligas (até 300 moedas por semana).</li>
+          <li>Moedas e skills ficam salvas neste aparelho.</li></ul></details>` +
+        UPG.map(u => {
         const lv = data.upgrades[u.k], max = lv >= PK.PERK_MAX, c = cost(lv);
-        return `<div class="upg"><div><div class="nm">${u.name}</div><div class="ds">${u.desc}</div><div class="pips">${Array.from({ length: PK.PERK_MAX }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
-          <button type="button" data-buy="${u.k}" ${max || data.coins < c ? 'disabled' : ''}>${max ? 'Máximo' : `Melhorar · ${c}`}</button></div>`;
-      }).join('') + `<p style="font-size:13px;margin:12px 0 0">Ganhe moedas fazendo gols, defesas, vencendo partidas e acertando alvos. Recorde no modo Alvos: ${data.best.targets} pontos.</p>`;
+        return `<div class="upg"><div><div class="nm">${u.name}<span class="who">${u.who}</span></div><div class="ds">${u.desc}</div><div class="lvl">${u.lvl} · nível ${lv} de ${PK.PERK_MAX}</div><div class="pips">${Array.from({ length: PK.PERK_MAX }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
+          <button type="button" data-buy="${u.k}" ${max || data.coins < c ? 'disabled' : ''} aria-label="${max ? u.name + ' no máximo' : `Melhorar ${u.name} por ${c} moedas`}">${max ? 'Máximo' : `Melhorar · ${c}`}</button></div>`;
+      }).join('') + `<p style="font-size:13px;margin:12px 0 0">Recorde no modo Alvos: ${data.best.targets} pontos.</p>`;
       body.onclick = e => {
         const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
         const k = b.dataset.buy, c = cost(data.upgrades[k]);

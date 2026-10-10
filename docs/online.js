@@ -23,6 +23,26 @@
     placar_invalido: 'Placar inválido.'
   };
   const msgOf = e => { const m = (e && (e.message || e.details)) || String(e); for (const k in ERR) if (m.includes(k)) return ERR[k]; return /check constraint|nickname/.test(m) ? 'Use de 3 a 16 letras, números, espaço, ponto, hífen ou _.' : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.'; };
+  function pickPhoto(cb) {
+    const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
+    i.onchange = () => {
+      const f = i.files[0]; if (!f) return;
+      const url = URL.createObjectURL(f), img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const w = img.naturalWidth, h = img.naturalHeight, s = Math.min(w, h);
+        c.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 128, 128);
+        URL.revokeObjectURL(url); cb(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+      img.src = url;
+    };
+    i.click();
+  }
+  // foto redonda (ou a inicial do apelido, quando não há foto)
+  const avatar = (src, nick, size) => src && /^data:image\/(jpeg|webp|png);base64,/.test(src)
+    ? `<img src="${src}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;vertical-align:middle;flex:none">`
+    : `<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:#1b2c4e;color:#f2b632;font:800 ${Math.round(size * 0.5)}px var(--display, sans-serif);vertical-align:middle;flex:none">${String(nick || '?').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '')}</span>`;
   async function rpc(name, args) { const { data, error } = await client().rpc(name, args); if (error) throw error; return data; }
   const uuid = () => (root.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
 
@@ -87,7 +107,13 @@
         catch (e) { status(msgOf(e), true); }
       };
     } else {
-      w.innerHTML = `<div class="on-row" style="justify-content:space-between"><div class="on-me">${esc(me.nickname)} · <b>${me.rating ?? 1000}</b> pontos</div><button class="btn ghost" type="button" id="onRename">Trocar apelido</button></div>`;
+      w.innerHTML = `<div class="on-row" style="justify-content:space-between"><div class="on-me" style="display:flex;align-items:center;gap:10px"><span id="onAv">${avatar(me.avatar, me.nickname, 44)}</span><span id="onMeTxt">${esc(me.nickname)} · <b>${me.rating ?? 1000}</b> pontos</span></div><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost" type="button" id="onPhoto">${me.avatar ? 'Trocar foto' : 'Pôr foto'}</button><button class="btn ghost" type="button" id="onRename">Trocar apelido</button></span></div>`;
+      $('onPhoto').onclick = () => pickPhoto(async data => {
+        if (!data) return status('Não consegui abrir essa imagem.', true);
+        status('Salvando a foto…');
+        try { const r = await rpc('penalti_set_avatar', { p_id: me.id, p_secret: me.secret, p_avatar: data }); if (r && r.erro) throw new Error(r.erro); me.avatar = data; save(me); status('Foto salva. Ela aparece no ranking e nas ligas.'); renderWho(); }
+        catch (e) { status(msgOf(e), true); }
+      });
       $('onRename').onclick = () => {
         w.innerHTML = `<div class="on-row"><input id="onNick" maxlength="16" value="${esc(me.nickname)}" aria-label="Novo apelido"><button class="btn primary" type="button" id="onRen">Salvar</button></div>`;
         $('onRen').onclick = async () => {
@@ -101,8 +127,8 @@
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   async function refreshRating() {
     if (!me) return;
-    const { data } = await client().from('penalti_players').select('rating,nickname').eq('id', me.id).maybeSingle();
-    if (data) { me.rating = data.rating; me.nickname = data.nickname; save(me); const el = document.querySelector('.on-me'); if (el) el.innerHTML = `${esc(me.nickname)} · <b>${me.rating}</b> pontos`; }
+    const { data } = await client().from('penalti_players').select('rating,nickname,avatar').eq('id', me.id).maybeSingle();
+    if (data) { me.rating = data.rating; me.nickname = data.nickname; me.avatar = data.avatar; save(me); const el = $('onMeTxt'); if (el) el.innerHTML = `${esc(me.nickname)} · <b>${me.rating}</b> pontos`; const av = $('onAv'); if (av) av.innerHTML = avatar(me.avatar, me.nickname, 44); }
     else if (data === null && me) { /* cadastro apagado no servidor */ }
   }
 
@@ -284,6 +310,78 @@
     }, 2000);
     root.addEventListener('beforeunload', () => { if (match && !match.over) send('bye', {}); });
   }
+
+  // ---------- ligas: desafios, sala do desafio pelo link e prêmio da rodada ----------
+  const tst = document.createElement('style');
+  tst.textContent = `
+  .on-toasts { position: fixed; left: 50%; top: calc(12px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 50; display: grid; gap: 8px; width: min(440px, calc(100vw - 24px)); }
+  .on-toast { background: var(--panel, #0d1730); border: 1px solid var(--gold, #f2b632); border-left-width: 5px; color: var(--ink, #f3f1ea); padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,.45); font: 500 15px var(--body, sans-serif); }
+  .on-toast b { color: var(--gold, #f2b632); }
+  .on-toast .on-row { margin: 10px 0 0; }
+  .on-toast .on-row { flex-wrap: nowrap; }
+  .on-toast .btn { min-height: 40px; padding: 6px 14px; flex: 1 1 0; width: auto; }`;
+  document.head.appendChild(tst);
+  const toasts = document.createElement('div'); toasts.className = 'on-toasts'; toasts.setAttribute('role', 'status'); toasts.setAttribute('aria-live', 'polite');
+  document.body.appendChild(toasts);
+  function toast(html, buttons, ms) {
+    const t = document.createElement('div'); t.className = 'on-toast'; t.innerHTML = html;
+    if (buttons && buttons.length) {
+      const row = document.createElement('div'); row.className = 'on-row';
+      buttons.forEach(([label, primary, fn]) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (primary ? ' primary' : ' ghost'); b.textContent = label; b.onclick = () => { t.remove(); fn && fn(); }; row.appendChild(b); });
+      t.appendChild(row);
+    }
+    toasts.appendChild(t);
+    if (ms) setTimeout(() => t.remove(), ms);
+    return t;
+  }
+  const idle = () => !match && (!game || game.state === 'menu' || game.state === 'over');
+
+  // entra na sala de um desafio (o mesmo código para os dois jogadores)
+  function joinChallengeRoom(code, m) {
+    if (!me) { $('menu').hidden = true; ov.hidden = false; renderWho(); status('Escolha um apelido para jogar o desafio.', true); return; }
+    mode = m === 'freekick' ? 'freekick' : 'penalties';
+    document.querySelectorAll('[data-omode]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.omode === mode)));
+    $('menu').hidden = true; $('over').hidden = true; ov.hidden = false; renderWho();
+    enterLobby('penalti-room-' + code + '-' + mode, `Desafio da liga (${MODE_NAME[mode]}). Esperando o adversário entrar na sala:`, code);
+  }
+  // link vindo da página de ligas: ?sala=CODE&modo=penalties
+  const qs = new URLSearchParams(location.search), salaQ = (qs.get('sala') || '').toUpperCase();
+  if (/^[A-Z2-9]{4}$/.test(salaQ)) {
+    const modoQ = qs.get('modo');
+    qs.delete('sala'); qs.delete('modo');
+    history.replaceState(null, '', location.pathname + (qs.toString() ? '?' + qs : ''));
+    setTimeout(() => joinChallengeRoom(salaQ, modoQ), 300);
+  }
+
+  // desafios recebidos (verifica a cada 20 s enquanto ninguém está jogando)
+  const shown = {};
+  async function checkChallenges() {
+    if (!me || !idle() || document.hidden) return;
+    try {
+      const d = await rpc('penalti_challenge_pending', { p_id: me.id, p_secret: me.secret });
+      (d.recebidos || []).forEach(c => {
+        if (shown[c.id]) return; shown[c.id] = 1;
+        toast(`<b>${esc(c.de)}</b> desafiou você para uma partida de ${MODE_NAME[c.mode] || 'Pênaltis'}.`, [
+          ['Aceitar', true, async () => { try { const r = await rpc('penalti_challenge_answer', { p_id: me.id, p_secret: me.secret, p_challenge: c.id, p_accept: true }); joinChallengeRoom(r.code, r.mode); } catch (e) { toast(esc(msgOf(e)), null, 5000); } }],
+          ['Recusar', false, () => rpc('penalti_challenge_answer', { p_id: me.id, p_secret: me.secret, p_challenge: c.id, p_accept: false }).catch(() => {})]
+        ]);
+      });
+    } catch (e) { /* sem rede: tenta de novo depois */ }
+  }
+  setTimeout(checkChallenges, 2500); setInterval(checkChallenges, 20000);
+
+  // prêmio da rodada das ligas: moedas creditadas no perfil deste aparelho
+  async function claimPrizes() {
+    if (!me || !root.PKProfile || !root.PKProfile.addCoins) return;
+    try {
+      const d = await rpc('penalti_league_claim', { p_id: me.id, p_secret: me.secret });
+      (d.premios || []).forEach(p => {
+        root.PKProfile.addCoins(p.moedas);
+        toast(`Prêmio da rodada: <b>${p.posicao}º lugar</b> na liga ${esc(p.liga)} (semana de ${p.semana.split('-').reverse().slice(0, 2).join('/')}). <b>+${p.moedas} moedas</b>!`, [['Ótimo', true]], 15000);
+      });
+    } catch (e) { /* tenta na próxima abertura */ }
+  }
+  setTimeout(claimPrizes, 1500);
 
   root.PKOnline = { attach, get me() { return me; }, SB: { url: SB_URL, key: SB_KEY } };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -87,6 +87,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
 .acc { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 4px; }
 .acc-row { display: grid; grid-template-columns: 90px 1fr; gap: 10px; padding: 4px 0; font-size: 15px; }
 .acc-row span { color: var(--muted); }
+.btn.wa { background: #25d366; border-color: #25d366; color: #06230f; }
 @media (max-width: 720px) {
   .item { grid-template-columns: 1fr; }
   .item .acts { justify-content: flex-start; }
@@ -226,7 +227,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
           <div class="field" style="margin:0"><label for="accPass">Nova senha do relatório</label><input type="text" id="accPass" minlength="6" autocomplete="off" spellcheck="false"><div class="hint">Mínimo de 6 caracteres. Trocar a senha derruba a anterior.</div></div>
           <div class="quick" style="margin:0 0 22px"><button class="btn small" type="button" id="accGen">Gerar senha</button><button class="btn small primary" type="button" id="accSet">Definir senha</button></div>
         </div>
-        <div class="quick"><button class="btn small" type="button" id="accCopy">Copiar dados de acesso</button><button class="btn small danger" type="button" id="accDel">Remover acesso</button></div>
+        <div class="quick"><button class="btn small wa" type="button" id="accWa">Enviar pelo WhatsApp</button><button class="btn small" type="button" id="accCopy">Copiar dados de acesso</button><button class="btn small danger" type="button" id="accDel">Remover acesso</button></div>
         <div class="msg" id="accMsg" role="status" aria-live="polite"></div>
       </div>
     </section>
@@ -509,6 +510,9 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     accSave(v);
   });
   $('accDel').addEventListener('click', () => { if (confirm(`Remover o acesso de "${cur.nome}" ao relatório?`)) accSave(''); });
+  const accText = () => `Relatório de exibição da ${cur.nome} no painel de LED do jogo Pênalti\n` +
+      `Link: ${reportUrl(cur.id)}\nCódigo da empresa: ${cur.id}\n` + (accLast ? `Senha: ${accLast}` : 'Senha: (a que combinamos)');
+  $('accWa').addEventListener('click', () => { if (cur) window.open('https://wa.me/?text=' + encodeURIComponent(accText()), '_blank'); });
   $('accCopy').addEventListener('click', async () => {
     if (!cur) return;
     const txt = `Relatório de exibição da ${cur.nome} no painel de LED do jogo Pênalti\n` +

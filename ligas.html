@@ -87,6 +87,30 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
 .rules { color: var(--muted); font-size: 14px; line-height: 1.6; margin-top: 16px; }
 .rules b { color: var(--ink); }
 .owner { margin-top: 22px; }
+.chal { background: var(--panel); border: 1px solid var(--gold); border-left-width: 5px; padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chal b { color: var(--gold); }
+.btn.wa { background: #25d366; border-color: #25d366; color: #06230f; }
+.btn.wa::before { content: ""; width: 18px; height: 18px; background: currentColor; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.4 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z'/%3E%3C/svg%3E") center / contain no-repeat; }
+.prize { background: linear-gradient(90deg, rgba(242,182,50,.16), rgba(242,182,50,.03)); border: 1px solid rgba(242,182,50,.4); padding: 10px 14px; margin-bottom: 12px; font-size: 15px; line-height: 1.5; }
+.prize b { color: var(--gold); }
+.coin { display: inline-block; font-family: var(--display); font-weight: 700; font-size: 12px; color: #1a1406; background: var(--gold); padding: 0 6px; margin-left: 6px; letter-spacing: .04em; vertical-align: middle; }
+td.act { white-space: nowrap; }
+/* mata-mata */
+.cup { margin-top: 30px; }
+.bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(210px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 6px; }
+.round h3 { font-family: var(--display); font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.round .ties { display: grid; gap: 10px; align-content: space-around; height: calc(100% - 26px); }
+.tie { background: var(--panel); border: 1px solid var(--line); padding: 8px 10px; font-size: 15px; }
+.tie.mine { border-color: var(--gold); }
+.tie .pl { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+.tie .pl.win { font-weight: 700; color: var(--gold); }
+.tie .pl.out { color: var(--muted); text-decoration: line-through; }
+.tie .info { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.tie .btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.champ { font-family: var(--display); font-weight: 800; font-size: 26px; color: var(--gold); text-transform: uppercase; margin: 6px 0 12px; }
+dialog { width: min(420px, calc(100vw - 24px)); background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 20px; }
+dialog::backdrop { background: rgba(2, 5, 12, .75); }
+select { width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
 @media (max-width: 560px) { .invite .code { font-size: 22px; } }
 </style>
 
@@ -105,6 +129,8 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     <div class="row"><div class="grow"><label for="regNick">Apelido</label><input type="text" id="regNick" maxlength="16" required autocomplete="nickname"></div><button class="btn primary" type="submit">Criar</button></div>
     <div class="msg" id="regMsg" role="status" aria-live="polite"></div>
   </form>
+
+  <div id="chBox"></div>
 
   <!-- lista -->
   <section id="home">
@@ -146,7 +172,8 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     <div class="lhead" id="lHead"></div>
     <div class="invite" id="invite" hidden>
       <span style="color:var(--muted)">Código</span><span class="code" id="lCode"></span>
-      <button class="btn small primary" type="button" id="share">Convidar amigos</button>
+      <a class="btn small wa" id="waInvite" target="_blank" rel="noopener">Convidar pelo WhatsApp</a>
+      <button class="btn small" type="button" id="share">Copiar convite</button>
       <span class="msg ok" id="shareMsg" style="margin:0"></span>
     </div>
     <div id="joinBox" class="box" hidden style="margin-bottom:14px"><div class="row" style="align-items:center;justify-content:space-between"><span>Você ainda não está nesta liga.</span><button class="btn primary" type="button" id="joinThis">Entrar na liga</button></div></div>
@@ -156,12 +183,25 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
       <button type="button" data-p="geral" aria-pressed="false">Campeonato</button>
     </div>
     <p class="hint" id="periodHint" style="margin:-6px 0 10px"></p>
+    <div class="prize" id="prize"></div>
     <div class="tablewrap"><table>
-      <thead><tr><th scope="col">#</th><th scope="col">Jogador</th><th scope="col">Pts</th><th scope="col">J</th><th scope="col">V</th><th scope="col">D</th><th scope="col">Gols</th><th scope="col">Clássicos</th><th scope="col" id="thAct" hidden></th></tr></thead>
+      <thead><tr><th scope="col">#</th><th scope="col">Jogador</th><th scope="col">Pts</th><th scope="col">J</th><th scope="col">V</th><th scope="col">D</th><th scope="col">Gols</th><th scope="col">Clássicos</th><th scope="col" id="thAct"><span class="sr-only" style="position:absolute;left:-9999px">Ações</span></th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
-    <p class="rules"><b>Pontos:</b> vitória 3 · cada gol marcado 1 · vitória contra outro membro da liga (clássico) +2. Contam as partidas online com placar confirmado pelos dois jogadores, jogadas depois que a pessoa entrou na liga. <b>Rodada</b> vai de segunda a domingo. Desempate: vitórias, saldo de gols, gols marcados.</p>
+    <p class="rules"><b>Pontos:</b> vitória 3 · cada gol marcado 1 · vitória contra outro membro da liga (clássico) +2. Contam as partidas online com placar confirmado pelos dois jogadores, jogadas depois que a pessoa entrou na liga. <b>Rodada</b> vai de segunda a domingo. Desempate: vitórias, saldo de gols, gols marcados. Use <b>Desafiar</b> para chamar qualquer membro para uma partida.</p>
+
+    <section class="cup" id="cup">
+      <h2>Mata-mata</h2>
+      <div id="cupBody"></div>
+      <form class="box" id="cupForm" hidden style="margin-top:12px">
+        <p class="hint" style="margin:0 0 12px">O sorteio monta o chaveamento com todos os membros atuais. Cada confronto se decide numa partida online entre os dois (use o botão Desafiar). Se o prazo acabar sem jogo, passa quem tem mais pontos no ranking geral; o dono também pode dar a vitória.</p>
+        <div class="row"><div class="grow"><label for="cName">Nome do torneio</label><input type="text" id="cName" maxlength="40" minlength="3" required value="Copa da liga"></div>
+          <div style="flex:0 0 160px"><label for="cDays">Prazo por fase</label><select id="cDays"><option value="1">1 dia</option><option value="2">2 dias</option><option value="3" selected>3 dias</option><option value="5">5 dias</option><option value="7">7 dias</option></select></div></div>
+        <button class="btn primary" type="submit" style="margin-top:12px">Sortear chaveamento</button>
+        <div class="msg" id="cMsg" role="status" aria-live="polite"></div>
+      </form>
+    </section>
 
     <div class="owner box" id="ownerBox" hidden>
       <h2 style="font-size:20px">Administrar liga</h2>
@@ -181,6 +221,19 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     <p id="leaveWrap" hidden style="margin-top:22px"><button class="btn danger small" type="button" id="leave">Sair da liga</button></p>
   </section>
 </main>
+
+<dialog id="chDlg" aria-labelledby="chTitle">
+  <form method="dialog" id="chForm">
+    <h2 id="chTitle" style="font-size:22px">Desafiar</h2>
+    <p class="hint" id="chWho" style="margin:-4px 0 14px"></p>
+    <div class="field"><label>Modo</label><div class="tabs" id="chMode" role="group" aria-label="Modo"><button type="button" data-m="penalties" aria-pressed="true">Pênaltis</button><button type="button" data-m="freekick" aria-pressed="false">Faltas</button></div></div>
+    <div class="field"><label for="chVer">Jogar na versão</label><select id="chVer"><option value="penalti-celular.html">Celular 2D</option><option value="penalti-celular-3d.html">Celular 3D</option><option value="penalti-2d.html">Computador 2D</option><option value="penalti-3d.html">Computador 3D</option></select></div>
+    <p class="hint">Você vai para a sala do desafio e o adversário recebe o convite (vale por 30 minutos). A partida conta para o ranking, para a liga e para o mata-mata.</p>
+    <div class="row" style="justify-content:space-between;margin-top:12px"><button class="btn" type="button" id="chCancel">Cancelar</button><button class="btn primary" type="submit" id="chGo">Desafiar e ir para a sala</button></div>
+    <label style="display:flex;gap:8px;align-items:center;margin-top:12px;font-family:var(--body);font-size:15px;letter-spacing:0;text-transform:none;color:var(--ink)"><input type="checkbox" id="chWa" checked style="width:20px;height:20px;accent-color:#25d366"> Avisar também pelo WhatsApp</label>
+    <div class="msg" id="chMsg" role="status" aria-live="polite"></div>
+  </form>
+</dialog>
 
 <script>
 (function () {
@@ -212,6 +265,27 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     return d;
   }
 
+  function pickPhoto(cb) {
+    const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*';
+    i.onchange = () => {
+      const f = i.files[0]; if (!f) return;
+      const url = URL.createObjectURL(f), img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const w = img.naturalWidth, h = img.naturalHeight, s = Math.min(w, h);
+        c.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, 128, 128);
+        URL.revokeObjectURL(url); cb(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); cb(null); };
+      img.src = url;
+    };
+    i.click();
+  }
+  // foto redonda (ou a inicial do apelido, quando não há foto)
+  const avatar = (src, nick, size) => src && /^data:image\/(jpeg|webp|png);base64,/.test(src)
+    ? `<img src="${src}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;vertical-align:middle;flex:none">`
+    : `<span aria-hidden="true" style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:#1b2c4e;color:#f2b632;font:800 ${Math.round(size * 0.5)}px var(--display, sans-serif);vertical-align:middle;flex:none">${String(nick || '?').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '')}</span>`;
+
   // ---------- identidade (a mesma do jogo online) ----------
   let me = null;
   try { me = JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { /* sem armazenamento */ }
@@ -219,7 +293,14 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
   function renderWho() {
     $('regForm').hidden = !!me;
     $('who').hidden = !me;
-    if (me) $('who').innerHTML = `<span>Você: <b>${esc(me.nickname)}</b></span><span style="color:var(--muted);font-size:15px">mesmo apelido do jogo online</span>`;
+    if (me) {
+      $('who').innerHTML = `<span style="display:flex;align-items:center;gap:10px">${avatar(me.avatar, me.nickname, 40)}<span>Você: <b>${esc(me.nickname)}</b></span></span><button class="btn small" type="button" id="photoBtn">${me.avatar ? 'Trocar foto' : 'Pôr foto'}</button>`;
+      $('photoBtn').onclick = () => pickPhoto(async data => {
+        if (!data) return alert('Não consegui abrir essa imagem.');
+        try { await rpc('penalti_set_avatar', Object.assign(auth(), { p_avatar: data })); me.avatar = data; try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e) { /* ok */ } renderWho(); if (cur) openLeague(cur.id); }
+        catch (e) { alert(e.message); }
+      });
+    }
   }
   $('regForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -306,20 +387,27 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
       $('lHead').style.setProperty('--c', l ? l.color : 'var(--gold)');
       $('lHead').innerHTML = `<h2>${esc(l ? l.name : 'Liga')}</h2><p>${esc(e.message)}</p>`;
       $('rows').innerHTML = ''; $('invite').hidden = true; $('ownerBox').hidden = true; $('leaveWrap').hidden = true; $('joinBox').hidden = true;
+      $('prize').innerHTML = ''; $('cupBody').innerHTML = ''; $('cupForm').hidden = true;
       cur = null; return;
     }
     cur = d.liga;
     $('lHead').style.setProperty('--c', cur.color);
     $('lHead').innerHTML = `<h2>${esc(cur.name)}</h2><p>${esc(cur.description || '')}${cur.description ? '<br>' : ''}${cur.open ? 'Liga aberta' : 'Liga fechada'} · criada por ${esc(cur.dono_nick)} · ${d.tabela.length} ${d.tabela.length == 1 ? 'membro' : 'membros'}</p>`;
     $('invite').hidden = !cur.code; $('lCode').textContent = cur.code || '';
+    if (cur.code) $('waInvite').href = 'https://wa.me/?text=' + encodeURIComponent(inviteText());
     $('joinBox').hidden = cur.membro;
     $('periodHint').textContent = PERIOD_TXT[period];
-    const owner = cur.dono; $('thAct').hidden = !owner;
-    $('rows').innerHTML = d.tabela.length ? d.tabela.map((r, i) => `<tr class="${i < 3 && r.pts > 0 ? 'top3' : ''} ${me && r.id === me.id ? 'mine' : ''}">
-        <td class="pos">${i + 1}</td><td class="nick">${esc(r.nick)}</td><td class="pts">${r.pts}</td><td>${r.j}</td><td>${r.v}</td><td>${r.d}</td>
+    const owner = cur.dono, isMe = r => me && r.id === me.id;
+    const PR = (d.premio && d.premio.valores) || [300, 150, 75];
+    $('rows').innerHTML = d.tabela.length ? d.tabela.map((r, i) => `<tr class="${i < 3 && r.pts > 0 ? 'top3' : ''} ${isMe(r) ? 'mine' : ''}">
+        <td class="pos">${i + 1}</td><td class="nick"><span style="display:inline-flex;align-items:center;gap:8px">${avatar(r.foto, r.nick, 28)}<span>${esc(r.nick)}</span></span>${period === 'rodada' && i < 3 && r.pts > 0 ? `<span class="coin" title="Prêmio se terminar a rodada nesta posição">${PR[i]}</span>` : ''}</td><td class="pts">${r.pts}</td><td>${r.j}</td><td>${r.v}</td><td>${r.d}</td>
         <td>${r.gp}:${r.gc}</td><td>${r.cl}</td>
-        ${owner ? `<td>${me && r.id === me.id ? '' : `<button class="btn small danger" type="button" data-kick="${esc(r.id)}" data-nick="${esc(r.nick)}">Remover</button>`}</td>` : ''}</tr>`).join('')
+        <td class="act">${cur.membro && !isMe(r) ? `<button class="btn small" type="button" data-dare="${esc(r.id)}" data-nick="${esc(r.nick)}">Desafiar</button>` : ''}${owner && !isMe(r) ? ` <button class="btn small danger" type="button" data-kick="${esc(r.id)}" data-nick="${esc(r.nick)}">Remover</button>` : ''}</td></tr>`).join('')
       : '<tr><td colspan="9" class="empty">Sem membros.</td></tr>';
+    const last = (d.premio && d.premio.ultima_rodada) || [];
+    $('prize').innerHTML = `<b>Prêmio da rodada:</b> 1º ${PR[0]} · 2º ${PR[1]} · 3º ${PR[2]} moedas do jogo para gastar em skills. As moedas caem no seu jogador quando você abre o jogo depois que a rodada termina (domingo à meia-noite). Vale quando pelo menos 3 membros jogam na semana.` +
+      (last.length ? `<br>Última rodada: ${last.map(x => `${x.posicao}º <b>${esc(x.nick)}</b> (${x.pts} pts)`).join(' · ')}` : '');
+    loadCup();
     $('ownerBox').hidden = !owner; $('leaveWrap').hidden = !cur.membro || owner;
     if (owner) {
       $('eName').value = cur.name; $('eDesc').value = cur.description || ''; swatches('eColors', cur.color);
@@ -331,12 +419,10 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     const b = e.target.closest('[data-p]'); if (!b || !cur) return;
     period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); openLeague(cur.id);
   });
+  const inviteText = () => `⚽ Entre na minha liga "${cur.name}" no jogo Pênalti!\nÉ só tocar no link: ${new URL('ligas.html?codigo=' + cur.code, location.href).href}\n(código da liga: ${cur.code})`;
   $('share').addEventListener('click', async () => {
-    const link = new URL('ligas.html?codigo=' + cur.code, location.href).href;
-    const text = `Entre na minha liga "${cur.name}" no jogo Pênalti! Código ${cur.code}`;
-    if (navigator.share) { try { await navigator.share({ title: 'Liga ' + cur.name, text, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; } }
-    try { await navigator.clipboard.writeText(text + '\n' + link); msg('shareMsg', 'Convite copiado.', 'ok'); }
-    catch (e) { prompt('Copie o convite:', text + '\n' + link); }
+    try { await navigator.clipboard.writeText(inviteText()); msg('shareMsg', 'Convite copiado.', 'ok'); }
+    catch (e) { prompt('Copie o convite:', inviteText()); }
   });
   $('joinThis').addEventListener('click', async () => {
     if (needMe('lMsg')) return;
@@ -368,6 +454,105 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     catch (e) { msg('eMsg', e.message, 'err'); }
   });
 
+  // ---------- desafiar ----------
+  const touch = matchMedia('(pointer: coarse)').matches;
+  let dareTo = null, dareMode = 'penalties';
+  try { $('chVer').value = localStorage.getItem('penalti.versao') || (touch ? 'penalti-celular.html' : 'penalti-3d.html'); } catch (e) { $('chVer').value = touch ? 'penalti-celular.html' : 'penalti-3d.html'; }
+  function dare(id, nick) {
+    if (needMe('lMsg')) return;
+    dareTo = id; $('chTitle').textContent = 'Desafiar ' + nick; $('chWho').textContent = `${nick} recebe o convite na página de ligas e no menu do jogo.`; msg('chMsg', '');
+    $('chDlg').showModal();
+  }
+  $('chMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; dareMode = b.dataset.m; $('chMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('chCancel').addEventListener('click', () => $('chDlg').close());
+  $('chForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const d = await rpc('penalti_challenge_create', Object.assign(auth(), { p_to: dareTo, p_mode: dareMode }));
+      try { localStorage.setItem('penalti.versao', $('chVer').value); } catch (e2) { /* ok */ }
+      if ($('chWa').checked) {
+        const link = new URL(`${$('chVer').value}?sala=${d.code}&modo=${d.mode}`, location.href).href;
+        window.open('https://wa.me/?text=' + encodeURIComponent(`⚽ Te desafiei para uma partida de ${d.mode === 'freekick' ? 'Faltas' : 'Pênaltis'} no jogo Pênalti! Toque para entrar na sala: ${link}`), '_blank');
+      }
+      location.href = `${$('chVer').value}?sala=${d.code}&modo=${d.mode}`;
+    } catch (err) { msg('chMsg', err.code === 'sem_liga_comum' ? 'Vocês precisam estar na mesma liga.' : err.code === 'muitos_desafios' ? 'Muitos desafios na última hora. Espere um pouco.' : err.message, 'err'); }
+  });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-dare]'); if (b) dare(b.dataset.dare, b.dataset.nick); });
+
+  // desafios recebidos
+  async function checkChallenges() {
+    if (!me || document.hidden) return;
+    try {
+      const d = await rpc('penalti_challenge_pending', auth());
+      $('chBox').innerHTML = (d.recebidos || []).map(c => `<div class="chal"><span><b>${esc(c.de)}</b> desafiou você para ${c.mode === 'freekick' ? 'Faltas' : 'Pênaltis'}.</span>
+        <span class="row"><button class="btn small primary" type="button" data-acc="${esc(c.id)}">Aceitar e jogar</button><button class="btn small" type="button" data-rej="${esc(c.id)}">Recusar</button></span></div>`).join('');
+    } catch (e) { /* sem rede */ }
+  }
+  $('chBox').addEventListener('click', async e => {
+    const a = e.target.closest('[data-acc]'), j = e.target.closest('[data-rej]'); if (!a && !j) return;
+    try {
+      const d = await rpc('penalti_challenge_answer', Object.assign(auth(), { p_challenge: (a || j).dataset[a ? 'acc' : 'rej'], p_accept: !!a }));
+      if (a) { let v = touch ? 'penalti-celular.html' : 'penalti-3d.html'; try { v = localStorage.getItem('penalti.versao') || v; } catch (e2) { /* ok */ } location.href = `${v}?sala=${d.code}&modo=${d.mode}`; }
+      else checkChallenges();
+    } catch (err) { alert(err.message); checkChallenges(); }
+  });
+  setInterval(checkChallenges, 20000);
+
+  // ---------- mata-mata ----------
+  const ROUND_NAME = (r, total) => ({ 0: 'Final', 1: 'Semifinal', 2: 'Quartas de final', 3: 'Oitavas de final' })[total - r] || `${r}ª fase`;
+  const when = t => t ? new Date(t).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  let cup = null;
+  async function loadCup() {
+    if (!cur) return;
+    let d;
+    try { d = await rpc('penalti_cup_view', Object.assign({ p_league: cur.id }, me ? auth() : { p_id: null, p_secret: null })); }
+    catch (e) { $('cupBody').innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+    cup = d.copa;
+    const active = cup && cup.status === 'andamento';
+    $('cupForm').hidden = !(cur.dono && !active);
+    if (!cup) { $('cupBody').innerHTML = `<div class="empty">Nenhum mata-mata ainda.${cur.dono ? ' Sorteie o primeiro abaixo.' : ' O dono da liga pode sortear um.'}</div>`; return; }
+    const ties = d.confrontos, rounds = cup.rounds, myId = me && me.id;
+    let html = `<p class="hint" style="margin:0 0 8px"><b style="color:var(--ink)">${esc(cup.name)}</b> · ${active ? `em andamento · prazo de ${cup.days} ${cup.days == 1 ? 'dia' : 'dias'} por fase` : 'encerrado em ' + when(cup.encerrada)}</p>`;
+    if (cup.campeao) html += `<div class="champ">Campeão: ${esc(cup.campeao)}</div>`;
+    html += '<div class="bracket">';
+    for (let rd = 1; rd <= rounds; rd++) {
+      html += `<div class="round"><h3>${ROUND_NAME(rd, rounds)}</h3><div class="ties">`;
+      ties.filter(t => t.round === rd).forEach(t => {
+        const pl = (id, n) => !id ? `<div class="pl" style="color:var(--muted)">${rd === 1 ? '— (passa direto)' : 'a definir'}</div>`
+          : `<div class="pl ${t.vencedor ? (t.vencedor === id ? 'win' : 'out') : ''}"><span>${esc(n)}${id === myId ? ' (você)' : ''}</span></div>`;
+        const mine = myId && (t.p1 === myId || t.p2 === myId), open = !t.vencedor && t.p1 && t.p2;
+        const how = { bye: 'passou direto', partida: 'decidido na partida' + (t.placar ? ' · ' + t.placar : ''), prazo: 'prazo vencido: passou quem tem mais pontos no ranking', dono: 'decidido pelo dono da liga' }[t.como] || (open ? `jogar até ${when(t.prazo)}` : '');
+        html += `<div class="tie ${mine ? 'mine' : ''}">${pl(t.p1, t.n1)}${pl(t.p2, t.n2)}<div class="info">${how}</div>`;
+        if (open && active) {
+          const opp = t.p1 === myId ? [t.p2, t.n2] : [t.p1, t.n1];
+          html += '<div class="btns">' + (mine ? `<button class="btn small primary" type="button" data-dare="${esc(opp[0])}" data-nick="${esc(opp[1])}">Desafiar</button>` : '') +
+            (cur.dono ? `<button class="btn small" type="button" data-win="${esc(t.p1)}" data-r="${t.round}" data-s="${t.slot}" data-nick="${esc(t.n1)}">Vitória ${esc(t.n1)}</button><button class="btn small" type="button" data-win="${esc(t.p2)}" data-r="${t.round}" data-s="${t.slot}" data-nick="${esc(t.n2)}">Vitória ${esc(t.n2)}</button>` : '') + '</div>';
+        }
+        html += '</div>';
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+    if (active && cur.dono) html += `<p style="margin-top:10px"><button class="btn small danger" type="button" id="cupCancel">Cancelar mata-mata</button></p>`;
+    $('cupBody').innerHTML = html;
+    const cc = $('cupCancel');
+    if (cc) cc.onclick = async () => {
+      if (!confirm('Cancelar o mata-mata? O chaveamento é apagado (as partidas continuam valendo para o ranking e a liga).')) return;
+      try { await rpc('penalti_cup_cancel', Object.assign(auth(), { p_cup: cup.id })); loadCup(); } catch (e) { msg('cMsg', e.message, 'err'); }
+    };
+  }
+  $('cupBody').addEventListener('click', async e => {
+    const b = e.target.closest('[data-win]'); if (!b) return;
+    if (!confirm(`Dar a vitória deste confronto para ${b.dataset.nick}?`)) return;
+    try { await rpc('penalti_cup_decide', Object.assign(auth(), { p_cup: cup.id, p_round: +b.dataset.r, p_slot: +b.dataset.s, p_winner: b.dataset.win })); loadCup(); }
+    catch (err) { alert(err.message); }
+  });
+  $('cupForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try { await rpc('penalti_cup_create', Object.assign(auth(), { p_league: cur.id, p_name: $('cName').value, p_days: +$('cDays').value })); msg('cMsg', ''); loadCup(); }
+    catch (err) { msg('cMsg', { poucos_membros: 'A liga precisa de pelo menos 2 membros.', muitos_membros: 'O mata-mata aceita até 64 membros.', mata_mata_ativo: 'Já existe um mata-mata em andamento.' }[err.code] || err.message, 'err'); }
+  });
+
   // ---------- rota: ?liga=ID abre a liga; ?codigo=XXXXXX prepara a entrada ----------
   function route() {
     const qs = new URLSearchParams(location.search), id = qs.get('liga'), code = qs.get('codigo');
@@ -376,6 +561,6 @@ tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 5
     if (code) { $('joinCode').value = code.toUpperCase(); setTab('find'); msg('joinMsg', 'Toque em "Entrar na liga" para participar.', 'ok'); }
     else setTab(tab);
   }
-  renderWho(); route();
+  renderWho(); route(); checkChallenges();
 })();
 </script>

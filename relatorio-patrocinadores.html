@@ -115,7 +115,7 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
     </table></div>
 
     <section id="detail" hidden>
-      <div class="detail-head"><h2 id="dTitle"></h2><button class="copy" type="button" id="copy">Copiar resumo</button></div>
+      <div class="detail-head"><h2 id="dTitle"></h2><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="copy" type="button" id="waSum" style="background:#25d366;border-color:#25d366;color:#06230f">Enviar pelo WhatsApp</button><button class="copy" type="button" id="copy">Copiar resumo</button></span></div>
       <div class="tablewrap"><table>
         <thead><tr><th scope="col">Dia</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col"></th></tr></thead>
         <tbody id="dRows"></tbody>
@@ -257,17 +257,20 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
     period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload();
   });
   $('reload').addEventListener('click', e => { e.preventDefault(); reload(); });
-  $('copy').addEventListener('click', async () => {
+  $('waSum').addEventListener('click', () => summary(true));
+  $('copy').addEventListener('click', () => summary(false));
+  async function summary(viaWa) {
     let nome, t;
     if (sess.kind === 'anc') { nome = mine && mine.marca ? mine.marca.nome : sess.marca; t = (mine && mine.total) || {}; }
     else { const r = data.find(x => x.sponsor === sel); if (!r) return; nome = r.nome || r.sponsor; t = r; }
     const [from, to, label] = range(period);
     const txt = `${nome} no painel de LED do jogo Pênalti ${label}${period === 'tudo' ? '' : ` (${fmtDay(from)} a ${fmtDay(to)})`}:\n` +
       `• ${num(t.views)} exibições\n• ${dur(t.secs)} de tempo de tela\n• ${num(t.people)} pessoas diferentes alcançadas\n• ${num(t.clicks)} cliques no link`;
+    if (viaWa) { window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank'); return; }
     try { await navigator.clipboard.writeText(txt); $('copy').textContent = 'Copiado!'; }
     catch (e) { prompt('Copie o resumo:', txt); }
     setTimeout(() => { $('copy').textContent = 'Copiar resumo'; }, 1800);
-  });
+  }
 
   if (sess) load(true).then(keep).catch(e => { if (!fail(e)) { showLogin(); $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; } });
   else showLogin();
