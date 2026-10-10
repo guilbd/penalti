@@ -22,5 +22,8 @@ for name in ["engine.js", "menu.js", "online.js", "realplayers.js", "patrocinado
     shutil.copy(ROOT / name, DOCS / name)
 shutil.copytree(ROOT / "assets" / "web", DOCS / "assets" / "web")
 shutil.copytree(ROOT / "assets" / "patrocinadores", DOCS / "assets" / "patrocinadores")
+shutil.copytree(ROOT / "assets" / "icons", DOCS / "assets" / "icons")
+for name in ["penalti.webmanifest", "patrocinio.webmanifest", "relatorio.webmanifest"]:
+    shutil.copy(ROOT / name, DOCS / name)
 (DOCS / ".nojekyll").write_text("")
 print("docs/ gerado com", len(PAGES), "páginas")

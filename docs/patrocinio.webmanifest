@@ -1,0 +1,31 @@
+{
+  "name": "Patrocínio Pênalti",
+  "short_name": "Patrocínio",
+  "description": "Cadastro dos patrocinadores do painel de LED do jogo Pênalti.",
+  "lang": "pt-BR",
+  "start_url": "admin-patrocinadores.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#060b16",
+  "theme_color": "#060b16",
+  "icons": [
+    {
+      "src": "assets/icons/patrocinio-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/patrocinio-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/patrocinio-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

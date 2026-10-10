@@ -1,0 +1,31 @@
+{
+  "name": "Pênalti",
+  "short_name": "Pênalti",
+  "description": "Disputa de pênaltis, faltas e alvos, contra o computador ou online.",
+  "lang": "pt-BR",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#060b16",
+  "theme_color": "#060b16",
+  "icons": [
+    {
+      "src": "assets/icons/penalti-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/penalti-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/penalti-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
