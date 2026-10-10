@@ -152,6 +152,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<script src="patrocinadores.js"></script>
 <script src="engine.js"></script>
 <script src="menu.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -324,6 +325,16 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     const b = new THREE.Mesh(new THREE.BoxGeometry(5.9, 0.95, 0.12), [darkMat, darkMat, darkMat, darkMat, darkMat, mat]);
     b.position.set(x + 2.95, 0.475, C.BOARDS_Z); b.castShadow = true; scene.add(b);
   }
+  // painel de LED dos patrocinadores (marcas em patrocinadores.js), entre os setores da arquibancada atrás do gol
+  const led = new PK.LedBoard(), ledTex = tex(led.canvas);
+  {
+    const LH = 1.8, LW = 120, z = C.BOARDS_Z + 8, y0 = 1.3 + 24 * 5 / 30;
+    ledTex.wrapS = THREE.RepeatWrapping; ledTex.repeat.set(LW / (LH * 8), 1);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(LW + 1, LH + 0.4, 0.6), darkMat); box.position.set(0, y0 + LH / 2, z + 0.3); scene.add(box);
+    const scr = new THREE.Mesh(new THREE.PlaneGeometry(LW, LH), new THREE.MeshBasicMaterial({ map: ledTex, fog: false, toneMapped: false }));
+    scr.rotation.y = Math.PI; scr.position.set(0, y0 + LH / 2, z - 0.02); scene.add(scr);
+  }
+  game.on(t => { if (t === 'goal') led.goal(); });
 
   // ---------- bola com gomos (pentágonos e hexágonos) ----------
   const ballTex = makeCanvas(512, 256, (g, w, h) => {
@@ -653,6 +664,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     }
     excite = Math.max(0, excite - real * 0.35);
     crowdTextures.forEach((t, i) => { t.offset.y = Math.sin(now * 17 + i) * 0.006 * excite; });
+    if (led.update()) ledTex.needsUpdate = true;
     renderer.render(scene, camera);
     ui.frame();
     fctx.setTransform(fxDpr, 0, 0, fxDpr, 0, 0); fctx.clearRect(0, 0, cw, ch);

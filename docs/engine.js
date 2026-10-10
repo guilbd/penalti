@@ -633,6 +633,72 @@
     }
   }
 
+  // ---------- painel de LED da arquibancada (patrocinadores) ----------
+  // As marcas vêm de window.PK_SPONSORS (arquivo patrocinadores.js). O painel guarda um "módulo"
+  // de 512×64 px (proporção 8:1) que as páginas repetem ao longo da faixa de LED.
+  const LED_FONT = '"Barlow Condensed", "Arial Narrow", Arial, sans-serif';
+  class LedBoard {
+    constructor(cfg) {
+      cfg = cfg || (typeof window !== 'undefined' && window.PK_SPONSORS) || {};
+      this.tempo = Math.max(2, +cfg.tempo || 7);
+      this.list = (Array.isArray(cfg.marcas) && cfg.marcas.length ? cfg.marcas : [{ tipo: 'nextplayer' }]).map(m => Object.assign({ peso: 1 }, m));
+      // fila intercalada: marca com peso 2 aparece duas vezes a cada rodada
+      const maxP = Math.max(...this.list.map(m => Math.max(1, Math.round(m.peso))));
+      this.queue = [];
+      for (let r = 0; r < maxP; r++) this.list.forEach((m, i) => { if (Math.max(1, Math.round(m.peso)) > r) this.queue.push(i); });
+      this.W = 512; this.H = 64;
+      const mk = () => { const c = document.createElement('canvas'); c.width = this.W; c.height = this.H; return c; };
+      this.canvas = mk(); this.g = this.canvas.getContext('2d');
+      this.tiles = this.list.map(() => mk());
+      this.grid = mk();                                   // máscara de pontos de LED
+      const gg = this.grid.getContext('2d'); gg.fillStyle = 'rgba(0,0,0,.42)';
+      for (let x = 0; x < this.W; x += 4) gg.fillRect(x + 3, 0, 1, this.H);
+      for (let y = 0; y < this.H; y += 4) gg.fillRect(0, y + 3, this.W, 1);
+      this.list.forEach((m, i) => {
+        if (m.logo) { const img = new Image(); img.crossOrigin = 'anonymous'; img.onload = () => { m.img = img; this.paintTile(i); }; img.src = m.logo; }
+        this.paintTile(i);
+      });
+      if (typeof document !== 'undefined' && document.fonts) document.fonts.load(`italic 900 40px ${LED_FONT}`).then(() => this.list.forEach((m, i) => this.paintTile(i))).catch(() => {});
+      this.t0 = performance.now() / 1000; this.goalUntil = 0; this.dirty = true; this.shown = '';
+    }
+    paintTile(i) {
+      const m = this.list[i], g = this.tiles[i].getContext('2d'), W = this.W, H = this.H;
+      g.clearRect(0, 0, W, H);
+      if (m.tipo === 'nextplayer') { paintNextPlayerBoard(g, W, H, m.variante || 0); this.dirty = true; return; }
+      g.fillStyle = m.fundo || '#000'; g.fillRect(0, 0, W, H);
+      const txt = m.texto != null ? String(m.texto) : (m.img ? '' : String(m.nome || ''));
+      g.font = `italic 900 ${H * 0.6}px ${LED_FONT}`; g.textBaseline = 'middle';
+      let lw = 0, lh = 0;
+      if (m.img) { lh = H * 0.8; lw = Math.min(m.img.width * lh / m.img.height, txt ? W * 0.42 : W * 0.92); lh = Math.min(lh, lw * m.img.height / m.img.width); }
+      const gap = lw && txt ? H * 0.3 : 0, tw = txt ? Math.min(g.measureText(txt).width, W * 0.92 - lw - gap) : 0;
+      let x = (W - lw - gap - tw) / 2;
+      if (lw) { g.drawImage(m.img, x, (H - lh) / 2, lw, lh); x += lw + gap; }
+      if (txt) { g.fillStyle = m.cor || '#fff'; g.textAlign = 'left'; g.fillText(txt, x, H * 0.54, tw); }
+      this.dirty = true;
+    }
+    goal() { this.goalUntil = performance.now() / 1000 + 3; }
+    // redesenha o módulo quando muda; devolve true se mudou (para atualizar a textura no 3D)
+    update() {
+      const now = performance.now() / 1000, g = this.g, W = this.W, H = this.H;
+      if (now < this.goalUntil) {                       // gol: o painel inteiro pisca "GOOOL!"
+        const on = Math.floor(now * 6) % 2 === 0;
+        g.fillStyle = on ? '#f2c230' : '#0a0a0a'; g.fillRect(0, 0, W, H);
+        g.fillStyle = on ? '#0a0a0a' : '#f2c230'; g.font = `italic 900 ${H * 0.72}px ${LED_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText('GOOOL!', W / 2, H * 0.55, W * 0.9); g.drawImage(this.grid, 0, 0);
+        this.shown = 'gol' + on; return true;
+      }
+      const el = now - this.t0, slot = Math.floor(el / this.tempo), ph = el - slot * this.tempo, n = this.queue.length;
+      const cur = this.queue[slot % n], prev = this.queue[(slot - 1 + n) % n];
+      const tr = slot > 0 && n > 1 && ph < 0.45 ? ph / 0.45 : 1, key = cur + ':' + tr;
+      if (!this.dirty && key === this.shown) return false;
+      g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
+      if (tr < 1) { const e = tr * tr * (3 - 2 * tr); g.drawImage(this.tiles[prev], 0, -e * H); g.drawImage(this.tiles[cur], 0, H - e * H); }
+      else g.drawImage(this.tiles[cur], 0, 0);
+      g.drawImage(this.grid, 0, 0);
+      this.dirty = false; this.shown = key; return true;
+    }
+  }
+
   // ---------- partida ----------
   class Game {
     constructor() {
@@ -1227,6 +1293,6 @@
 
   root.PK = {
     C, V, add, sub, mul, dot, cross, len, norm, lerp, lerpN, clamp, smooth, UP, rightOf, rotVec, ICO,
-    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, drawNextPlayerLogo, paintNextPlayerBoard, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
+    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, drawNextPlayerLogo, paintNextPlayerBoard, LedBoard, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -124,6 +124,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   </div>
 </div>
 
+<script src="patrocinadores.js"></script>
 <script src="engine.js"></script>
 <script src="menu.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -194,6 +195,9 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
   // placas de publicidade Next Player (preta com logo / verde com o nome)
   const boardImgs = [0, 1].map(i => makeCanvas(512, 84, (g, w, h) => PK.paintNextPlayerBoard(g, w, h, i)));
   if (document.fonts) document.fonts.load('italic 900 40px "Barlow Condensed"').then(() => boardImgs.forEach((c, i) => PK.paintNextPlayerBoard(c.getContext('2d'), 512, 84, i))).catch(() => {});
+  // painel de LED dos patrocinadores (marcas em patrocinadores.js)
+  const led = new PK.LedBoard();
+  game.on(t => { if (t === 'goal') led.goal(); });
 
   // ---------- primitivas ----------
   function path(pts) {
@@ -240,6 +244,16 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       crowdPat.setTransform(new DOMMatrix([s, 0, 0, s, i * 37, ref.y + jump * (i % 2 ? 1 : -0.6)]));
       path(pts); ctx.fillStyle = crowdPat; ctx.fill();
       ctx.fillStyle = `rgba(4,7,14,${0.12 + i * 0.045})`; ctx.fill();
+    }
+    // painel de LED dos patrocinadores, entre os dois setores da arquibancada
+    led.update();
+    {
+      const z = Z + 3 + 2 * 2.6, y0 = 1.3 + 2 * 2.05, LH = 1.6, LW = LH * 8, img = led.canvas, w = img.width, h = img.height;
+      path([V(-52, y0 - 0.2, z), V(52, y0 - 0.2, z), V(52, y0 + LH + 0.2, z), V(-52, y0 + LH + 0.2, z)]); ctx.fillStyle = '#05070b'; ctx.fill();
+      for (let i = 0; i < 8; i++) {
+        const x = 4 * LW - i * LW, tl = P(V(x, y0 + LH, z)), tr = P(V(x - LW, y0 + LH, z)), bl = P(V(x, y0, z));
+        ctx.save(); ctx.transform((tr.x - tl.x) / w, (tr.y - tl.y) / w, (bl.x - tl.x) / h, (bl.y - tl.y) / h, tl.x, tl.y); ctx.drawImage(img, 0, 0); ctx.restore();
+      }
     }
     const top = V(0, 1.3 + 11 * 2.05, Z + 3 + 11 * 2.6);
     path([V(-80, top.y, top.z), V(80, top.y, top.z), V(80, top.y + 6, top.z + 2), V(-80, top.y + 6, top.z + 2)]); ctx.fillStyle = '#04070d'; ctx.fill();

@@ -1,0 +1,3 @@
+Coloque aqui os logos dos patrocinadores (PNG com fundo transparente, ~400x100 px)
+e cadastre cada um em patrocinadores.js, no campo logo.
+Ex.: logo: 'assets/patrocinadores/minha-marca.png'
