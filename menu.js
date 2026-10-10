@@ -1,12 +1,13 @@
-/* Perfil do jogador: moedas, experiência, evolução (atributos), uniforme e recorde.
-   Salvo no próprio aparelho (localStorage). Também monta a escolha de modo no menu e a tela
+/* Perfil do jogador: moedas, experiência, skills, uniforme e recorde.
+   Salvo no próprio aparelho (localStorage). Quem tem conta no jogo online (apelido) guarda moedas e
+   skills no servidor: online.js liga P.server e a carteira de lá passa a valer (o aparelho vira só cópia). Também monta a escolha de modo no menu e a tela
    "Seu jogador". Carregar depois de engine.js e antes de PK.bindUI. */
 (function (root) {
   'use strict';
   const KEY = 'penalti.perfil.v1';
   const DEF = {
     coins: 0, xp: 0, played: 0,
-    upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, skillsV: 2,
+    upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, skillsV: 3,
     // uniforme padrão: Next Player 2.2 (preto com detalhes verdes, nome nas costas)
     kit: { shirt: '#f2c230', shorts: '#17181c', socks: '#17181c', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'nextplayer', backName: 'HULK' },
     gk: { shirt: '#18a36a', shorts: '#17181c', socks: '#17181c', gloves: '#2bb52b', style: 'nextplayer' },
@@ -17,8 +18,10 @@
   try {
     const raw = root.localStorage && localStorage.getItem(KEY);
     if (raw) { const d = JSON.parse(raw); data = Object.assign(clone(DEF), d, { upgrades: Object.assign(clone(DEF.upgrades), d.upgrades), kit: Object.assign(clone(DEF.kit), d.kit), gk: Object.assign(clone(DEF.gk), d.gk), best: Object.assign(clone(DEF.best), d.best) });
-      // skills passaram de 5 para 10 níveis (meio efeito por nível): quem já tinha dobra o nível e mantém o mesmo efeito
-      if (d.skillsV !== 2) { for (const k in data.upgrades) data.upgrades[k] = Math.min(10, (data.upgrades[k] | 0) * 2); data.skillsV = 2; try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e2) { /* ignora */ } }
+      // skills agora vão até o nível 10. Uma versão anterior dobrou os níveis de quem já tinha skills (versão 2);
+      // aqui a dobra é desfeita (todos os níveis pares = perfil dobrado) e cada um volta ao nível que tinha antes
+      if (d.skillsV === 2 && Object.values(data.upgrades).every(v => (v | 0) % 2 === 0)) for (const k in data.upgrades) data.upgrades[k] = (data.upgrades[k] | 0) / 2;
+      if (d.skillsV !== 3) { data.skillsV = 3; try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e2) { /* ignora */ } }
     }
   } catch (e) { /* sem armazenamento: usa o padrão */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignora */ } };
@@ -85,11 +88,21 @@
         if (fn) fn();
       });
     },
-    // moedas vindas de fora da partida (prêmio da rodada das ligas)
+    // moedas vindas de fora da partida (sem conta no servidor)
     addCoins(n) { data.coins += Math.max(0, n | 0); save(); renderStrip(); },
+    // conta no servidor: { buy(skill) -> Promise<carteira>, earn(moedas) } — definido por online.js
+    server: null,
+    setWallet(w) {
+      if (!w || typeof w.coins !== 'number') return;
+      data.coins = w.coins; data.upgrades = Object.assign({ power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, w.upgrades);
+      save(); renderStrip(); if (!ov.hidden) renderPlayer();
+    },
     addRewards(d) {
       const before = levelOf(data.xp);
-      data.coins += d.rewards.coins; data.xp += d.rewards.xp; data.played++;
+      // com conta: partidas online são creditadas pelo servidor; contra o computador, pede o crédito (com limites)
+      if (P.server) { if (!d.online) P.server.earn(d.rewards.coins); }
+      else data.coins += d.rewards.coins;
+      data.xp += d.rewards.xp; data.played++;
       let record = false;
       if (d.mode === 'targets' && d.points > data.best.targets) { data.best.targets = d.points; record = true; }
       save(); renderStrip();
@@ -257,7 +270,9 @@
           <li><b>Onde valem:</b> em todas as partidas, inclusive nas <b>partidas online contra outras pessoas</b> e nos jogos das ligas e do mata-mata. O adversário também joga com as skills dele.</li>
           <li><b>Como comprar:</b> toque em "Melhorar". Cada skill vai do nível 0 ao 10, e cada nível custa mais que o anterior: 150, 250, 400, 600, 850, 1.150, 1.500, 1.900, 2.350 e 2.850 moedas (12.000 para chegar ao 10). Os níveis altos exigem muitas partidas: são para quem joga sempre.</li>
           <li><b>Como ganhar moedas:</b> fazendo gols, defesas e vencendo partidas (contra o computador ou online), acertando alvos no modo Alvos e com o <b>prêmio da rodada</b> das ligas (até 300 moedas por semana).</li>
-          <li>Moedas e skills ficam salvas neste aparelho.</li></ul></details>` +
+          <li>${P.server ? 'Suas moedas e skills ficam guardadas na sua conta (o apelido do jogo online) e valem em qualquer aparelho.' : 'Crie seu apelido em "Jogar online" para guardar moedas e skills na sua conta; sem conta, elas ficam só neste aparelho e não valem contra outras pessoas.'}</li>
+          <li>Contra o computador dá para ganhar até 3.000 moedas por dia; nas partidas online e no prêmio das ligas não há limite.</li></ul></details>
+        <div class="sk-msg" role="status" aria-live="polite" style="color:#ff8a8a;min-height:18px;font-size:14px"></div>` +
         UPG.map(u => {
         const lv = data.upgrades[u.k], max = lv >= PK.PERK_MAX, c = cost(lv);
         return `<div class="upg"><div><div class="nm">${u.name}<span class="who">${u.who}</span></div><div class="ds">${u.desc}</div><div class="lvl">${u.lvl} · nível ${lv} de ${PK.PERK_MAX}</div><div class="pips">${Array.from({ length: PK.PERK_MAX }, (_, i) => `<i class="${i < lv ? 'on' : ''}"></i>`).join('')}</div></div>
@@ -266,7 +281,13 @@
       body.onclick = e => {
         const b = e.target.closest('[data-buy]'); if (!b || b.disabled) return;
         const k = b.dataset.buy, c = cost(data.upgrades[k]);
-        if (data.coins >= c && data.upgrades[k] < PK.PERK_MAX) { data.coins -= c; data.upgrades[k]++; changed(); renderPlayer(); }
+        if (data.coins < c || data.upgrades[k] >= PK.PERK_MAX) return;
+        if (P.server) {                                   // compra validada no servidor
+          b.disabled = true; b.textContent = 'Comprando…';
+          P.server.buy(k).then(w => { P.setWallet(w); changed(); }).catch(err => { renderPlayer(); const m = body.querySelector('.sk-msg'); if (m) m.textContent = err.message; });
+          return;
+        }
+        data.coins -= c; data.upgrades[k]++; changed(); renderPlayer();
       };
     }
   }

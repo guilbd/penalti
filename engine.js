@@ -959,7 +959,9 @@
       if (m.idx > this.kickIndex || (m.idx === this.kickIndex && this.state !== 'waitRemote')) { this.inbox['shot:' + m.idx] = m; return; }
       if (this.state !== 'waitRemote' || m.idx !== this.kickIndex) return;
       const k = this.kicker = new Kicker({ t0: this.now, wait: 0.12, power: m.power, target: m.target, curve: m.curve, chip: m.chip, kit: 'cpu', ball: this.spot });
-      k.shot = { tgt: m.tgt, speed: m.speed, spin: V(m.spin.x, m.spin.y, m.spin.z) };
+      // o chute vem pronto do aparelho do adversário: a velocidade não passa do máximo permitido pela skill Força dele
+      const op = this.online.oppPerks || {}, vmax = shotSpeed(1, this.distance, 0.3 * (op.power || 0)) + 0.5;
+      k.shot = { tgt: m.tgt, speed: Math.min(m.speed, vmax), spin: V(m.spin.x, m.spin.y, m.spin.z) };
       this.state = 'runup';
     }
     remoteDive(m) {         // salto do goleiro do adversário, no tempo relativo ao toque na bola

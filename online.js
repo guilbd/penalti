@@ -103,7 +103,7 @@
         const nick = $('onNick').value.trim();
         if (nick.length < 3) return status('O apelido precisa de pelo menos 3 caracteres.', true);
         status('Salvando…');
-        try { me = await rpc('penalti_register', { p_nickname: nick }); save(me); status(''); renderWho(); }
+        try { me = await rpc('penalti_register', { p_nickname: nick }); save(me); status(''); renderWho(); syncWallet(); }
         catch (e) { status(msgOf(e), true); }
       };
     } else {
@@ -191,11 +191,13 @@
   function startMatch(matchId, role, opp) {
     status(`Adversário encontrado: ${opp.nick}. Conectando…`);
     match = { id: matchId, role, opp: { id: opp.id, nick: opp.nick, rating: opp.rating }, mode, hello: false, started: false, over: false, pings: [] };
+    // skills do adversário: valem as da conta dele no servidor, não as que o aparelho dele anuncia
+    match.oppSkills = rpc('penalti_wallet_skills', { p_player: opp.id }).catch(() => null);
     const ch = matchCh = client().channel('penalti-match-' + matchId, { config: { presence: { key: me.id }, broadcast: { self: false } } });
     const P = root.PKProfile ? root.PKProfile.data : null;
     const hello = () => send('hello', { id: me.id, nick: me.nickname, rating: me.rating || 1000, kit: P && P.kit, gk: P && P.gk, perks: P && P.upgrades });
     ch.on('broadcast', { event: 'hello' }, ({ payload }) => {
-      Object.assign(match.opp, { nick: payload.nick, rating: payload.rating, kit: payload.kit, gk: payload.gk, perks: payload.perks || {} });
+      Object.assign(match.opp, { nick: payload.nick, rating: payload.rating, kit: payload.kit, gk: payload.gk });
       if (!match.hello) { match.hello = true; hello(); }
       if (role === 'A' && !match.started) measureAndStart();
     });
@@ -227,6 +229,7 @@
   }
   async function begin(p) {
     match.started = true;
+    match.opp.perks = (await match.oppSkills) || { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 };
     try { await rpc('penalti_start_match', { p_id: me.id, p_secret: me.secret, p_match: match.id, p_opponent: match.opp.id, p_mode: p.mode }); }
     catch (e) { status(msgOf(e), true); }
     if (root.PKProfile && root.PKProfile.setOpponentKit) root.PKProfile.setOpponentKit(match.opp.kit, match.opp.gk);
@@ -263,7 +266,11 @@
     for (let tries = 0; tries < 8; tries++) {
       try {
         const r = await rpc('penalti_report', { p_id: me.id, p_secret: me.secret, p_match: match.id, p_my: my, p_opp: opp, p_forfeit: !!forfeit });
-        if (r.status === 'final') { me.rating = r.rating; save(me); show(`Ranking: ${r.delta >= 0 ? '+' : ''}${r.delta} pontos · agora ${r.rating}${r.wo ? ' (vitória por W.O.)' : ''}`); return; }
+        if (r.status === 'final') {
+          me.rating = r.rating; save(me);
+          show(`Ranking: ${r.delta >= 0 ? '+' : ''}${r.delta} pontos · agora ${r.rating}${r.wo ? ' (vitória por W.O.)' : ''}${r.coins ? ` · +${r.coins} moedas` : ''}`);
+          syncWallet(); return;
+        }
         if (r.status === 'disputa') { show('Os placares informados não bateram; a partida não contou para o ranking.'); return; }
         show(forfeit ? 'Aguardando para confirmar a vitória por W.O.…' : 'Aguardando o adversário confirmar o placar…');
       } catch (e) { show(msgOf(e)); }
@@ -372,16 +379,47 @@
 
   // prêmio da rodada das ligas: moedas creditadas no perfil deste aparelho
   async function claimPrizes() {
-    if (!me || !root.PKProfile || !root.PKProfile.addCoins) return;
+    if (!me || !root.PKProfile || !root.PKProfile.setWallet) return;
     try {
       const d = await rpc('penalti_league_claim', { p_id: me.id, p_secret: me.secret });
+      if (d.carteira) root.PKProfile.setWallet(d.carteira);
       (d.premios || []).forEach(p => {
-        root.PKProfile.addCoins(p.moedas);
         toast(`Prêmio da rodada: <b>${p.posicao}º lugar</b> na liga ${esc(p.liga)} (semana de ${p.semana.split('-').reverse().slice(0, 2).join('/')}). <b>+${p.moedas} moedas</b>!`, [['Ótimo', true]], 15000);
       });
     } catch (e) { /* tenta na próxima abertura */ }
   }
   setTimeout(claimPrizes, 1500);
+
+  // ---------- moedas e skills no servidor ----------
+  async function walletCall(name, args) {
+    const w = await rpc(name, Object.assign({ p_id: me.id, p_secret: me.secret }, args));
+    if (w && w.erro === 'credenciais_invalidas') throw new Error(ERR.credenciais_invalidas);
+    return w;
+  }
+  async function syncWallet() {
+    const P = root.PKProfile;
+    if (!me || !P || !P.setWallet) return;
+    P.server = {
+      async buy(skill) {
+        const w = await walletCall('penalti_wallet_buy', { p_skill: skill });
+        if (w.erro) { P.setWallet(w); throw new Error({ moedas_insuficientes: 'Moedas insuficientes.', nivel_maximo: 'Essa skill já está no nível máximo.' }[w.erro] || 'Não foi possível comprar agora.'); }
+        return w;
+      },
+      earn(coins) {
+        walletCall('penalti_wallet_earn', { p_coins: coins }).then(w => {
+          P.setWallet(w);
+          if (w.motivo === 'limite_diario') toast('Você atingiu o limite de 3.000 moedas por dia contra o computador. Jogue online ou nas ligas para ganhar mais.', null, 9000);
+        }).catch(() => {});
+      }
+    };
+    try {
+      let w = await walletCall('penalti_wallet', {});
+      // primeira vez nesta conta: traz moedas e skills que estavam no aparelho (com limite)
+      if (!w.imported) w = await walletCall('penalti_wallet_import', { p_coins: P.data.coins, p_upgrades: P.data.upgrades });
+      P.setWallet(w);
+    } catch (e) { /* sem rede: fica com a cópia do aparelho até a próxima vez */ }
+  }
+  setTimeout(syncWallet, 800);
 
   root.PKOnline = { attach, get me() { return me; }, SB: { url: SB_URL, key: SB_KEY } };
 })(typeof window !== 'undefined' ? window : globalThis);
