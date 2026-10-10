@@ -49,59 +49,89 @@ td.name small { display: block; color: var(--muted); font-weight: 400; }
 .err { color: #ff8a8a; }
 .note { color: var(--muted); font-size: 14px; line-height: 1.5; margin-top: 24px; }
 @media (max-width: 640px) { .kpis { grid-template-columns: 1fr 1fr; } }
+.box { background: var(--panel); border: 1px solid var(--line); padding: 18px; max-width: 460px; }
+.field { margin-bottom: 14px; }
+label { display: block; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+input[type=text], input[type=password], input[type=email] { width: 100%; box-sizing: border-box; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
+input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 5px; line-height: 1.4; }
+.btn { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--gold); padding: 10px 16px; font-size: 15px; cursor: pointer; min-height: 44px; }
+.btn.primary { background: var(--gold); color: #1a1406; }
+.msg { min-height: 22px; margin-top: 10px; font-size: 15px; } .msg.err { color: #ff8a8a; }
+#who { margin-bottom: 16px; }
+#who button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
 </style>
 
 <main>
   <div class="top">
     <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocínio</h1></div>
-    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="admin-patrocinadores.html">Cadastro</a><a href="#" id="reload">Atualizar</a></div>
-  </div>
-  <p class="lead">Quantas vezes cada marca apareceu no painel de LED durante as partidas, por quanto tempo, para quantas pessoas e quantos cliques recebeu na tela "Patrocinadores" do jogo. Toque numa marca para ver dia a dia.</p>
-
-  <div class="seg" role="group" aria-label="Período" id="period">
-    <button type="button" data-p="7" aria-pressed="true">7 dias</button>
-    <button type="button" data-p="30" aria-pressed="false">30 dias</button>
-    <button type="button" data-p="mes" aria-pressed="false">Este mês</button>
-    <button type="button" data-p="tudo" aria-pressed="false">Tudo</button>
+    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="admin-patrocinadores.html" id="toAdmin" hidden>Cadastro</a><a href="#" id="reload" hidden>Atualizar</a><a href="#" id="logout" hidden>Sair</a></div>
   </div>
 
-  <div class="kpis" id="kpis" aria-live="polite"></div>
-
-  <div class="tablewrap"><table>
-    <thead><tr><th scope="col">Marca</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col">Taxa de clique</th></tr></thead>
-    <tbody id="rows"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
-  </table></div>
-
-  <section id="detail" hidden>
-    <div class="detail-head"><h2 id="dTitle"></h2><button class="copy" type="button" id="copy">Copiar resumo para o patrocinador</button></div>
-    <div class="tablewrap"><table>
-      <thead><tr><th scope="col">Dia</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col"></th></tr></thead>
-      <tbody id="dRows"></tbody>
-    </table></div>
+  <!-- entrada: anunciante ou gestor -->
+  <section id="login" hidden>
+    <p class="lead">Relatório de exibição das marcas no painel de LED do jogo Pênalti. Cada anunciante vê só os números da própria empresa.</p>
+    <div class="box">
+      <div class="seg" role="tablist" aria-label="Tipo de acesso" id="who">
+        <button type="button" role="tab" data-w="anc" aria-selected="true" aria-pressed="true">Sou anunciante</button>
+        <button type="button" role="tab" data-w="adm" aria-selected="false" aria-pressed="false">Sou gestor</button>
+      </div>
+      <form id="ancForm">
+        <div class="field"><label for="aCode">Código da empresa</label><input type="text" id="aCode" autocomplete="username" autocapitalize="none" spellcheck="false" required><div class="hint">Recebido de quem vendeu o anúncio, junto com a senha.</div></div>
+        <div class="field"><label for="aPass">Senha</label><input type="password" id="aPass" autocomplete="current-password" required></div>
+        <button class="btn primary" type="submit">Ver meu relatório</button>
+      </form>
+      <form id="admForm" hidden>
+        <div class="field"><label for="gEmail">E-mail</label><input type="email" id="gEmail" autocomplete="username" required></div>
+        <div class="field"><label for="gPass">Senha</label><input type="password" id="gPass" autocomplete="current-password" required></div>
+        <button class="btn primary" type="submit">Entrar</button>
+      </form>
+      <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
+    </div>
   </section>
 
-  <p class="note"><b>Como contamos:</b> uma exibição é cada vez que a marca entra no painel enquanto alguém está jogando (com o menu fechado e o jogo na tela). Tempo de tela soma os segundos em que ela ficou visível. Pessoas são aparelhos diferentes, identificados só por um código aleatório, sem nome nem dado pessoal. Dias contados no horário de Brasília.</p>
+  <!-- relatório -->
+  <section id="view" hidden>
+    <p class="lead" id="lead"></p>
+    <div class="seg" role="group" aria-label="Período" id="period">
+      <button type="button" data-p="7" aria-pressed="true">7 dias</button>
+      <button type="button" data-p="30" aria-pressed="false">30 dias</button>
+      <button type="button" data-p="mes" aria-pressed="false">Este mês</button>
+      <button type="button" data-p="tudo" aria-pressed="false">Tudo</button>
+    </div>
+
+    <div class="kpis" id="kpis" aria-live="polite"></div>
+
+    <div class="tablewrap" id="allWrap"><table>
+      <thead><tr><th scope="col">Marca</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col">Taxa de clique</th></tr></thead>
+      <tbody id="rows"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+    </table></div>
+
+    <section id="detail" hidden>
+      <div class="detail-head"><h2 id="dTitle"></h2><button class="copy" type="button" id="copy">Copiar resumo</button></div>
+      <div class="tablewrap"><table>
+        <thead><tr><th scope="col">Dia</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col"></th></tr></thead>
+        <tbody id="dRows"></tbody>
+      </table></div>
+    </section>
+
+    <p class="note"><b>Como contamos:</b> uma exibição é cada vez que a marca entra no painel enquanto alguém está jogando (com o menu fechado e o jogo na tela). Tempo de tela soma os segundos em que ela ficou visível. Pessoas são aparelhos diferentes, identificados só por um código aleatório, sem nome nem dado pessoal. Dias contados no horário de Brasília.</p>
+  </section>
 </main>
 
-<script src="patrocinadores.js"></script>
 <script>
 (function () {
   'use strict';
   const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
   const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
   const $ = id => document.getElementById(id);
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const num = n => Number(n || 0).toLocaleString('pt-BR');
   const dur = s => { s = Math.round(s || 0); if (s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min'; };
   const pct = (c, v) => v ? (100 * c / v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—';
   const fmtDay = d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
   const weekday = d => new Date(d + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
-
-  // nomes das marcas a partir do patrocinadores.js (mesma regra do jogo)
-  const slug = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
-  const NAMES = {};
-  ((window.PK_SPONSORS || {}).marcas || []).forEach(m => { const id = slug(m.id || m.nome || (m.tipo === 'nextplayer' ? 'next-player' : '')); if (id && !NAMES[id]) NAMES[id] = { nome: m.nome || id, exemplo: !!m.exemplo }; });
-  const nameOf = id => (NAMES[id] && NAMES[id].nome) || id;
+  const ERR = { senha_invalida: 'Código, e-mail ou senha errados.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.', trocar_senha: 'Sua senha ainda é a provisória. Troque-a no Cadastro antes de ver o relatório.' };
 
   // datas no fuso de Brasília
   const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -115,58 +145,124 @@ td.name small { display: block; color: var(--muted); font-weight: 400; }
 
   async function rpc(name, args) {
     const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
-    if (!r.ok) throw new Error(r.status);
-    return r.json();
+    if (!r.ok) throw new Error('Não foi possível falar com o servidor. Verifique a internet e tente de novo.');
+    const d = await r.json();
+    if (d && d.erro) { const err = new Error(ERR[d.erro] || d.erro); err.code = d.erro; throw err; }
+    return d;
   }
 
-  let period = '7', data = [], sel = null;
-  async function load() {
-    const [from, to] = range(period);
-    $('rows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
-    try { data = await rpc('penalti_sponsor_report', { p_from: from, p_to: to }); }
-    catch (e) { $('rows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar. Verifique a internet e tente de novo.</td></tr>'; $('kpis').innerHTML = ''; return; }
-    data.forEach(r => { if (r.nome) NAMES[r.sponsor] = { nome: r.nome, exemplo: !!r.exemplo }; });
-    const sum = k => data.reduce((a, r) => a + Number(r[k] || 0), 0);
-    $('kpis').innerHTML = [[num(sum('views')), 'Exibições'], [dur(sum('secs')), 'Tempo de tela'], [num(Math.max(0, ...data.map(r => +r.people), 0)), 'Maior alcance'], [num(sum('clicks')), 'Cliques']]
-      .map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
-    $('rows').innerHTML = data.length ? data.map(r => `<tr tabindex="0" data-s="${esc(r.sponsor)}" class="${r.sponsor === sel ? 'sel' : ''}">
-        <td class="name">${esc(nameOf(r.sponsor))}${NAMES[r.sponsor] && NAMES[r.sponsor].exemplo ? '<small>espaço à venda</small>' : ''}${r.inicio || r.fim ? `<small>no ar ${r.inicio ? 'de ' + fmtDay(r.inicio) : 'desde o início'}${r.fim ? ' até ' + fmtDay(r.fim) : ''}</small>` : ''}</td>
-        <td>${num(r.views)}</td><td>${dur(r.secs)}</td><td>${num(r.people)}</td><td>${num(r.clicks)}</td><td>${pct(r.clicks, r.people)}</td></tr>`).join('')
-      : '<tr><td colspan="6" class="empty">Nenhuma exibição registrada neste período.</td></tr>';
-    if (sel && data.some(r => r.sponsor === sel)) detail(sel); else { sel = null; $('detail').hidden = true; }
+  // ---------- sessão (só nesta aba) ----------
+  // anunciante: { kind: 'anc', marca, pass } · gestor: { kind: 'adm', email, pass }
+  let sess = null;
+  try { sess = JSON.parse(sessionStorage.getItem('penalti.relatorio')) || null; } catch (e) { /* sem armazenamento */ }
+  if (!sess) try { const a = JSON.parse(sessionStorage.getItem('penalti.admin')); if (a && a.email) sess = { kind: 'adm', email: a.email, pass: a.pass }; } catch (e) { /* ok */ }
+  const keep = () => { try { sessionStorage.setItem('penalti.relatorio', JSON.stringify(sess)); } catch (e) { /* ok */ } };
+  const call = (name, args) => rpc(name, Object.assign(sess.kind === 'adm' ? { p_email: sess.email, p_pass: sess.pass } : { p_marca: sess.marca, p_pass: sess.pass }, args));
+  function fail(e) {
+    if (e.code === 'senha_invalida' || e.code === 'bloqueado' || e.code === 'trocar_senha') { logout(); $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; return true; }
+    return false;
   }
 
-  async function detail(s) {
-    sel = s;
-    document.querySelectorAll('#rows tr').forEach(tr => tr.classList.toggle('sel', tr.dataset.s === s));
-    const [from, to] = range(period);
-    $('detail').hidden = false; $('dTitle').textContent = nameOf(s) + ' · dia a dia';
-    $('dRows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
-    let days;
-    try { days = await rpc('penalti_sponsor_daily', { p_sponsor: s, p_from: from, p_to: to }); }
-    catch (e) { $('dRows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar.</td></tr>'; return; }
+  function showLogin() {
+    $('login').hidden = false; $('view').hidden = true;
+    ['toAdmin', 'reload', 'logout'].forEach(id => { $(id).hidden = true; });
+    const qs = new URLSearchParams(location.search), code = qs.get('marca');
+    if (code) $('aCode').value = code;
+    setWho(qs.get('gestor') != null ? 'adm' : 'anc');
+  }
+  function setWho(w) {
+    document.querySelectorAll('#who [data-w]').forEach(b => { const on = b.dataset.w === w; b.setAttribute('aria-selected', String(on)); b.setAttribute('aria-pressed', String(on)); });
+    $('ancForm').hidden = w !== 'anc'; $('admForm').hidden = w !== 'adm';
+    (w === 'anc' ? ($('aCode').value ? $('aPass') : $('aCode')) : $('gEmail')).focus();
+  }
+  $('who').addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (b) { $('lMsg').textContent = ''; setWho(b.dataset.w); } });
+  function logout() {
+    sess = null;
+    try { sessionStorage.removeItem('penalti.relatorio'); } catch (e) { /* ok */ }
+    $('aPass').value = ''; $('gPass').value = ''; showLogin();
+  }
+  $('logout').addEventListener('click', e => { e.preventDefault(); logout(); });
+  async function enter(s, msgEl) {
+    sess = s; $('lMsg').className = 'msg'; $('lMsg').textContent = 'Entrando…';
+    try { await load(true); keep(); $('lMsg').textContent = ''; }
+    catch (e) { if (!fail(e)) { $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; } }
+  }
+  $('ancForm').addEventListener('submit', e => { e.preventDefault(); enter({ kind: 'anc', marca: $('aCode').value.trim().toLowerCase(), pass: $('aPass').value }); });
+  $('admForm').addEventListener('submit', e => { e.preventDefault(); enter({ kind: 'adm', email: $('gEmail').value.trim().toLowerCase(), pass: $('gPass').value }); });
+
+  // ---------- relatório ----------
+  let period = '7', data = [], sel = null, mine = null;
+  function showView() {
+    $('login').hidden = true; $('view').hidden = false;
+    $('reload').hidden = false; $('logout').hidden = false; $('toAdmin').hidden = sess.kind !== 'adm';
+  }
+  const kpis = list => { $('kpis').innerHTML = list.map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join(''); };
+  function daysTable(days) {
+    if (!days.length) { $('dRows').innerHTML = '<tr><td colspan="6" class="empty">Nenhuma exibição registrada neste período.</td></tr>'; return; }
     const max = Math.max(1, ...days.map(d => +d.views));
     $('dRows').innerHTML = days.slice().reverse().map(d => `<tr><td>${fmtDay(d.day)} <span style="color:var(--muted)">${weekday(d.day)}</span></td>
       <td>${num(d.views)}</td><td>${dur(d.secs)}</td><td>${num(d.people)}</td><td>${num(d.clicks)}</td>
       <td style="width:28%"><div style="height:8px;background:var(--gold);width:${Math.round(100 * d.views / max)}%" aria-hidden="true"></div></td></tr>`).join('');
+  }
+  const contract = m => m && (m.inicio || m.fim) ? `No ar ${m.inicio ? 'de ' + fmtDay(m.inicio) : 'desde o início'}${m.fim ? ' até ' + fmtDay(m.fim) : ''}.` : '';
+
+  // first: na entrada, um erro volta para a tela de login em vez de aparecer no relatório
+  async function load(first) {
+    const [from, to] = range(period);
+    if (sess.kind === 'anc') {
+      const d = await call('penalti_sponsor_my_report', { p_from: from, p_to: to });
+      mine = d; showView();
+      const m = d.marca || { nome: sess.marca }, t = d.total || {};
+      $('lead').textContent = `Exibições de ${m.nome} no painel de LED do jogo Pênalti. ${contract(m)}`;
+      kpis([[num(t.views), 'Exibições'], [dur(t.secs), 'Tempo de tela'], [num(t.people), 'Pessoas alcançadas'], [num(t.clicks), 'Cliques no seu link']]);
+      $('allWrap').hidden = true; $('detail').hidden = false; $('dTitle').textContent = 'Dia a dia';
+      daysTable(d.dias || []);
+      return;
+    }
+    if (!first) $('rows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
+    data = (await call('penalti_admin_report', { p_from: from, p_to: to })).linhas || [];
+    showView(); $('allWrap').hidden = false;
+    $('lead').textContent = 'Quantas vezes cada marca apareceu no painel de LED durante as partidas, por quanto tempo, para quantas pessoas e quantos cliques recebeu. Toque numa marca para ver dia a dia.';
+    const sum = k => data.reduce((a, r) => a + Number(r[k] || 0), 0);
+    kpis([[num(sum('views')), 'Exibições'], [dur(sum('secs')), 'Tempo de tela'], [num(Math.max(0, ...data.map(r => +r.people), 0)), 'Maior alcance'], [num(sum('clicks')), 'Cliques']]);
+    $('rows').innerHTML = data.length ? data.map(r => `<tr tabindex="0" data-s="${esc(r.sponsor)}" class="${r.sponsor === sel ? 'sel' : ''}">
+        <td class="name">${esc(r.nome || r.sponsor)}${r.exemplo ? '<small>espaço à venda</small>' : ''}${r.inicio || r.fim ? `<small>${esc(contract(r))}</small>` : ''}</td>
+        <td>${num(r.views)}</td><td>${dur(r.secs)}</td><td>${num(r.people)}</td><td>${num(r.clicks)}</td><td>${pct(r.clicks, r.people)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">Nenhuma exibição registrada neste período.</td></tr>';
+    if (sel && data.some(r => r.sponsor === sel)) detail(sel); else { sel = null; $('detail').hidden = true; }
+  }
+  const reload = () => load().catch(e => { if (!fail(e)) kpis([[ '—', e.message ]]); });
+
+  async function detail(s) {
+    sel = s;
+    document.querySelectorAll('#rows tr').forEach(tr => tr.classList.toggle('sel', tr.dataset.s === s));
+    const [from, to] = range(period), r = data.find(x => x.sponsor === s);
+    $('detail').hidden = false; $('dTitle').textContent = (r && r.nome || s) + ' · dia a dia';
+    $('dRows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
+    try { daysTable((await call('penalti_admin_daily', { p_sponsor: s, p_from: from, p_to: to })).dias || []); }
+    catch (e) { if (!fail(e)) $('dRows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar.</td></tr>'; }
   }
 
   $('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-s]'); if (tr) detail(tr.dataset.s); });
   $('rows').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const tr = e.target.closest('tr[data-s]'); if (tr) { e.preventDefault(); detail(tr.dataset.s); } } });
   $('period').addEventListener('click', e => {
     const b = e.target.closest('[data-p]'); if (!b) return;
-    period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); load();
+    period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); reload();
   });
-  $('reload').addEventListener('click', e => { e.preventDefault(); load(); });
+  $('reload').addEventListener('click', e => { e.preventDefault(); reload(); });
   $('copy').addEventListener('click', async () => {
-    const r = data.find(x => x.sponsor === sel); if (!r) return;
+    let nome, t;
+    if (sess.kind === 'anc') { nome = mine && mine.marca ? mine.marca.nome : sess.marca; t = (mine && mine.total) || {}; }
+    else { const r = data.find(x => x.sponsor === sel); if (!r) return; nome = r.nome || r.sponsor; t = r; }
     const [from, to, label] = range(period);
-    const txt = `${nameOf(sel)} no painel de LED do jogo Pênalti ${label}${period === 'tudo' ? '' : ` (${fmtDay(from)} a ${fmtDay(to)})`}:\n` +
-      `• ${num(r.views)} exibições\n• ${dur(r.secs)} de tempo de tela\n• ${num(r.people)} pessoas diferentes alcançadas\n• ${num(r.clicks)} cliques no seu link`;
+    const txt = `${nome} no painel de LED do jogo Pênalti ${label}${period === 'tudo' ? '' : ` (${fmtDay(from)} a ${fmtDay(to)})`}:\n` +
+      `• ${num(t.views)} exibições\n• ${dur(t.secs)} de tempo de tela\n• ${num(t.people)} pessoas diferentes alcançadas\n• ${num(t.clicks)} cliques no link`;
     try { await navigator.clipboard.writeText(txt); $('copy').textContent = 'Copiado!'; }
     catch (e) { prompt('Copie o resumo:', txt); }
-    setTimeout(() => { $('copy').textContent = 'Copiar resumo para o patrocinador'; }, 1800);
+    setTimeout(() => { $('copy').textContent = 'Copiar resumo'; }, 1800);
   });
-  load();
+
+  if (sess) load(true).then(keep).catch(e => { if (!fail(e)) { showLogin(); $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; } });
+  else showLogin();
 })();
 </script>

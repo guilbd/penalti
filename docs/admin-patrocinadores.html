@@ -77,6 +77,9 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
 .logo-row img { height: 40px; max-width: 160px; object-fit: contain; background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 12px 12px; }
 .dlg-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .share { font-size: 13px; color: var(--muted); }
+.acc { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 4px; }
+.acc-row { display: grid; grid-template-columns: 90px 1fr; gap: 10px; padding: 4px 0; font-size: 15px; }
+.acc-row span { color: var(--muted); }
 @media (max-width: 720px) {
   .item { grid-template-columns: 1fr; }
   .item .acts { justify-content: flex-start; }
@@ -204,6 +207,23 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
         <label class="check"><input type="checkbox" id="fExemplo"> Espaço à venda ("anuncie aqui"): não aparece na lista de patrocinadores do jogo</label>
       </div>
 
+    <section id="acc" class="acc">
+      <h2 style="font-size:20px;margin:18px 0 6px">Relatório do anunciante</h2>
+      <p class="hint" id="accNew" style="margin:0 0 10px">Salve a marca primeiro para criar o acesso do anunciante ao relatório.</p>
+      <div id="accBox">
+        <p class="hint" style="margin:0 0 10px">O anunciante entra no relatório com o código e a senha abaixo e vê só os números desta marca.</p>
+        <div class="acc-row"><span>Situação</span><b id="accState"></b></div>
+        <div class="acc-row"><span>Código</span><b id="accCode"></b></div>
+        <div class="acc-row"><span>Link</span><b id="accLink" style="overflow-wrap:anywhere;font-weight:500"></b></div>
+        <div class="grid2" style="margin-top:10px;align-items:end">
+          <div class="field" style="margin:0"><label for="accPass">Nova senha do relatório</label><input type="text" id="accPass" minlength="6" autocomplete="off" spellcheck="false"><div class="hint">Mínimo de 6 caracteres. Trocar a senha derruba a anterior.</div></div>
+          <div class="quick" style="margin:0 0 22px"><button class="btn small" type="button" id="accGen">Gerar senha</button><button class="btn small primary" type="button" id="accSet">Definir senha</button></div>
+        </div>
+        <div class="quick"><button class="btn small" type="button" id="accCopy">Copiar dados de acesso</button><button class="btn small danger" type="button" id="accDel">Remover acesso</button></div>
+        <div class="msg" id="accMsg" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
     <div class="msg" id="dMsg" role="status" aria-live="polite"></div>
     <div class="dlg-foot"><button class="btn" type="button" id="dCancel">Cancelar</button><button class="btn primary" type="submit" id="dSave">Salvar marca</button></div>
   </form>
@@ -219,7 +239,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ERR = {
     senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.',
-    senha_curta: 'Use pelo menos 8 caracteres.', senha_igual: 'A nova senha precisa ser diferente da provisória.',
+    senha_curta: 'Use pelo menos 8 caracteres.', senha_curta_6: 'Use pelo menos 6 caracteres.', marca_inexistente: 'Salve a marca antes.', senha_igual: 'A nova senha precisa ser diferente da provisória.',
     trocar_senha: 'Crie sua senha antes de continuar.', email_invalido: 'E-mail inválido.', email_existe: 'Esse e-mail já é gestor.',
     remover_si: 'Você não pode remover a si mesmo.'
   };
@@ -367,7 +387,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       const el = document.createElement('div'); el.className = 'item';
       el.innerHTML = `<canvas width="512" height="64" role="img" aria-label="Arte de ${esc(m.nome)} no painel"></canvas>
         <div><div class="name">${esc(m.nome)}<span class="chip ${k}">${label}</span>${m.exemplo ? '<span class="chip end">À venda</span>' : ''}</div>
-          <div class="meta">${esc(periodText(m))}</div>
+          <div class="meta">${esc(periodText(m))}${m.exemplo ? '' : m.acesso ? ' · relatório: com acesso' : ' · relatório: sem acesso'}</div>
           <div class="meta">${m.peso > 1 ? `Tempo de tela ${m.peso}×` : 'Tempo de tela normal'} · efeito ${FX_NAME[m.efeito] || FX_NAME.subir}${share}${m.link ? ` · <a href="${esc(m.link)}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(m.link.replace(/^https?:\/\//, ''))}</a>` : ''}</div></div>
         <div class="acts">
           <button class="btn small" type="button" data-a="up" aria-label="Subir ${esc(m.nome)} na ordem" ${idx === 0 ? 'disabled' : ''}>↑</button>
@@ -447,10 +467,48 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     $('fIni').value = m && m.inicio || ''; $('fFim').value = m && m.fim || '';
     $('fAtivo').checked = m ? m.ativo : true; $('fExemplo').checked = m ? m.exemplo : false;
     $('fLogo').value = ''; msg('dMsg', '');
-    refresh(); if (prevBoard) prevBoard.t0 = performance.now() / 1000 - 1.5;   // começa perto da troca
+    accFill(); refresh(); if (prevBoard) prevBoard.t0 = performance.now() / 1000 - 1.5;   // começa perto da troca
     dlg.showModal(); $('fNome').focus();
   }
   $('add').addEventListener('click', () => edit(null));
+
+  // ---------- acesso do anunciante ao relatório ----------
+  const reportUrl = id => new URL('relatorio-patrocinadores.html?marca=' + encodeURIComponent(id), location.href).href;
+  let accLast = '';                                   // senha definida agora (para copiar junto)
+  function accFill() {
+    const m = cur; accLast = ''; $('accPass').value = ''; msg('accMsg', '');
+    $('accNew').hidden = !!m; $('accBox').hidden = !m;
+    if (!m) return;
+    $('accState').textContent = m.acesso ? 'Com acesso' : 'Sem acesso (defina uma senha)';
+    $('accCode').textContent = m.id; $('accLink').textContent = reportUrl(m.id);
+    $('accDel').hidden = !m.acesso;
+  }
+  $('accGen').addEventListener('click', () => {
+    const abc = 'abcdefghjkmnpqrstuvwxyz23456789', a = new Uint32Array(8); crypto.getRandomValues(a);
+    $('accPass').value = Array.from(a, n => abc[n % abc.length]).join('');
+  });
+  async function accSave(nova) {
+    try {
+      await arpc('penalti_admin_sponsor_pass', { p_id: cur.id, p_new: nova });
+      cur.acesso = !!nova; accLast = nova; $('accPass').value = '';
+      const keepLast = accLast; accFill(); accLast = keepLast;
+      msg('accMsg', nova ? 'Senha definida. Use "Copiar dados de acesso" para mandar ao anunciante.' : 'Acesso removido.', 'ok');
+      reload();
+    } catch (err) { msg('accMsg', err.message, 'err'); }
+  }
+  $('accSet').addEventListener('click', () => {
+    const v = $('accPass').value.trim();
+    if (v.length < 6) return msg('accMsg', 'Use pelo menos 6 caracteres (ou toque em "Gerar senha").', 'err');
+    accSave(v);
+  });
+  $('accDel').addEventListener('click', () => { if (confirm(`Remover o acesso de "${cur.nome}" ao relatório?`)) accSave(''); });
+  $('accCopy').addEventListener('click', async () => {
+    if (!cur) return;
+    const txt = `Relatório de exibição da ${cur.nome} no painel de LED do jogo Pênalti\n` +
+      `Link: ${reportUrl(cur.id)}\nCódigo da empresa: ${cur.id}\n` + (accLast ? `Senha: ${accLast}` : 'Senha: (a que combinamos)');
+    try { await navigator.clipboard.writeText(txt); msg('accMsg', 'Dados de acesso copiados.', 'ok'); }
+    catch (e) { prompt('Copie os dados de acesso:', txt); }
+  });
   $('dCancel').addEventListener('click', () => dlg.close());
   $('dForm').addEventListener('input', refresh);
   $('dForm').addEventListener('change', refresh);
