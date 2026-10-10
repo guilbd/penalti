@@ -6,7 +6,7 @@
   const KEY = 'penalti.perfil.v1';
   const DEF = {
     coins: 0, xp: 0, played: 0,
-    upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 },
+    upgrades: { power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, skillsV: 2,
     // uniforme padrão: Next Player 2.2 (preto com detalhes verdes, nome nas costas)
     kit: { shirt: '#f2c230', shorts: '#17181c', socks: '#17181c', boots: '#111318', skin: '#c48a63', hair: '#1b1410', num: '10', style: 'nextplayer', backName: 'HULK' },
     gk: { shirt: '#18a36a', shorts: '#17181c', socks: '#17181c', gloves: '#2bb52b', style: 'nextplayer' },
@@ -16,7 +16,10 @@
   let data = clone(DEF);
   try {
     const raw = root.localStorage && localStorage.getItem(KEY);
-    if (raw) { const d = JSON.parse(raw); data = Object.assign(clone(DEF), d, { upgrades: Object.assign(clone(DEF.upgrades), d.upgrades), kit: Object.assign(clone(DEF.kit), d.kit), gk: Object.assign(clone(DEF.gk), d.gk), best: Object.assign(clone(DEF.best), d.best) }); }
+    if (raw) { const d = JSON.parse(raw); data = Object.assign(clone(DEF), d, { upgrades: Object.assign(clone(DEF.upgrades), d.upgrades), kit: Object.assign(clone(DEF.kit), d.kit), gk: Object.assign(clone(DEF.gk), d.gk), best: Object.assign(clone(DEF.best), d.best) });
+      // skills passaram de 5 para 10 níveis (meio efeito por nível): quem já tinha dobra o nível e mantém o mesmo efeito
+      if (d.skillsV !== 2) { for (const k in data.upgrades) data.upgrades[k] = Math.min(10, (data.upgrades[k] | 0) * 2); data.skillsV = 2; try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e2) { /* ignora */ } }
+    }
   } catch (e) { /* sem armazenamento: usa o padrão */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignora */ } };
 
@@ -26,13 +29,15 @@
 
   // skills: o efeito de cada nível segue os números usados em engine.js
   const UPG = [
-    { k: 'power', name: 'Força', who: 'Batedor', desc: 'Bola mais rápida no chute forte: o goleiro tem menos tempo.', lvl: '+0,6 m/s por nível' },
-    { k: 'accuracy', name: 'Precisão', who: 'Batedor', desc: 'A bola sai mais perto de onde você mirou.', lvl: '−8% de desvio por nível' },
-    { k: 'curve', name: 'Efeito', who: 'Batedor', desc: 'Curva mais forte no chute com efeito.', lvl: '+12% de curva por nível' },
-    { k: 'reflex', name: 'Reflexo', who: 'Goleiro', desc: 'Seu goleiro move as mãos mais rápido para alcançar a bola.', lvl: '+6% de velocidade das mãos por nível' },
-    { k: 'reach', name: 'Impulsão', who: 'Goleiro', desc: 'Seu goleiro salta mais longe e mais alto.', lvl: '+2,4% de alcance por nível' }
+    { k: 'power', name: 'Força', who: 'Batedor', desc: 'Bola mais rápida no chute forte: o goleiro tem menos tempo.', lvl: '+0,3 m/s por nível' },
+    { k: 'accuracy', name: 'Precisão', who: 'Batedor', desc: 'A bola sai mais perto de onde você mirou.', lvl: '−4% de desvio por nível' },
+    { k: 'curve', name: 'Efeito', who: 'Batedor', desc: 'Curva mais forte no chute com efeito.', lvl: '+6% de curva por nível' },
+    { k: 'reflex', name: 'Reflexo', who: 'Goleiro', desc: 'Seu goleiro move as mãos mais rápido para alcançar a bola.', lvl: '+3% de velocidade das mãos por nível' },
+    { k: 'reach', name: 'Impulsão', who: 'Goleiro', desc: 'Seu goleiro salta mais longe e mais alto.', lvl: '+1,2% de alcance por nível' }
   ];
-  const cost = lv => 60 * (lv + 1);
+  // preço do próximo nível (do 1 ao 10): começa barato e fica caro; 12.000 moedas para levar uma skill ao máximo
+  const COSTS = [150, 250, 400, 600, 850, 1150, 1500, 1900, 2350, 2850];
+  const cost = lv => COSTS[Math.min(lv, COSTS.length - 1)];
   // cores: [valor, nome, nível necessário]
   const SHIRTS = [['#f2c230', 'Amarelo', 1], ['#e9edf2', 'Branco', 1], ['#c8102e', 'Vermelho', 1], ['#1d4fb8', 'Azul', 2], ['#0f8a4a', 'Verde', 2], ['#17181c', 'Preto', 3], ['#f07a1a', 'Laranja', 4], ['#6b2fa0', 'Roxo', 5], ['#5bb8f0', 'Celeste', 6], ['#e85a9b', 'Rosa', 7], ['#8a1538', 'Grená', 8], ['#b89436', 'Dourado', 10]];
   const SHORTS = [['#1d3f8f', 'Azul', 1], ['#e9edf2', 'Branco', 1], ['#17181c', 'Preto', 1], ['#c8102e', 'Vermelho', 2], ['#0f8a4a', 'Verde', 3], ['#f2c230', 'Amarelo', 4]];
@@ -250,7 +255,7 @@
         <details class="sk-help" ${data.upgrades && Object.values(data.upgrades).some(v => v > 0) ? '' : 'open'}><summary>Como funcionam as skills</summary><ul>
           <li><b>O que são:</b> melhorias do seu jogador. Força, Precisão e Efeito deixam seu <b>chute</b> melhor; Reflexo e Impulsão deixam seu <b>goleiro</b> melhor.</li>
           <li><b>Onde valem:</b> em todas as partidas, inclusive nas <b>partidas online contra outras pessoas</b> e nos jogos das ligas e do mata-mata. O adversário também joga com as skills dele.</li>
-          <li><b>Como comprar:</b> toque em "Melhorar". Cada skill tem 5 níveis e o preço sobe a cada nível: 60, 120, 180, 240 e 300 moedas.</li>
+          <li><b>Como comprar:</b> toque em "Melhorar". Cada skill vai do nível 0 ao 10, e cada nível custa mais que o anterior: 150, 250, 400, 600, 850, 1.150, 1.500, 1.900, 2.350 e 2.850 moedas (12.000 para chegar ao 10). Os níveis altos exigem muitas partidas: são para quem joga sempre.</li>
           <li><b>Como ganhar moedas:</b> fazendo gols, defesas e vencendo partidas (contra o computador ou online), acertando alvos no modo Alvos e com o <b>prêmio da rodada</b> das ligas (até 300 moedas por semana).</li>
           <li>Moedas e skills ficam salvas neste aparelho.</li></ul></details>` +
         UPG.map(u => {

@@ -350,10 +350,10 @@
   // na vida real. Depois do chute, com tempo de reação humano, as mãos se ajustam à bola.
   const REACH = 1.08;            // do quadril às mãos com o corpo esticado
   const VX_MAX = 5.0, VY_MAX = 3.4, PUSH_T = 0.1, HAND_SPEED = 6.5, ADJ_MAX = 0.5;
-  const PERK_MAX = 5;
+  const PERK_MAX = 10;             // skills: níveis 0 a 10 (o nível 10 equivale ao antigo nível 5)
   class Keeper {
     constructor() { this.x = 0; this.reset(0); }
-    setPerks(reach, reflex) { this.vxMax = VX_MAX + 0.12 * reach; this.vyMax = VY_MAX + 0.06 * reach; this.handSpeed = HAND_SPEED + 0.4 * reflex; }
+    setPerks(reach, reflex) { this.vxMax = VX_MAX + 0.06 * reach; this.vyMax = VY_MAX + 0.03 * reach; this.handSpeed = HAND_SPEED + 0.2 * reflex; }
     reset(now) { this.x = 0; this.dive = null; this.readErr = null; if (this.readNoise == null) this.readNoise = 0; if (this.vxMax == null) this.setPerks(0, 0); this.theta = 0; this.capsPrev = null; this.capsPrevT = null; this.lastNow = now; this.update(now); }
     swayX(now) { return this.noSway ? 0 : 0.12 * Math.sin(now * 1.7) + 0.04 * Math.sin(now * 4.1); }
     readyFeet(px, z) { return [V(px - 0.3, 0.06, z + 0.02), V(px + 0.3, 0.06, z + 0.02)]; }
@@ -912,7 +912,7 @@
       const p = Math.max(0.05, this.power);
       const pk = this.perks;
       this.kicker = new Kicker({ t0: this.now, wait: 0.12, power: p, target: { x: this.aim.x, y: this.aim.y }, curve: this.curve, chip: this.chip,
-        skill: 1 - 0.08 * pk.accuracy, speedBonus: 0.6 * pk.power, curveMul: 1 + 0.12 * pk.curve, kit: 'user', ball: this.spot });
+        skill: 1 - 0.04 * pk.accuracy, speedBonus: 0.3 * pk.power, curveMul: 1 + 0.06 * pk.curve, kit: 'user', ball: this.spot });
       this.memory.shots.push(Math.sign(this.aim.x));
       const k = this.kicker;
       k.shot = this.computeShot(k);
@@ -1010,7 +1010,7 @@
       const now = this.now, k = this.kicker, st = this.state;
       // reflexo do goleiro: depois do tempo de reação, prevê onde a bola cruza e reage
       if (st === 'flight' && this.ball.live && !this.ball.touched && !this.ball.held) {
-        const react = this.turn === 'user' ? this.D.gkReact : 0.22 - 0.015 * this.perks.reflex;
+        const react = this.turn === 'user' ? this.D.gkReact : 0.22 - 0.0075 * this.perks.reflex;
         if (this.wall && this.passWallT == null) {
           const s = this.spot, b = this.ball.p, f = norm(V(-s.x, 0, C.GZ - s.z));
           if ((b.x - s.x) * f.x + (b.z - s.z) * f.z > 9.4) {
