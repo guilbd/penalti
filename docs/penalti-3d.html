@@ -132,6 +132,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 <script src="menu.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="online.js"></script>
+<script src="patrocinio.js"></script>
 <script src="realplayers.js"></script>
 <script>
 (() => {
@@ -538,7 +539,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
     }
     excite = Math.max(0, excite - real * 0.35);
     crowdTextures.forEach((t, i) => { t.offset.y = Math.sin(now * 17 + i) * 0.006 * excite; });
-    if (led.update()) ledTex.needsUpdate = true;
+    if (led.update(game.state !== 'menu')) ledTex.needsUpdate = true;
     renderer.render(scene, camera);
     ui.frame();
     requestAnimationFrame(frame);

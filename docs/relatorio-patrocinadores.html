@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060b16">
+<meta name="robots" content="noindex">
+<title>Relatório de Patrocínio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesmo visual do ranking: noite de estádio, filete dourado, números tabulares. */
+:root {
+  --night: #060b16; --panel: #0d1730; --row: rgba(255, 255, 255, .03); --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 960px; margin: 0 auto; padding: calc(32px + env(safe-area-inset-top, 0px)) 16px calc(40px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(44px, 9vw, 76px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .04em; margin: 32px 0 10px; }
+.lead { color: var(--muted); line-height: 1.5; max-width: 66ch; margin: 12px 0 20px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a, .seg button, .copy { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 9px 14px; background: transparent; font-size: 15px; cursor: pointer; }
+.links a.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+a:focus-visible, button:focus-visible, tr:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 18px; }
+.kpi { background: var(--panel); border-left: 4px solid var(--gold); padding: 12px 14px; }
+.kpi b { display: block; font-family: var(--display); font-weight: 800; font-size: 32px; font-variant-numeric: tabular-nums; }
+.kpi span { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 620px; }
+th { font-family: var(--display); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 10px 12px; border-bottom: 1px solid var(--line); font-weight: 700; }
+th:first-child, td:first-child { text-align: left; }
+td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+tr:nth-child(even) td { background: var(--row); }
+tbody#rows tr { cursor: pointer; }
+tbody#rows tr:hover td, tr.sel td { background: rgba(242, 182, 50, .12) !important; }
+td.name { font-weight: 600; }
+td.name small { display: block; color: var(--muted); font-weight: 400; }
+.detail-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.copy { font-size: 14px; }
+.empty, .err { color: var(--muted); padding: 18px; }
+.err { color: #ff8a8a; }
+.note { color: var(--muted); font-size: 14px; line-height: 1.5; margin-top: 24px; }
+@media (max-width: 640px) { .kpis { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocínio</h1></div>
+    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="#" id="reload">Atualizar</a></div>
+  </div>
+  <p class="lead">Quantas vezes cada marca apareceu no painel de LED durante as partidas, por quanto tempo, para quantas pessoas e quantos cliques recebeu na tela "Patrocinadores" do jogo. Toque numa marca para ver dia a dia.</p>
+
+  <div class="seg" role="group" aria-label="Período" id="period">
+    <button type="button" data-p="7" aria-pressed="true">7 dias</button>
+    <button type="button" data-p="30" aria-pressed="false">30 dias</button>
+    <button type="button" data-p="mes" aria-pressed="false">Este mês</button>
+    <button type="button" data-p="tudo" aria-pressed="false">Tudo</button>
+  </div>
+
+  <div class="kpis" id="kpis" aria-live="polite"></div>
+
+  <div class="tablewrap"><table>
+    <thead><tr><th scope="col">Marca</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col">Taxa de clique</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="6" class="empty">Carregando…</td></tr></tbody>
+  </table></div>
+
+  <section id="detail" hidden>
+    <div class="detail-head"><h2 id="dTitle"></h2><button class="copy" type="button" id="copy">Copiar resumo para o patrocinador</button></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">Dia</th><th scope="col">Exibições</th><th scope="col">Tempo de tela</th><th scope="col">Pessoas</th><th scope="col">Cliques</th><th scope="col"></th></tr></thead>
+      <tbody id="dRows"></tbody>
+    </table></div>
+  </section>
+
+  <p class="note"><b>Como contamos:</b> uma exibição é cada vez que a marca entra no painel enquanto alguém está jogando (com o menu fechado e o jogo na tela). Tempo de tela soma os segundos em que ela ficou visível. Pessoas são aparelhos diferentes, identificados só por um código aleatório, sem nome nem dado pessoal. Dias contados no horário de Brasília.</p>
+</main>
+
+<script src="patrocinadores.js"></script>
+<script>
+(function () {
+  'use strict';
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = n => Number(n || 0).toLocaleString('pt-BR');
+  const dur = s => { s = Math.round(s || 0); if (s < 60) return s + ' s'; const m = Math.round(s / 60); if (m < 60) return m + ' min'; return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min'; };
+  const pct = (c, v) => v ? (100 * c / v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—';
+  const fmtDay = d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
+  const weekday = d => new Date(d + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
+
+  // nomes das marcas a partir do patrocinadores.js (mesma regra do jogo)
+  const slug = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  const NAMES = {};
+  ((window.PK_SPONSORS || {}).marcas || []).forEach(m => { const id = slug(m.id || m.nome || (m.tipo === 'nextplayer' ? 'next-player' : '')); if (id && !NAMES[id]) NAMES[id] = { nome: m.nome || id, exemplo: !!m.exemplo }; });
+  const nameOf = id => (NAMES[id] && NAMES[id].nome) || id;
+
+  // datas no fuso de Brasília
+  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
+  const addDays = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  function range(p) {
+    const to = today();
+    if (p === 'tudo') return [ '2020-01-01', to, 'desde o início' ];
+    if (p === 'mes') return [ to.slice(0, 8) + '01', to, 'neste mês' ];
+    return [ addDays(to, -(+p - 1)), to, `nos últimos ${p} dias` ];
+  }
+
+  async function rpc(name, args) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args) });
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }
+
+  let period = '7', data = [], sel = null;
+  async function load() {
+    const [from, to] = range(period);
+    $('rows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
+    try { data = await rpc('penalti_sponsor_report', { p_from: from, p_to: to }); }
+    catch (e) { $('rows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar. Verifique a internet e tente de novo.</td></tr>'; $('kpis').innerHTML = ''; return; }
+    const sum = k => data.reduce((a, r) => a + Number(r[k] || 0), 0);
+    $('kpis').innerHTML = [[num(sum('views')), 'Exibições'], [dur(sum('secs')), 'Tempo de tela'], [num(Math.max(0, ...data.map(r => +r.people), 0)), 'Maior alcance'], [num(sum('clicks')), 'Cliques']]
+      .map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
+    $('rows').innerHTML = data.length ? data.map(r => `<tr tabindex="0" data-s="${esc(r.sponsor)}" class="${r.sponsor === sel ? 'sel' : ''}">
+        <td class="name">${esc(nameOf(r.sponsor))}${NAMES[r.sponsor] && NAMES[r.sponsor].exemplo ? '<small>espaço à venda</small>' : ''}</td>
+        <td>${num(r.views)}</td><td>${dur(r.secs)}</td><td>${num(r.people)}</td><td>${num(r.clicks)}</td><td>${pct(r.clicks, r.people)}</td></tr>`).join('')
+      : '<tr><td colspan="6" class="empty">Nenhuma exibição registrada neste período.</td></tr>';
+    if (sel && data.some(r => r.sponsor === sel)) detail(sel); else { sel = null; $('detail').hidden = true; }
+  }
+
+  async function detail(s) {
+    sel = s;
+    document.querySelectorAll('#rows tr').forEach(tr => tr.classList.toggle('sel', tr.dataset.s === s));
+    const [from, to] = range(period);
+    $('detail').hidden = false; $('dTitle').textContent = nameOf(s) + ' · dia a dia';
+    $('dRows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
+    let days;
+    try { days = await rpc('penalti_sponsor_daily', { p_sponsor: s, p_from: from, p_to: to }); }
+    catch (e) { $('dRows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar.</td></tr>'; return; }
+    const max = Math.max(1, ...days.map(d => +d.views));
+    $('dRows').innerHTML = days.slice().reverse().map(d => `<tr><td>${fmtDay(d.day)} <span style="color:var(--muted)">${weekday(d.day)}</span></td>
+      <td>${num(d.views)}</td><td>${dur(d.secs)}</td><td>${num(d.people)}</td><td>${num(d.clicks)}</td>
+      <td style="width:28%"><div style="height:8px;background:var(--gold);width:${Math.round(100 * d.views / max)}%" aria-hidden="true"></div></td></tr>`).join('');
+  }
+
+  $('rows').addEventListener('click', e => { const tr = e.target.closest('tr[data-s]'); if (tr) detail(tr.dataset.s); });
+  $('rows').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const tr = e.target.closest('tr[data-s]'); if (tr) { e.preventDefault(); detail(tr.dataset.s); } } });
+  $('period').addEventListener('click', e => {
+    const b = e.target.closest('[data-p]'); if (!b) return;
+    period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); load();
+  });
+  $('reload').addEventListener('click', e => { e.preventDefault(); load(); });
+  $('copy').addEventListener('click', async () => {
+    const r = data.find(x => x.sponsor === sel); if (!r) return;
+    const [from, to, label] = range(period);
+    const txt = `${nameOf(sel)} no painel de LED do jogo Pênalti ${label}${period === 'tudo' ? '' : ` (${fmtDay(from)} a ${fmtDay(to)})`}:\n` +
+      `• ${num(r.views)} exibições\n• ${dur(r.secs)} de tempo de tela\n• ${num(r.people)} pessoas diferentes alcançadas\n• ${num(r.clicks)} cliques no seu link`;
+    try { await navigator.clipboard.writeText(txt); $('copy').textContent = 'Copiado!'; }
+    catch (e) { prompt('Copie o resumo:', txt); }
+    setTimeout(() => { $('copy').textContent = 'Copiar resumo para o patrocinador'; }, 1800);
+  });
+  load();
+})();
+</script>
+
+</html>

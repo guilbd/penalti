@@ -285,5 +285,5 @@
     root.addEventListener('beforeunload', () => { if (match && !match.over) send('bye', {}); });
   }
 
-  root.PKOnline = { attach, get me() { return me; } };
+  root.PKOnline = { attach, get me() { return me; }, SB: { url: SB_URL, key: SB_KEY } };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -10,7 +10,7 @@ import shutil
 
 ROOT = pathlib.Path(__file__).parent
 DOCS = ROOT / "docs"
-PAGES = ["index.html", "ranking.html", "penalti-2d.html", "penalti-3d.html", "penalti-celular.html", "penalti-celular-3d.html"]
+PAGES = ["index.html", "ranking.html", "penalti-2d.html", "penalti-3d.html", "penalti-celular.html", "penalti-celular-3d.html", "relatorio-patrocinadores.html"]
 
 if DOCS.exists():
     shutil.rmtree(DOCS)
@@ -18,7 +18,7 @@ DOCS.mkdir()
 for name in PAGES:
     body = (ROOT / name).read_text(encoding="utf-8")
     (DOCS / name).write_text('<!doctype html>\n<html lang="pt-BR">\n' + body + "\n</html>\n", encoding="utf-8")
-for name in ["engine.js", "menu.js", "online.js", "realplayers.js", "patrocinadores.js"]:
+for name in ["engine.js", "menu.js", "online.js", "realplayers.js", "patrocinadores.js", "patrocinio.js"]:
     shutil.copy(ROOT / name, DOCS / name)
 shutil.copytree(ROOT / "assets" / "web", DOCS / "assets" / "web")
 shutil.copytree(ROOT / "assets" / "patrocinadores", DOCS / "assets" / "patrocinadores")

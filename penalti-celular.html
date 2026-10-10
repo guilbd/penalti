@@ -153,6 +153,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
 <script src="menu.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="online.js"></script>
+<script src="patrocinio.js"></script>
 <script>
 (() => {
   const { C, V, add, sub, mul, dot, cross, norm, lerp, UP, ICO, rotVec } = PK;
@@ -289,7 +290,7 @@ html, body { height: 100%; margin: 0; background: var(--night); color: var(--ink
       ctx.fillStyle = `rgba(4,7,14,${0.12 + i * 0.045})`; ctx.fill();
     }
     // painel de LED dos patrocinadores, entre os dois setores da arquibancada
-    led.update();
+    led.update(game.state !== 'menu');
     {
       const z = Z + 3 + 2 * 2.6, y0 = 1.3 + 2 * 2.05, LH = 1.6, LW = LH * 8, img = led.canvas, w = img.width, h = img.height;
       path([V(-52, y0 - 0.2, z), V(52, y0 - 0.2, z), V(52, y0 + LH + 0.2, z), V(-52, y0 + LH + 0.2, z)]); ctx.fillStyle = '#05070b'; ctx.fill();

@@ -637,11 +637,21 @@
   // As marcas vêm de window.PK_SPONSORS (arquivo patrocinadores.js). O painel guarda um "módulo"
   // de 512×64 px (proporção 8:1) que as páginas repetem ao longo da faixa de LED.
   const LED_FONT = '"Barlow Condensed", "Arial Narrow", Arial, sans-serif';
+  // identificador da marca nas estatísticas: 'id' do patrocinadores.js ou o nome sem acentos
+  const sponsorSlug = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+  // exibições acumuladas desde o último envio ao servidor: { id: { v: exibições, t: segundos, c: cliques } }
+  const sponsorStats = {};
+  const sponsorStat = id => sponsorStats[id] || (sponsorStats[id] = { v: 0, t: 0, c: 0 });
+  function sponsorList(cfg) {
+    cfg = cfg || (typeof window !== 'undefined' && window.PK_SPONSORS) || {};
+    const list = Array.isArray(cfg.marcas) && cfg.marcas.length ? cfg.marcas : [{ tipo: 'nextplayer' }];
+    return list.map((m, i) => Object.assign({ peso: 1 }, m, { id: sponsorSlug(m.id || m.nome || (m.tipo === 'nextplayer' ? 'next-player' : '')) || 'marca-' + (i + 1) }));
+  }
   class LedBoard {
     constructor(cfg) {
       cfg = cfg || (typeof window !== 'undefined' && window.PK_SPONSORS) || {};
       this.tempo = Math.max(2, +cfg.tempo || 7);
-      this.list = (Array.isArray(cfg.marcas) && cfg.marcas.length ? cfg.marcas : [{ tipo: 'nextplayer' }]).map(m => Object.assign({ peso: 1 }, m));
+      this.list = sponsorList(cfg);
       // fila intercalada: marca com peso 2 aparece duas vezes a cada rodada
       const maxP = Math.max(...this.list.map(m => Math.max(1, Math.round(m.peso))));
       this.queue = [];
@@ -677,9 +687,16 @@
       this.dirty = true;
     }
     goal() { this.goalUntil = performance.now() / 1000 + 3; }
-    // redesenha o módulo quando muda; devolve true se mudou (para atualizar a textura no 3D)
-    update() {
+    // redesenha o módulo quando muda; devolve true se mudou (para atualizar a textura no 3D).
+    // counting: a partida está na tela (fora do menu) — só então o tempo conta para a marca.
+    update(counting) {
       const now = performance.now() / 1000, g = this.g, W = this.W, H = this.H;
+      const dt = Math.min(0.25, now - (this.lastT || now)); this.lastT = now;
+      const slot0 = Math.floor((now - this.t0) / this.tempo), cur0 = this.list[this.queue[slot0 % this.queue.length]];
+      if (counting && now >= this.goalUntil && !document.hidden) {
+        const st = sponsorStat(cur0.id); st.t += dt;
+        if (this.countedSlot !== slot0) { this.countedSlot = slot0; st.v++; }   // uma exibição a cada vez que a marca entra no painel
+      }
       if (now < this.goalUntil) {                       // gol: o painel inteiro pisca "GOOOL!"
         const on = Math.floor(now * 6) % 2 === 0;
         g.fillStyle = on ? '#f2c230' : '#0a0a0a'; g.fillRect(0, 0, W, H);
@@ -1293,6 +1310,6 @@
 
   root.PK = {
     C, V, add, sub, mul, dot, cross, len, norm, lerp, lerpN, clamp, smooth, UP, rightOf, rotVec, ICO,
-    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, drawNextPlayerLogo, paintNextPlayerBoard, LedBoard, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
+    Ball, Keeper, Kicker, Game, Wall, PERK_MAX, seeded, drawNextPlayerLogo, paintNextPlayerBoard, LedBoard, sponsorList, sponsorStats, sponsorStat, Sound, DIFF, netLines, netOffset, netBackZ, shotSigma, solveShot, bindUI
   };
 })(typeof window !== 'undefined' ? window : globalThis);
