@@ -40,7 +40,12 @@ input[type=color] { width: 56px; height: 44px; padding: 2px; background: var(--n
 .msg { min-height: 22px; margin-top: 10px; font-size: 15px; }
 .msg.err { color: #ff8a8a; } .msg.ok { color: var(--ok); }
 .login { max-width: 420px; }
-.login .row { display: flex; gap: 8px; margin-top: 12px; }
+.login .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.user { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.user:last-child { border-bottom: 0; }
+.user b { font-weight: 600; overflow-wrap: anywhere; }
+.user span { color: var(--muted); font-size: 14px; }
+input[type=email] { width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
 .settings { display: grid; grid-template-columns: 180px 1fr auto; gap: 12px; align-items: end; margin-bottom: 22px; }
 .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -87,13 +92,26 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
 
   <!-- entrada -->
   <section class="box login" id="login" hidden>
-    <h2 id="lTitle">Entrar</h2>
-    <p class="hint" id="lHint"></p>
+    <h2>Entrar</h2>
+    <p class="hint">Acesso dos gestores de patrocínio.</p>
     <form id="lForm">
-      <div class="field"><label for="lPass">Senha</label><input type="password" id="lPass" autocomplete="current-password" required minlength="8"></div>
-      <div class="field" id="lPass2Wrap" hidden><label for="lPass2">Repita a senha</label><input type="password" id="lPass2" autocomplete="new-password" minlength="8"></div>
+      <div class="field"><label for="lEmail">E-mail</label><input type="email" id="lEmail" autocomplete="username" required></div>
+      <div class="field"><label for="lPass">Senha</label><input type="password" id="lPass" autocomplete="current-password" required></div>
       <button class="btn primary" type="submit" id="lBtn">Entrar</button>
       <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <!-- troca de senha (obrigatória no primeiro acesso) -->
+  <section class="box login" id="pwd" hidden>
+    <h2 id="pTitle">Crie sua senha</h2>
+    <p class="hint" id="pHint">Você entrou com uma senha provisória. Crie uma senha só sua para continuar (mínimo de 8 caracteres).</p>
+    <form id="pForm">
+      <input type="email" id="pUser" autocomplete="username" hidden>
+      <div class="field"><label for="pNew">Nova senha</label><input type="password" id="pNew" autocomplete="new-password" required minlength="8"></div>
+      <div class="field"><label for="pNew2">Repita a nova senha</label><input type="password" id="pNew2" autocomplete="new-password" required minlength="8"></div>
+      <div class="row"><button class="btn primary" type="submit" id="pBtn">Salvar senha</button><button class="btn" type="button" id="pCancel">Cancelar</button></div>
+      <div class="msg" id="pMsg" role="status" aria-live="polite"></div>
     </form>
   </section>
 
@@ -118,7 +136,17 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     </div>
     <div class="list" id="list"></div>
     <div class="msg" id="listMsg" role="status" aria-live="polite"></div>
-    <p class="hint" style="margin-top:20px">Trocar a senha: <button class="btn small" type="button" id="chPass">Trocar senha</button></p>
+
+    <div class="bar" style="margin-top:34px"><h2>Gestores</h2><button class="btn small" type="button" id="chPass">Trocar minha senha</button></div>
+    <div class="box">
+      <div class="list" id="users" style="gap:6px"></div>
+      <form id="uForm" class="settings" style="margin:16px 0 0;grid-template-columns:1fr 1fr auto">
+        <div><label for="uEmail">E-mail do novo gestor</label><input type="email" id="uEmail" required autocomplete="off"></div>
+        <div><label for="uTemp">Senha provisória</label><input type="text" id="uTemp" required minlength="8" autocomplete="off"><div class="hint">Mínimo de 8 caracteres. A pessoa troca no primeiro acesso.</div></div>
+        <div><button class="btn" type="submit">Adicionar</button></div>
+      </form>
+      <div class="msg" id="uMsg" role="status" aria-live="polite"></div>
+    </div>
   </section>
 </main>
 
@@ -165,11 +193,14 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       <div class="field"><label for="fPeso">Tempo de tela</label>
         <select id="fPeso"><option value="1">Normal (1× por rodada)</option><option value="2">Dobro (2×)</option><option value="3">Triplo (3×)</option><option value="4">4×</option><option value="5">5×</option></select>
         <div class="hint" id="fShare"></div></div>
-      <div class="field" style="padding-top:26px">
+      <div class="field"><label for="fEfeito">Efeito no painel</label>
+        <select id="fEfeito"><option value="subir">Subir (padrão)</option><option value="lateral">Lateral: empurra a marca anterior</option><option value="letreiro">Letreiro: entra e fica correndo</option><option value="destaque">Destaque: pisca, moldura dourada e brilho</option></select>
+        <div class="hint">Efeitos com movimento chamam mais atenção: bom para os pacotes mais caros. A prévia acima mostra a troca.</div></div>
+    </div>
+    <div class="field">
         <label class="check"><input type="checkbox" id="fAtivo" checked> No ar (desmarque para pausar sem apagar)</label>
         <label class="check"><input type="checkbox" id="fExemplo"> Espaço à venda ("anuncie aqui"): não aparece na lista de patrocinadores do jogo</label>
       </div>
-    </div>
 
     <div class="msg" id="dMsg" role="status" aria-live="polite"></div>
     <div class="dlg-foot"><button class="btn" type="button" id="dCancel">Cancelar</button><button class="btn primary" type="submit" id="dSave">Salvar marca</button></div>
@@ -186,7 +217,9 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const ERR = {
     senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.',
-    senha_curta: 'Use pelo menos 8 caracteres.', ja_configurado: 'A senha já foi criada. Entre com ela.', sem_senha: 'Crie a senha primeiro.'
+    senha_curta: 'Use pelo menos 8 caracteres.', senha_igual: 'A nova senha precisa ser diferente da provisória.',
+    trocar_senha: 'Crie sua senha antes de continuar.', email_invalido: 'E-mail inválido.', email_existe: 'Esse e-mail já é gestor.',
+    remover_si: 'Você não pode remover a si mesmo.'
   };
   const msg = (el, t, kind) => { const m = $(el); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
 
@@ -196,14 +229,21 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     if (!r.ok) { const m = (data && (data.message || data.details)) || txt; throw new Error(/check constraint|violates/.test(m) ? 'Algum campo está inválido. Confira o link, as datas e as cores.' : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.'); }
     return data;
   }
-  // chamadas com senha: se a senha não vale mais, volta para a entrada
-  let pass = null;
-  try { pass = sessionStorage.getItem('penalti.admin') || null; } catch (e) { /* sem armazenamento */ }
+  // chamadas com e-mail e senha: se não valem mais, volta para a entrada
+  let cred = null;                                   // { email, pass } guardado só nesta aba
+  try { cred = JSON.parse(sessionStorage.getItem('penalti.admin')) || null; } catch (e) { /* sem armazenamento */ }
+  const keep = () => { try { sessionStorage.setItem('penalti.admin', JSON.stringify(cred)); } catch (e) { /* ok */ } };
   async function arpc(name, args) {
-    const d = await rpc(name, Object.assign({ p_pass: pass }, args));
-    if (d && d.erro) { if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); } throw new Error(ERR[d.erro] || d.erro); }
+    const d = await rpc(name, Object.assign({ p_email: cred && cred.email, p_pass: cred && cred.pass }, args));
+    if (d && d.erro) {
+      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
+      else if (d.erro === 'trocar_senha') showPwd(true);
+      throw new Error(ERR[d.erro] || d.erro);
+    }
     return d;
   }
+
+  const FX_NAME = { subir: 'subir', lateral: 'lateral', letreiro: 'letreiro', destaque: 'destaque' };
 
   // ---------- datas (horário de Brasília) ----------
   const today = PK.todayBR;
@@ -243,40 +283,75 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   }
 
   // ---------- entrada ----------
-  let hasPass = true;
-  async function showLogin() {
-    $('app').hidden = true; $('logout').hidden = true; $('login').hidden = false;
-    try { hasPass = await rpc('penalti_admin_status'); } catch (e) { msg('lMsg', e.message, 'err'); }
-    $('lTitle').textContent = hasPass ? 'Entrar' : 'Criar senha';
-    $('lHint').textContent = hasPass ? 'Digite a senha de administrador.' : 'Primeiro acesso: crie a senha que vai proteger este cadastro (mínimo de 8 caracteres). Guarde-a bem.';
-    $('lPass2Wrap').hidden = hasPass; $('lPass2').required = !hasPass;
-    $('lPass').autocomplete = hasPass ? 'current-password' : 'new-password';
-    $('lBtn').textContent = hasPass ? 'Entrar' : 'Criar senha e entrar';
-    $('lPass').focus();
+  const show = id => ['login', 'pwd', 'app'].forEach(x => { $(x).hidden = x !== id; });
+  function showLogin() {
+    show('login'); $('logout').hidden = true;
+    if (cred && cred.email) $('lEmail').value = cred.email;
+    ($('lEmail').value ? $('lPass') : $('lEmail')).focus();
   }
-  function logout() { pass = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } showLogin(); }
+  let forced = false;
+  function showPwd(force) {
+    forced = force; show('pwd'); $('logout').hidden = false;
+    $('pTitle').textContent = force ? 'Crie sua senha' : 'Trocar minha senha';
+    $('pHint').textContent = force ? 'Você entrou com uma senha provisória. Crie uma senha só sua para continuar (mínimo de 8 caracteres).' : 'Mínimo de 8 caracteres.';
+    $('pCancel').hidden = force; $('pUser').value = cred ? cred.email : '';
+    $('pNew').value = ''; $('pNew2').value = ''; msg('pMsg', ''); $('pNew').focus();
+  }
+  function logout() { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('lPass').value = ''; showLogin(); }
   $('logout').addEventListener('click', logout);
   $('lForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const p = $('lPass').value;
-    if (!hasPass && p !== $('lPass2').value) return msg('lMsg', 'As duas senhas não são iguais.', 'err');
-    $('lBtn').disabled = true; msg('lMsg', hasPass ? 'Entrando…' : 'Criando…');
+    const email = $('lEmail').value.trim().toLowerCase(), p = $('lPass').value;
+    $('lBtn').disabled = true; msg('lMsg', 'Entrando…');
     try {
-      if (!hasPass) { const r = await rpc('penalti_admin_setup', { p_pass: p }); if (r.erro) throw new Error(ERR[r.erro] || r.erro); }
-      pass = p; const d = await arpc('penalti_admin_list');
-      try { sessionStorage.setItem('penalti.admin', p); } catch (e2) { /* ok */ }
-      $('lPass').value = ''; $('lPass2').value = ''; msg('lMsg', '');
-      open(d);
-    } catch (err) { if (!$('lMsg').textContent || $('lMsg').textContent.endsWith('…')) msg('lMsg', err.message, 'err'); if (!hasPass) showLogin(); }
+      const r = await rpc('penalti_admin_login', { p_email: email, p_pass: p });
+      if (r.erro) throw new Error(ERR[r.erro] || r.erro);
+      cred = { email, pass: p }; keep(); $('lPass').value = ''; msg('lMsg', '');
+      if (r.trocar) showPwd(true); else open(await arpc('penalti_admin_list'));
+    } catch (err) { msg('lMsg', err.message, 'err'); }
     $('lBtn').disabled = false;
+  });
+  $('pForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const n = $('pNew').value;
+    if (n !== $('pNew2').value) return msg('pMsg', 'As duas senhas não são iguais.', 'err');
+    $('pBtn').disabled = true; msg('pMsg', 'Salvando…');
+    try {
+      await arpc('penalti_admin_password', { p_new: n });
+      cred.pass = n; keep();
+      open(await arpc('penalti_admin_list')); msg('listMsg', 'Senha salva.', 'ok');
+    } catch (err) { if (!$('pwd').hidden) msg('pMsg', err.message, 'err'); }
+    $('pBtn').disabled = false;
+  });
+  $('pCancel').addEventListener('click', () => { if (!forced) show('app'); });
+
+  // ---------- gestores ----------
+  function renderUsers() {
+    $('users').innerHTML = (data.gestores || []).map(u => `<div class="user"><div><b>${esc(u.email)}</b>${u.email === cred.email ? ' <span>(você)</span>' : ''}<br><span>${u.provisoria ? 'ainda com senha provisória' : 'senha própria'} · desde ${fmt(u.desde)}</span></div>
+      ${u.email === cred.email ? '' : `<button class="btn small danger" type="button" data-rm="${esc(u.email)}">Remover</button>`}</div>`).join('');
+  }
+  $('users').addEventListener('click', async e => {
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    if (!confirm(`Remover o acesso de ${b.dataset.rm}?`)) return;
+    try { await arpc('penalti_admin_user_remove', { p_target: b.dataset.rm }); await reload(); msg('uMsg', 'Gestor removido.', 'ok'); }
+    catch (err) { msg('uMsg', err.message, 'err'); }
+  });
+  $('uForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('uEmail').value.trim().toLowerCase();
+    try {
+      await arpc('penalti_admin_user_add', { p_new_email: email, p_temp: $('uTemp').value });
+      $('uEmail').value = ''; $('uTemp').value = ''; await reload();
+      msg('uMsg', `${email} adicionado. Passe a senha provisória para a pessoa; ela troca no primeiro acesso.`, 'ok');
+    } catch (err) { msg('uMsg', err.message, 'err'); }
   });
 
   // ---------- lista ----------
   let data = { tempo: 7, contato: '', marcas: [] }, filter = 'todas';
   function open(d) {
-    data = d; $('login').hidden = true; $('app').hidden = false; $('logout').hidden = false;
+    data = d; show('app'); $('logout').hidden = false;
     $('sTempo').value = d.tempo; $('sContato').value = d.contato || '';
-    render();
+    render(); renderUsers();
   }
   async function reload() { try { open(await arpc('penalti_admin_list')); } catch (e) { msg('listMsg', e.message, 'err'); } }
   function render() {
@@ -291,7 +366,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       el.innerHTML = `<canvas width="512" height="64" role="img" aria-label="Arte de ${esc(m.nome)} no painel"></canvas>
         <div><div class="name">${esc(m.nome)}<span class="chip ${k}">${label}</span>${m.exemplo ? '<span class="chip end">À venda</span>' : ''}</div>
           <div class="meta">${esc(periodText(m))}</div>
-          <div class="meta">${m.peso > 1 ? `Tempo de tela ${m.peso}×` : 'Tempo de tela normal'}${share}${m.link ? ` · <a href="${esc(m.link)}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(m.link.replace(/^https?:\/\//, ''))}</a>` : ''}</div></div>
+          <div class="meta">${m.peso > 1 ? `Tempo de tela ${m.peso}×` : 'Tempo de tela normal'} · efeito ${FX_NAME[m.efeito] || FX_NAME.subir}${share}${m.link ? ` · <a href="${esc(m.link)}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(m.link.replace(/^https?:\/\//, ''))}</a>` : ''}</div></div>
         <div class="acts">
           <button class="btn small" type="button" data-a="up" aria-label="Subir ${esc(m.nome)} na ordem" ${idx === 0 ? 'disabled' : ''}>↑</button>
           <button class="btn small" type="button" data-a="down" aria-label="Descer ${esc(m.nome)} na ordem" ${idx === data.marcas.length - 1 ? 'disabled' : ''}>↓</button>
@@ -332,19 +407,19 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       $('sContato').value = contato; msg('sMsg', 'Salvo.', 'ok'); setTimeout(() => msg('sMsg', ''), 2500);
     } catch (err) { msg('sMsg', err.message, 'err'); }
   });
-  $('chPass').addEventListener('click', async () => {
-    const n = prompt('Nova senha (mínimo de 8 caracteres):'); if (n == null) return;
-    try { await arpc('penalti_admin_password', { p_new: n }); pass = n; try { sessionStorage.setItem('penalti.admin', n); } catch (e) { /* ok */ } msg('listMsg', 'Senha trocada.', 'ok'); }
-    catch (e) { msg('listMsg', e.message, 'err'); }
-  });
+  $('chPass').addEventListener('click', () => showPwd(false));
 
   // ---------- edição de uma marca ----------
-  let cur = null, logo = null;
+  let cur = null, logo = null, prevBoard = null;
+  (function anim() {                                  // anima a prévia enquanto a janela está aberta
+    if (prevBoard && $('dlg').open && prevBoard.update(false)) $('dPrev').getContext('2d').drawImage(prevBoard.canvas, 0, 0);
+    requestAnimationFrame(anim);
+  })();
   const dlg = $('dlg');
   const form = () => ({
     id: cur && cur.id, nome: $('fNome').value.trim(), tipo: $('fTipo').value || null, variante: +$('fVar').value,
     texto: $('fTexto').value.trim() || null, fundo: $('fFundo').value, cor: $('fCor').value, link: fixUrl($('fLink').value) || null,
-    logo: $('fTipo').value ? null : logo, peso: +$('fPeso').value, inicio: $('fIni').value || null, fim: $('fFim').value || null,
+    logo: $('fTipo').value ? null : logo, peso: +$('fPeso').value, efeito: $('fEfeito').value, inicio: $('fIni').value || null, fim: $('fFim').value || null,
     ativo: $('fAtivo').checked, exemplo: $('fExemplo').checked
   });
   function refresh() {
@@ -352,7 +427,10 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     $('custom').hidden = np; $('fVarWrap').hidden = !np;
     $('fLogoImg').hidden = !logo; if (logo) $('fLogoImg').src = logo; $('fLogoDel').hidden = !logo;
     const m = form(); m.nome = m.nome || 'Sua marca';
-    paint($('dPrev'), m);
+    const pm = Object.assign({}, m, { id: 'previa', ativo: true, inicio: null, fim: null, peso: 1, img: null });
+    const cfg = { tempo: 3, marcas: [{ id: 'anterior', nome: 'Marca anterior', texto: 'MARCA ANTERIOR', fundo: '#15181f', cor: '#5d6577' }, pm] };
+    if (!prevBoard) { prevBoard = new PK.LedBoard(cfg); PK.LedBoard.all.splice(PK.LedBoard.all.indexOf(prevBoard), 1); }
+    else { const t0 = prevBoard.t0; prevBoard.configure(cfg); prevBoard.t0 = t0; }
     const others = data.marcas.filter(x => x.id !== (cur && cur.id) && status(x)[0] === 'on'), mine = status(Object.assign({}, m))[0] === 'on';
     const tot = others.reduce((a, x) => a + x.peso, 0) + (mine ? m.peso : 0);
     $('fShare').textContent = mine && tot ? `Hoje ficaria com cerca de ${Math.round(100 * m.peso / tot)}% do tempo do painel.` : '';
@@ -363,11 +441,12 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     $('fTipo').value = m && m.tipo || ''; $('fVar').value = String(m ? m.variante || 0 : 0);
     $('fNome').value = m ? m.nome : ''; $('fTexto').value = m && m.texto || '';
     $('fFundo').value = m ? m.fundo : '#000000'; $('fCor').value = m ? m.cor : '#ffffff';
-    $('fLink').value = m && m.link || ''; $('fPeso').value = String(m ? m.peso : 1);
+    $('fLink').value = m && m.link || ''; $('fPeso').value = String(m ? m.peso : 1); $('fEfeito').value = m && m.efeito || 'subir';
     $('fIni').value = m && m.inicio || ''; $('fFim').value = m && m.fim || '';
     $('fAtivo').checked = m ? m.ativo : true; $('fExemplo').checked = m ? m.exemplo : false;
     $('fLogo').value = ''; msg('dMsg', '');
-    refresh(); dlg.showModal(); $('fNome').focus();
+    refresh(); if (prevBoard) prevBoard.t0 = performance.now() / 1000 - 1.5;   // começa perto da troca
+    dlg.showModal(); $('fNome').focus();
   }
   $('add').addEventListener('click', () => edit(null));
   $('dCancel').addEventListener('click', () => dlg.close());
@@ -413,6 +492,6 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   });
 
   // ---------- início ----------
-  if (pass) arpc('penalti_admin_list').then(open).catch(() => showLogin()); else showLogin();
+  if (cred) arpc('penalti_admin_list').then(open).catch(() => { if ($('pwd').hidden) showLogin(); }); else showLogin();
 })();
 </script>

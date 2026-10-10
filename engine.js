@@ -645,7 +645,9 @@
   const sponsorStat = id => sponsorStats[id] || (sponsorStats[id] = { v: 0, t: 0, c: 0 });
   // data de hoje no horário de Brasília (AAAA-MM-DD), para o período de exibição de cada marca
   const todayBR = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
-  const sponsorOnAir = (m, day) => m.ativo !== false && (!m.inicio || m.inicio <= day) && (!m.fim || m.fim >= day);
+  // efeitos de troca de marca no painel e a duração da entrada de cada um (segundos)
+  const LED_FX = { subir: 0.45, lateral: 0.6, letreiro: 0.6, destaque: 0.7 };
+  const sponsorOnAir =(m, day) => m.ativo !== false && (!m.inicio || m.inicio <= day) && (!m.fim || m.fim >= day);
   let sponsorCfg = null;
   const currentSponsorCfg = () => sponsorCfg || (typeof window !== 'undefined' && window.PK_SPONSORS) || {};
   function sponsorList(cfg) {
@@ -719,11 +721,29 @@
       }
       const el = now - this.t0, slot = Math.floor(el / this.tempo), ph = el - slot * this.tempo, n = this.queue.length;
       const cur = this.queue[slot % n], prev = this.queue[(slot - 1 + n) % n];
-      const tr = slot > 0 && n > 1 && ph < 0.45 ? ph / 0.45 : 1, key = cur + ':' + tr;
+      // efeito escolhido no cadastro para a marca que está entrando
+      const fx = LED_FX[this.list[cur].efeito] ? this.list[cur].efeito : 'subir', T = LED_FX[fx];
+      const tr = slot > 0 && n > 1 && ph < T ? ph / T : 1, moving = fx === 'letreiro' || fx === 'destaque';
+      const key = cur + ':' + tr + (moving ? ':' + now : '');
       if (!this.dirty && key === this.shown) return false;
       g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-      if (tr < 1) { const e = tr * tr * (3 - 2 * tr); g.drawImage(this.tiles[prev], 0, -e * H); g.drawImage(this.tiles[cur], 0, H - e * H); }
-      else g.drawImage(this.tiles[cur], 0, 0);
+      const a = this.tiles[prev], b = this.tiles[cur], e = tr * tr * (3 - 2 * tr);
+      if (tr < 1 && fx === 'subir') { g.drawImage(a, 0, -e * H); g.drawImage(b, 0, H - e * H); }
+      else if (tr < 1 && (fx === 'lateral' || fx === 'letreiro')) { g.drawImage(a, -e * W, 0); g.drawImage(b, W - e * W, 0); }
+      else if (fx === 'letreiro') {                       // depois de entrar, a marca corre pelo painel
+        const off = (Math.max(0, ph - (slot > 0 && n > 1 ? T : 0)) * 70) % W;
+        g.drawImage(b, -off, 0); g.drawImage(b, W - off, 0);
+      } else g.drawImage(b, 0, 0);
+      if (fx === 'destaque') {
+        if (tr < 1) {                                     // entrada: o painel pisca em branco três vezes
+          g.fillStyle = `rgba(255,255,255,${Math.floor(tr * 6) % 2 === 0 ? 0.85 * (1 - tr) : 0})`; g.fillRect(0, 0, W, H);
+        } else {                                          // depois: moldura dourada pulsando e um brilho que atravessa a marca
+          g.strokeStyle = `rgba(242,194,48,${0.55 + 0.45 * Math.sin(now * 5)})`; g.lineWidth = 6; g.strokeRect(3, 3, W - 6, H - 6);
+          const sx = ((ph * 260) % (W + 400)) - 200, sh = g.createLinearGradient(sx - 60, 0, sx + 60, 0);
+          sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(0.5, 'rgba(255,255,255,.35)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+          g.fillStyle = sh; g.fillRect(0, 0, W, H);
+        }
+      }
       g.drawImage(this.grid, 0, 0);
       this.dirty = false; this.shown = key; return true;
     }
