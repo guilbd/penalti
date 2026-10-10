@@ -3,13 +3,13 @@
    - A cada 30 s, e quando a aba é fechada ou escondida, os valores vão para o Supabase
      (penalti_sponsor_track), identificados só por um código aleatório do aparelho.
    - Na tela "Patrocinadores", cada clique em "Visitar" também é contado.
-   Os números aparecem em relatorio-patrocinadores.html.
+   As marcas vêm do cadastro (admin-patrocinadores.html); os números aparecem em relatorio-patrocinadores.html.
    Requer engine.js, patrocinadores.js e online.js (endereço do servidor). */
 (function (root) {
   'use strict';
   const PK = root.PK, SB = root.PKOnline && root.PKOnline.SB;
   if (!PK || !PK.sponsorList) return;
-  const cfg = root.PK_SPONSORS || {};
+  let cfg = root.PK_SPONSORS || {};
   // em teste local não envia nada (para não misturar com os números reais), a não ser com ?stats=1
   const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && !/[?&]stats=1/.test(location.search);
 
@@ -40,6 +40,16 @@
   setInterval(() => flush(false), 30000);
   document.addEventListener('visibilitychange', () => { if (document.hidden) flush(true); });
   root.addEventListener('pagehide', () => flush(true));
+
+  // ---------- marcas cadastradas em admin-patrocinadores.html ----------
+  // usa a última lista guardada no aparelho (abre rápido e funciona sem internet) e depois a do servidor
+  const CACHE = 'penalti.patrocinadores.v1';
+  const apply = c => { if (!c || !Array.isArray(c.marcas)) return false; cfg = c; PK.setSponsors(c); return true; };
+  try { apply(JSON.parse(localStorage.getItem(CACHE))); } catch (e) { /* sem cache */ }
+  if (SB) fetch(SB.url + '/rest/v1/rpc/penalti_sponsors_public', { method: 'POST', headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' }, body: '{}' })
+    .then(r => r.ok ? r.json() : null)
+    .then(c => { if (apply(c)) try { localStorage.setItem(CACHE, JSON.stringify(c)); } catch (e) { /* armazenamento cheio */ } })
+    .catch(() => { /* sem internet: fica com a lista guardada ou com patrocinadores.js */ });
 
   // ---------- tela "Patrocinadores" ----------
   const st = document.createElement('style');

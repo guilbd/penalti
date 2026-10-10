@@ -1,0 +1,418 @@
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060b16">
+<meta name="robots" content="noindex">
+<title>Cadastro de Patrocinadores</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,900&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesmo visual do ranking e do relatório: noite de estádio, filete dourado. */
+:root {
+  --night: #060b16; --panel: #0d1730; --panel2: #13203f; --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --ok: #3cc47a; --warn: #f29a32; --bad: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 960px; margin: 0 auto; padding: calc(32px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(44px, 9vw, 76px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+.lead { color: var(--muted); line-height: 1.5; max-width: 66ch; margin: 12px 0 22px; }
+.btn, .links a { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 10px 16px; background: transparent; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; }
+.btn.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.btn.danger { color: #ff9a9a; border-color: rgba(229, 72, 77, .5); }
+.btn.small { padding: 6px 10px; min-height: 38px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.box { background: var(--panel); border: 1px solid var(--line); padding: 18px; }
+label { display: block; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+input[type=text], input[type=password], input[type=url], input[type=number], input[type=date], select {
+  width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
+input[type=color] { width: 56px; height: 44px; padding: 2px; background: var(--night); border: 1px solid var(--line); cursor: pointer; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 5px; line-height: 1.4; }
+.msg { min-height: 22px; margin-top: 10px; font-size: 15px; }
+.msg.err { color: #ff8a8a; } .msg.ok { color: var(--ok); }
+.login { max-width: 420px; }
+.login .row { display: flex; gap: 8px; margin-top: 12px; }
+.settings { display: grid; grid-template-columns: 180px 1fr auto; gap: 12px; align-items: end; margin-bottom: 22px; }
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.filters button { font-family: var(--display); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; font-size: 14px; color: var(--ink); background: transparent; border: 1px solid var(--line); padding: 6px 12px; cursor: pointer; min-height: 36px; }
+.filters button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.list { display: grid; gap: 10px; }
+.item { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr) auto; gap: 16px; align-items: center; background: var(--panel); border: 1px solid var(--line); padding: 12px; }
+.item canvas, .preview canvas { width: 100%; height: auto; aspect-ratio: 8 / 1; display: block; background: #000; }
+.item .name { font-family: var(--display); font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .03em; }
+.item .meta { color: var(--muted); font-size: 14px; line-height: 1.5; margin-top: 2px; overflow-wrap: anywhere; }
+.chip { display: inline-block; font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 8px; margin-left: 8px; vertical-align: middle; border: 1px solid currentColor; }
+.chip.on { color: var(--ok); } .chip.sched { color: var(--gold); } .chip.end { color: var(--muted); } .chip.pause { color: var(--warn); }
+.item .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.empty { color: var(--muted); padding: 18px; border: 1px dashed var(--line); }
+dialog { width: min(720px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 0; }
+dialog::backdrop { background: rgba(2, 5, 12, .75); }
+.dlg { padding: 20px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { margin-bottom: 14px; }
+.colors { display: flex; gap: 16px; }
+.colors > div { display: flex; flex-direction: column; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-family: var(--body); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--ink); cursor: pointer; margin-bottom: 10px; }
+.check input { width: 20px; height: 20px; margin: 1px 0 0; flex: none; accent-color: var(--gold); }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.preview { position: sticky; top: 0; z-index: 1; background: var(--panel); padding: 0 0 12px; margin-bottom: 6px; }
+.logo-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.logo-row img { height: 40px; max-width: 160px; object-fit: contain; background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 12px 12px; }
+.dlg-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.share { font-size: 13px; color: var(--muted); }
+@media (max-width: 720px) {
+  .item { grid-template-columns: 1fr; }
+  .item .acts { justify-content: flex-start; }
+  .settings { grid-template-columns: 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocinadores</h1></div>
+    <div class="links"><a href="relatorio-patrocinadores.html">Relatório</a><a href="index.html">Jogar</a><button class="btn" type="button" id="logout" hidden>Sair</button></div>
+  </div>
+  <p class="lead">Cadastre as marcas do painel de LED da arquibancada, escolha o período em que cada uma fica no ar e quanto tempo de tela ela recebe. As mudanças valem para quem abrir o jogo depois de salvar.</p>
+
+  <!-- entrada -->
+  <section class="box login" id="login" hidden>
+    <h2 id="lTitle">Entrar</h2>
+    <p class="hint" id="lHint"></p>
+    <form id="lForm">
+      <div class="field"><label for="lPass">Senha</label><input type="password" id="lPass" autocomplete="current-password" required minlength="8"></div>
+      <div class="field" id="lPass2Wrap" hidden><label for="lPass2">Repita a senha</label><input type="password" id="lPass2" autocomplete="new-password" minlength="8"></div>
+      <button class="btn primary" type="submit" id="lBtn">Entrar</button>
+      <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <!-- cadastro -->
+  <section id="app" hidden>
+    <form class="settings box" id="sForm">
+      <div><label for="sTempo">Segundos por marca</label><input type="number" id="sTempo" min="3" max="30" step="1" required></div>
+      <div><label for="sContato">Link para quem quer anunciar</label><input type="text" id="sContato" placeholder="https://wa.me/55119…" inputmode="url"><div class="hint">Aparece em "Fale com a gente" na tela Patrocinadores do jogo.</div></div>
+      <div><button class="btn" type="submit">Salvar</button></div>
+    </form>
+    <div class="msg" id="sMsg" role="status" aria-live="polite" style="margin:-12px 0 12px"></div>
+
+    <div class="bar">
+      <div class="filters" role="group" aria-label="Filtrar marcas" id="filters">
+        <button type="button" data-f="todas" aria-pressed="true">Todas</button>
+        <button type="button" data-f="on" aria-pressed="false">No ar</button>
+        <button type="button" data-f="sched" aria-pressed="false">Agendadas</button>
+        <button type="button" data-f="end" aria-pressed="false">Encerradas</button>
+        <button type="button" data-f="pause" aria-pressed="false">Pausadas</button>
+      </div>
+      <button class="btn primary" type="button" id="add">+ Nova marca</button>
+    </div>
+    <div class="list" id="list"></div>
+    <div class="msg" id="listMsg" role="status" aria-live="polite"></div>
+    <p class="hint" style="margin-top:20px">Trocar a senha: <button class="btn small" type="button" id="chPass">Trocar senha</button></p>
+  </section>
+</main>
+
+<dialog id="dlg" aria-labelledby="dTitle">
+  <form class="dlg" id="dForm" method="dialog">
+    <div class="preview"><h2 id="dTitle" style="margin-bottom:10px">Nova marca</h2><canvas id="dPrev" width="512" height="64" role="img" aria-label="Prévia no painel de LED"></canvas></div>
+
+    <div class="grid2">
+      <div class="field"><label for="fTipo">Arte</label>
+        <select id="fTipo"><option value="">Logo e/ou texto da marca</option><option value="nextplayer">Arte pronta Next Player</option></select></div>
+      <div class="field" id="fVarWrap" hidden><label for="fVar">Modelo Next Player</label>
+        <select id="fVar"><option value="0">Preta com logo</option><option value="1">Verde com o nome</option></select></div>
+    </div>
+    <div class="field"><label for="fNome">Nome da marca</label><input type="text" id="fNome" maxlength="60" required><div class="hint">Aparece na lista de patrocinadores do jogo e no relatório.</div></div>
+
+    <div id="custom">
+      <div class="field"><label for="fLogo">Logo</label>
+        <div class="logo-row"><img id="fLogoImg" alt="Logo atual" hidden><input type="file" id="fLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button class="btn small" type="button" id="fLogoDel" hidden>Remover logo</button></div>
+        <div class="hint">PNG com fundo transparente fica melhor. Imagens grandes são reduzidas automaticamente.</div></div>
+      <div class="field"><label for="fTexto">Texto no painel</label><input type="text" id="fTexto" maxlength="60" placeholder="O MELHOR AÇAÍ DA CIDADE"><div class="hint">Opcional. Sem logo e sem texto, o painel mostra o nome.</div></div>
+      <div class="field colors">
+        <div><label for="fFundo">Fundo</label><input type="color" id="fFundo" value="#000000"></div>
+        <div><label for="fCor">Texto</label><input type="color" id="fCor" value="#ffffff"></div>
+      </div>
+    </div>
+
+    <div class="field"><label for="fLink">Link da marca</label><input type="text" id="fLink" maxlength="300" inputmode="url" placeholder="instagram.com/minhamarca"><div class="hint">Site, Instagram ou WhatsApp (wa.me/55…). Vira o botão "Visitar" no jogo.</div></div>
+
+    <h2 style="font-size:20px;margin:18px 0 10px">Período de exibição</h2>
+    <div class="grid2">
+      <div class="field"><label for="fIni">Começa em</label><input type="date" id="fIni"><div class="hint">Em branco: entra no ar ao salvar.</div></div>
+      <div class="field"><label for="fFim">Termina em</label><input type="date" id="fFim"><div class="hint">Em branco: sem data para sair. O último dia conta inteiro.</div></div>
+    </div>
+    <div class="quick" style="margin:-6px 0 14px" role="group" aria-label="Duração rápida">
+      <button class="btn small" type="button" data-dur="7">1 semana</button>
+      <button class="btn small" type="button" data-dur="m1">1 mês</button>
+      <button class="btn small" type="button" data-dur="m3">3 meses</button>
+      <button class="btn small" type="button" data-dur="m6">6 meses</button>
+      <button class="btn small" type="button" data-dur="m12">1 ano</button>
+      <button class="btn small" type="button" data-dur="0">Sem fim</button>
+    </div>
+
+    <div class="grid2">
+      <div class="field"><label for="fPeso">Tempo de tela</label>
+        <select id="fPeso"><option value="1">Normal (1× por rodada)</option><option value="2">Dobro (2×)</option><option value="3">Triplo (3×)</option><option value="4">4×</option><option value="5">5×</option></select>
+        <div class="hint" id="fShare"></div></div>
+      <div class="field" style="padding-top:26px">
+        <label class="check"><input type="checkbox" id="fAtivo" checked> No ar (desmarque para pausar sem apagar)</label>
+        <label class="check"><input type="checkbox" id="fExemplo"> Espaço à venda ("anuncie aqui"): não aparece na lista de patrocinadores do jogo</label>
+      </div>
+    </div>
+
+    <div class="msg" id="dMsg" role="status" aria-live="polite"></div>
+    <div class="dlg-foot"><button class="btn" type="button" id="dCancel">Cancelar</button><button class="btn primary" type="submit" id="dSave">Salvar marca</button></div>
+  </form>
+</dialog>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const ERR = {
+    senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.',
+    senha_curta: 'Use pelo menos 8 caracteres.', ja_configurado: 'A senha já foi criada. Entre com ela.', sem_senha: 'Crie a senha primeiro.'
+  };
+  const msg = (el, t, kind) => { const m = $(el); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
+
+  async function rpc(name, args) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+    const txt = await r.text(); let data = null; try { data = JSON.parse(txt); } catch (e) { /* vazio */ }
+    if (!r.ok) { const m = (data && (data.message || data.details)) || txt; throw new Error(/check constraint|violates/.test(m) ? 'Algum campo está inválido. Confira o link, as datas e as cores.' : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.'); }
+    return data;
+  }
+  // chamadas com senha: se a senha não vale mais, volta para a entrada
+  let pass = null;
+  try { pass = sessionStorage.getItem('penalti.admin') || null; } catch (e) { /* sem armazenamento */ }
+  async function arpc(name, args) {
+    const d = await rpc(name, Object.assign({ p_pass: pass }, args));
+    if (d && d.erro) { if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); } throw new Error(ERR[d.erro] || d.erro); }
+    return d;
+  }
+
+  // ---------- datas (horário de Brasília) ----------
+  const today = PK.todayBR;
+  const fmt = d => d ? d.split('-').reverse().join('/') : '';
+  const addDays = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  const addMonths = (d, n) => { const t = new Date(d + 'T12:00:00Z'); const day = t.getUTCDate(); t.setUTCDate(1); t.setUTCMonth(t.getUTCMonth() + n); t.setUTCDate(Math.min(day, new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate())); return addDays(t.toISOString().slice(0, 10), -1); };
+  const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
+  function status(m) {
+    const t = today();
+    if (!m.ativo) return ['pause', 'Pausada'];
+    if (m.fim && m.fim < t) return ['end', 'Encerrada'];
+    if (m.inicio && m.inicio > t) return ['sched', 'Agendada'];
+    return ['on', 'No ar'];
+  }
+  function periodText(m) {
+    const t = today();
+    if (!m.inicio && !m.fim) return 'Sem período definido: fica no ar até você pausar ou excluir.';
+    const a = m.inicio ? `De ${fmt(m.inicio)}` : 'Desde já', b = m.fim ? ` até ${fmt(m.fim)}` : ', sem data para sair';
+    let extra = '';
+    if (m.inicio && m.inicio > t) extra = ` · começa em ${daysBetween(t, m.inicio)} dia(s)`;
+    else if (m.fim && m.fim >= t) { const n = daysBetween(t, m.fim); extra = n === 0 ? ' · último dia hoje' : ` · faltam ${n} dia(s)`; }
+    return a + b + extra;
+  }
+
+  // ---------- prévia no estilo do painel ----------
+  const grid = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 64; const g = c.getContext('2d'); g.fillStyle = 'rgba(0,0,0,.42)'; for (let x = 0; x < 512; x += 4) g.fillRect(x + 3, 0, 1, 64); for (let y = 0; y < 64; y += 4) g.fillRect(0, y + 3, 512, 1); return c; })();
+  const imgCache = {};
+  function logoImg(src, cb) {
+    if (!src) return null;
+    if (imgCache[src] && imgCache[src].complete) return imgCache[src];
+    if (!imgCache[src]) { const i = new Image(); i.onload = cb; i.src = src; imgCache[src] = i; } else imgCache[src].addEventListener('load', cb, { once: true });
+    return null;
+  }
+  function paint(cv, m) {
+    const g = cv.getContext('2d'), draw = () => { PK.paintSponsorTile(g, 512, 64, m, logoImg(m.logo, draw)); g.drawImage(grid, 0, 0); };
+    draw();
+  }
+
+  // ---------- entrada ----------
+  let hasPass = true;
+  async function showLogin() {
+    $('app').hidden = true; $('logout').hidden = true; $('login').hidden = false;
+    try { hasPass = await rpc('penalti_admin_status'); } catch (e) { msg('lMsg', e.message, 'err'); }
+    $('lTitle').textContent = hasPass ? 'Entrar' : 'Criar senha';
+    $('lHint').textContent = hasPass ? 'Digite a senha de administrador.' : 'Primeiro acesso: crie a senha que vai proteger este cadastro (mínimo de 8 caracteres). Guarde-a bem.';
+    $('lPass2Wrap').hidden = hasPass; $('lPass2').required = !hasPass;
+    $('lPass').autocomplete = hasPass ? 'current-password' : 'new-password';
+    $('lBtn').textContent = hasPass ? 'Entrar' : 'Criar senha e entrar';
+    $('lPass').focus();
+  }
+  function logout() { pass = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } showLogin(); }
+  $('logout').addEventListener('click', logout);
+  $('lForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const p = $('lPass').value;
+    if (!hasPass && p !== $('lPass2').value) return msg('lMsg', 'As duas senhas não são iguais.', 'err');
+    $('lBtn').disabled = true; msg('lMsg', hasPass ? 'Entrando…' : 'Criando…');
+    try {
+      if (!hasPass) { const r = await rpc('penalti_admin_setup', { p_pass: p }); if (r.erro) throw new Error(ERR[r.erro] || r.erro); }
+      pass = p; const d = await arpc('penalti_admin_list');
+      try { sessionStorage.setItem('penalti.admin', p); } catch (e2) { /* ok */ }
+      $('lPass').value = ''; $('lPass2').value = ''; msg('lMsg', '');
+      open(d);
+    } catch (err) { if (!$('lMsg').textContent || $('lMsg').textContent.endsWith('…')) msg('lMsg', err.message, 'err'); if (!hasPass) showLogin(); }
+    $('lBtn').disabled = false;
+  });
+
+  // ---------- lista ----------
+  let data = { tempo: 7, contato: '', marcas: [] }, filter = 'todas';
+  function open(d) {
+    data = d; $('login').hidden = true; $('app').hidden = false; $('logout').hidden = false;
+    $('sTempo').value = d.tempo; $('sContato').value = d.contato || '';
+    render();
+  }
+  async function reload() { try { open(await arpc('penalti_admin_list')); } catch (e) { msg('listMsg', e.message, 'err'); } }
+  function render() {
+    const on = data.marcas.filter(m => status(m)[0] === 'on'), totalPeso = on.reduce((a, m) => a + m.peso, 0) || 1;
+    const shown = data.marcas.filter(m => filter === 'todas' || status(m)[0] === filter);
+    const list = $('list'); list.innerHTML = '';
+    if (!shown.length) { list.innerHTML = `<div class="empty">${data.marcas.length ? 'Nenhuma marca neste filtro.' : 'Nenhuma marca cadastrada. Toque em "+ Nova marca".'}</div>`; return; }
+    shown.forEach(m => {
+      const [k, label] = status(m), idx = data.marcas.indexOf(m);
+      const share = k === 'on' ? ` · cerca de ${Math.round(100 * m.peso / totalPeso)}% do tempo do painel hoje` : '';
+      const el = document.createElement('div'); el.className = 'item';
+      el.innerHTML = `<canvas width="512" height="64" role="img" aria-label="Arte de ${esc(m.nome)} no painel"></canvas>
+        <div><div class="name">${esc(m.nome)}<span class="chip ${k}">${label}</span>${m.exemplo ? '<span class="chip end">À venda</span>' : ''}</div>
+          <div class="meta">${esc(periodText(m))}</div>
+          <div class="meta">${m.peso > 1 ? `Tempo de tela ${m.peso}×` : 'Tempo de tela normal'}${share}${m.link ? ` · <a href="${esc(m.link)}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(m.link.replace(/^https?:\/\//, ''))}</a>` : ''}</div></div>
+        <div class="acts">
+          <button class="btn small" type="button" data-a="up" aria-label="Subir ${esc(m.nome)} na ordem" ${idx === 0 ? 'disabled' : ''}>↑</button>
+          <button class="btn small" type="button" data-a="down" aria-label="Descer ${esc(m.nome)} na ordem" ${idx === data.marcas.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn small" type="button" data-a="edit">Editar</button>
+          <button class="btn small danger" type="button" data-a="del">Excluir</button></div>`;
+      paint(el.querySelector('canvas'), m);
+      el.querySelector('.acts').addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b) act(b.dataset.a, m, idx); });
+      list.appendChild(el);
+    });
+  }
+  $('filters').addEventListener('click', e => {
+    const b = e.target.closest('[data-f]'); if (!b) return;
+    filter = b.dataset.f; document.querySelectorAll('#filters [data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); render();
+  });
+  async function act(a, m, idx) {
+    msg('listMsg', '');
+    try {
+      if (a === 'edit') return edit(m);
+      if (a === 'del') {
+        if (!confirm(`Excluir "${m.nome}"? Os números já registrados continuam no relatório. Para tirar do ar sem apagar, use "Editar" e desmarque "No ar".`)) return;
+        await arpc('penalti_admin_delete', { p_id: m.id });
+      } else {
+        const ids = data.marcas.map(x => x.id), j = a === 'up' ? idx - 1 : idx + 1;
+        [ids[idx], ids[j]] = [ids[j], ids[idx]];
+        await arpc('penalti_admin_order', { p_ids: ids });
+      }
+      await reload();
+    } catch (e) { msg('listMsg', e.message, 'err'); }
+  }
+
+  // ---------- configurações gerais ----------
+  const fixUrl = u => { u = String(u || '').trim(); if (!u) return ''; if (/^(https?:|mailto:|tel:)/i.test(u)) return u; if (/^\+?\d[\d\s()-]{7,}$/.test(u)) return 'https://wa.me/' + u.replace(/\D/g, ''); return 'https://' + u.replace(/^\/+/, ''); };
+  $('sForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const contato = fixUrl($('sContato').value);
+      await arpc('penalti_admin_settings', { p_tempo: Math.round(+$('sTempo').value), p_contato: contato });
+      $('sContato').value = contato; msg('sMsg', 'Salvo.', 'ok'); setTimeout(() => msg('sMsg', ''), 2500);
+    } catch (err) { msg('sMsg', err.message, 'err'); }
+  });
+  $('chPass').addEventListener('click', async () => {
+    const n = prompt('Nova senha (mínimo de 8 caracteres):'); if (n == null) return;
+    try { await arpc('penalti_admin_password', { p_new: n }); pass = n; try { sessionStorage.setItem('penalti.admin', n); } catch (e) { /* ok */ } msg('listMsg', 'Senha trocada.', 'ok'); }
+    catch (e) { msg('listMsg', e.message, 'err'); }
+  });
+
+  // ---------- edição de uma marca ----------
+  let cur = null, logo = null;
+  const dlg = $('dlg');
+  const form = () => ({
+    id: cur && cur.id, nome: $('fNome').value.trim(), tipo: $('fTipo').value || null, variante: +$('fVar').value,
+    texto: $('fTexto').value.trim() || null, fundo: $('fFundo').value, cor: $('fCor').value, link: fixUrl($('fLink').value) || null,
+    logo: $('fTipo').value ? null : logo, peso: +$('fPeso').value, inicio: $('fIni').value || null, fim: $('fFim').value || null,
+    ativo: $('fAtivo').checked, exemplo: $('fExemplo').checked
+  });
+  function refresh() {
+    const np = $('fTipo').value === 'nextplayer';
+    $('custom').hidden = np; $('fVarWrap').hidden = !np;
+    $('fLogoImg').hidden = !logo; if (logo) $('fLogoImg').src = logo; $('fLogoDel').hidden = !logo;
+    const m = form(); m.nome = m.nome || 'Sua marca';
+    paint($('dPrev'), m);
+    const others = data.marcas.filter(x => x.id !== (cur && cur.id) && status(x)[0] === 'on'), mine = status(Object.assign({}, m))[0] === 'on';
+    const tot = others.reduce((a, x) => a + x.peso, 0) + (mine ? m.peso : 0);
+    $('fShare').textContent = mine && tot ? `Hoje ficaria com cerca de ${Math.round(100 * m.peso / tot)}% do tempo do painel.` : '';
+  }
+  function edit(m) {
+    cur = m || null; logo = m ? m.logo : null;
+    $('dTitle').textContent = m ? 'Editar marca' : 'Nova marca';
+    $('fTipo').value = m && m.tipo || ''; $('fVar').value = String(m ? m.variante || 0 : 0);
+    $('fNome').value = m ? m.nome : ''; $('fTexto').value = m && m.texto || '';
+    $('fFundo').value = m ? m.fundo : '#000000'; $('fCor').value = m ? m.cor : '#ffffff';
+    $('fLink').value = m && m.link || ''; $('fPeso').value = String(m ? m.peso : 1);
+    $('fIni').value = m && m.inicio || ''; $('fFim').value = m && m.fim || '';
+    $('fAtivo').checked = m ? m.ativo : true; $('fExemplo').checked = m ? m.exemplo : false;
+    $('fLogo').value = ''; msg('dMsg', '');
+    refresh(); dlg.showModal(); $('fNome').focus();
+  }
+  $('add').addEventListener('click', () => edit(null));
+  $('dCancel').addEventListener('click', () => dlg.close());
+  $('dForm').addEventListener('input', refresh);
+  $('dForm').addEventListener('change', refresh);
+  document.querySelectorAll('[data-dur]').forEach(b => b.addEventListener('click', () => {
+    const d = b.dataset.dur, ini = $('fIni').value || today();
+    if (d === '0') $('fFim').value = '';
+    else { if (!$('fIni').value) $('fIni').value = ini; $('fFim').value = d[0] === 'm' ? addMonths(ini, +d.slice(1)) : addDays(ini, +d - 1); }
+    refresh();
+  }));
+  // logo: reduz para no máximo 640×160 e guarda como imagem embutida
+  $('fLogo').addEventListener('change', () => {
+    const f = $('fLogo').files[0]; if (!f) return;
+    if (f.size > 8e6) return msg('dMsg', 'Imagem muito grande (máximo de 8 MB).', 'err');
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      const w0 = img.naturalWidth || 640, h0 = img.naturalHeight || 160, k = Math.min(1, 640 / w0, 160 / h0);
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0 * k)); c.height = Math.max(1, Math.round(h0 * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      let d = c.toDataURL('image/png'); if (d.length > 380000) d = c.toDataURL('image/webp', 0.9);
+      if (d.length > 380000) return msg('dMsg', 'Não consegui reduzir essa imagem. Tente um PNG menor.', 'err');
+      logo = d; msg('dMsg', ''); refresh();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); msg('dMsg', 'Não consegui abrir essa imagem.', 'err'); };
+    img.src = url;
+  });
+  $('fLogoDel').addEventListener('click', () => { logo = null; $('fLogo').value = ''; refresh(); });
+  $('dForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = form();
+    if (!m.nome) return msg('dMsg', 'Dê um nome para a marca.', 'err');
+    if (m.inicio && m.fim && m.fim < m.inicio) return msg('dMsg', 'A data de término é antes do início.', 'err');
+    if (!m.id) {                                       // código fixo da marca (usado no relatório)
+      const base = PK.sponsorSlug(m.nome) || 'marca'; let id = base, n = 2;
+      while (data.marcas.some(x => x.id === id)) id = (base.slice(0, 36) + '-' + n++);
+      m.id = id;
+    }
+    $('dSave').disabled = true; msg('dMsg', 'Salvando…');
+    try { await arpc('penalti_admin_save', { p_marca: m }); dlg.close(); await reload(); msg('listMsg', `"${m.nome}" salva.`, 'ok'); }
+    catch (err) { msg('dMsg', err.message, 'err'); }
+    $('dSave').disabled = false;
+  });
+
+  // ---------- início ----------
+  if (pass) arpc('penalti_admin_list').then(open).catch(() => showLogin()); else showLogin();
+})();
+</script>

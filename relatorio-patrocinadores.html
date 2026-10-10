@@ -54,7 +54,7 @@ td.name small { display: block; color: var(--muted); font-weight: 400; }
 <main>
   <div class="top">
     <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocínio</h1></div>
-    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="#" id="reload">Atualizar</a></div>
+    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="admin-patrocinadores.html">Cadastro</a><a href="#" id="reload">Atualizar</a></div>
   </div>
   <p class="lead">Quantas vezes cada marca apareceu no painel de LED durante as partidas, por quanto tempo, para quantas pessoas e quantos cliques recebeu na tela "Patrocinadores" do jogo. Toque numa marca para ver dia a dia.</p>
 
@@ -125,11 +125,12 @@ td.name small { display: block; color: var(--muted); font-weight: 400; }
     $('rows').innerHTML = '<tr><td colspan="6" class="empty">Carregando…</td></tr>';
     try { data = await rpc('penalti_sponsor_report', { p_from: from, p_to: to }); }
     catch (e) { $('rows').innerHTML = '<tr><td colspan="6" class="err">Não foi possível carregar. Verifique a internet e tente de novo.</td></tr>'; $('kpis').innerHTML = ''; return; }
+    data.forEach(r => { if (r.nome) NAMES[r.sponsor] = { nome: r.nome, exemplo: !!r.exemplo }; });
     const sum = k => data.reduce((a, r) => a + Number(r[k] || 0), 0);
     $('kpis').innerHTML = [[num(sum('views')), 'Exibições'], [dur(sum('secs')), 'Tempo de tela'], [num(Math.max(0, ...data.map(r => +r.people), 0)), 'Maior alcance'], [num(sum('clicks')), 'Cliques']]
       .map(([v, l]) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`).join('');
     $('rows').innerHTML = data.length ? data.map(r => `<tr tabindex="0" data-s="${esc(r.sponsor)}" class="${r.sponsor === sel ? 'sel' : ''}">
-        <td class="name">${esc(nameOf(r.sponsor))}${NAMES[r.sponsor] && NAMES[r.sponsor].exemplo ? '<small>espaço à venda</small>' : ''}</td>
+        <td class="name">${esc(nameOf(r.sponsor))}${NAMES[r.sponsor] && NAMES[r.sponsor].exemplo ? '<small>espaço à venda</small>' : ''}${r.inicio || r.fim ? `<small>no ar ${r.inicio ? 'de ' + fmtDay(r.inicio) : 'desde o início'}${r.fim ? ' até ' + fmtDay(r.fim) : ''}</small>` : ''}</td>
         <td>${num(r.views)}</td><td>${dur(r.secs)}</td><td>${num(r.people)}</td><td>${num(r.clicks)}</td><td>${pct(r.clicks, r.people)}</td></tr>`).join('')
       : '<tr><td colspan="6" class="empty">Nenhuma exibição registrada neste período.</td></tr>';
     if (sel && data.some(r => r.sponsor === sel)) detail(sel); else { sel = null; $('detail').hidden = true; }

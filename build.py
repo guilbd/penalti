@@ -10,7 +10,7 @@ import shutil
 
 ROOT = pathlib.Path(__file__).parent
 DOCS = ROOT / "docs"
-PAGES = ["index.html", "ranking.html", "penalti-2d.html", "penalti-3d.html", "penalti-celular.html", "penalti-celular-3d.html", "relatorio-patrocinadores.html"]
+PAGES = ["index.html", "ranking.html", "penalti-2d.html", "penalti-3d.html", "penalti-celular.html", "penalti-celular-3d.html", "relatorio-patrocinadores.html", "admin-patrocinadores.html"]
 
 if DOCS.exists():
     shutil.rmtree(DOCS)
