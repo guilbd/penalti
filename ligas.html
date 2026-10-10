@@ -1,0 +1,381 @@
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="penalti.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/penalti-32.png">
+<link rel="apple-touch-icon" href="assets/icons/penalti-180.png">
+<meta name="apple-mobile-web-app-title" content="Pênalti">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060b16">
+<title>Ligas Pênalti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesmo visual do ranking: noite de estádio, filete dourado, números tabulares. */
+:root {
+  --night: #060b16; --panel: #0d1730; --row: rgba(255, 255, 255, .03); --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --win: #3cc47a; --loss: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 900px; margin: 0 auto; padding: calc(32px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(48px, 10vw, 84px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }
+.lead { color: var(--muted); line-height: 1.5; max-width: 64ch; margin: 12px 0 20px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a, .btn { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 9px 14px; background: transparent; font-size: 15px; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.links a.primary, .btn.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.btn.danger { color: #ff9a9a; border-color: rgba(229, 72, 77, .5); }
+.btn.small { min-height: 36px; padding: 5px 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+a:focus-visible, button:focus-visible, input:focus-visible, tr:focus-visible, .lg:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.box { background: var(--panel); border: 1px solid var(--line); padding: 18px; }
+.me { background: var(--panel); border-left: 4px solid var(--gold); padding: 12px 16px; margin-bottom: 18px; font-family: var(--display); font-size: 18px; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.me b { color: var(--gold); }
+label { display: block; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+input[type=text], textarea { width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
+textarea { resize: vertical; min-height: 64px; }
+.field { margin-bottom: 14px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.row > .grow { flex: 1 1 200px; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 5px; line-height: 1.4; }
+.msg { min-height: 22px; margin-top: 8px; font-size: 15px; } .msg.err { color: #ff8a8a; } .msg.ok { color: var(--win); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 15px; color: var(--ink); background: transparent; border: 1px solid var(--line); padding: 8px 14px; cursor: pointer; min-height: 40px; }
+.tabs button[aria-selected="true"], .tabs button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.lg { display: block; text-align: left; background: var(--panel); border: 1px solid var(--line); border-top: 5px solid var(--c, var(--gold)); padding: 14px; color: var(--ink); cursor: pointer; font: inherit; width: 100%; }
+.lg:hover { border-color: var(--c, var(--gold)); }
+.lg .n { font-family: var(--display); font-weight: 800; font-size: 22px; text-transform: uppercase; letter-spacing: .03em; }
+.lg .d { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.4; min-height: 1.4em; }
+.lg .m { color: var(--muted); font-size: 13px; margin-top: 8px; font-family: var(--display); letter-spacing: .08em; text-transform: uppercase; }
+.tag { display: inline-block; font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 1px 7px; border: 1px solid currentColor; margin-left: 6px; vertical-align: middle; color: var(--gold); }
+.empty { color: var(--muted); padding: 16px; border: 1px dashed var(--line); }
+.swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.swatches button { width: 40px; height: 40px; border: 2px solid transparent; cursor: pointer; }
+.swatches button[aria-pressed="true"] { border-color: #fff; box-shadow: 0 0 0 2px var(--night) inset; }
+.radio { display: flex; gap: 10px; flex-wrap: wrap; }
+.radio label { display: flex; gap: 8px; align-items: flex-start; font-family: var(--body); font-size: 15px; letter-spacing: 0; text-transform: none; color: var(--ink); border: 1px solid var(--line); padding: 10px 12px; cursor: pointer; flex: 1 1 220px; margin: 0; }
+.radio input { accent-color: var(--gold); margin-top: 3px; }
+.radio small { display: block; color: var(--muted); }
+/* liga aberta */
+.lhead { border-left: 6px solid var(--c, var(--gold)); padding: 4px 0 4px 14px; margin-bottom: 14px; }
+.lhead h2 { font-size: clamp(30px, 6vw, 44px); margin: 0; }
+.lhead p { color: var(--muted); margin: 6px 0 0; line-height: 1.4; }
+.invite { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); padding: 10px 14px; margin-bottom: 14px; }
+.invite .code { font: 800 28px var(--display); letter-spacing: .25em; color: var(--gold); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; min-width: 560px; }
+th { font-family: var(--display); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 10px 10px; border-bottom: 1px solid var(--line); font-weight: 700; }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+td { padding: 10px 10px; text-align: right; border-bottom: 1px solid var(--line); }
+tr:nth-child(even) td { background: var(--row); }
+td.pos { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--muted); width: 44px; }
+tr.top3 td.pos { color: var(--gold); }
+td.nick { font-weight: 600; }
+td.pts { font-family: var(--display); font-weight: 800; font-size: 22px; }
+tr.mine td { background: rgba(242, 182, 50, .12) !important; }
+tr.mine td.nick::after { content: " (você)"; color: var(--gold); font-weight: 500; }
+.rules { color: var(--muted); font-size: 14px; line-height: 1.6; margin-top: 16px; }
+.rules b { color: var(--ink); }
+.owner { margin-top: 22px; }
+@media (max-width: 560px) { .invite .code { font-size: 22px; } }
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Pênalti online</div><h1>Ligas</h1></div>
+    <div class="links"><a class="primary" href="index.html">Jogar</a><a href="ranking.html">Ranking geral</a></div>
+  </div>
+  <p class="lead">Crie uma liga com seus amigos, como no Cartola. Os pontos vêm das partidas online: vitória vale 3, cada gol vale 1 e ganhar de outro membro da liga (clássico) vale mais 2. Veja quem lidera a rodada, o mês e o campeonato.</p>
+
+  <!-- identidade -->
+  <div class="me" id="who"></div>
+  <form class="box" id="regForm" hidden style="margin-bottom:18px">
+    <h2>Escolha seu apelido</h2>
+    <p class="hint" style="margin:-4px 0 12px">É o mesmo apelido do jogo online e do ranking. Fica salvo neste aparelho.</p>
+    <div class="row"><div class="grow"><label for="regNick">Apelido</label><input type="text" id="regNick" maxlength="16" required autocomplete="nickname"></div><button class="btn primary" type="submit">Criar</button></div>
+    <div class="msg" id="regMsg" role="status" aria-live="polite"></div>
+  </form>
+
+  <!-- lista -->
+  <section id="home">
+    <div class="tabs" role="tablist" aria-label="Ligas" id="tabs">
+      <button type="button" role="tab" data-t="mine" aria-selected="true">Minhas ligas</button>
+      <button type="button" role="tab" data-t="find" aria-selected="false">Encontrar liga</button>
+      <button type="button" role="tab" data-t="new" aria-selected="false">Criar liga</button>
+    </div>
+
+    <div id="t-mine"><div class="cards" id="mine"></div></div>
+
+    <div id="t-find" hidden>
+      <form class="box" id="joinForm" style="margin-bottom:14px">
+        <div class="row"><div class="grow"><label for="joinCode">Código da liga</label><input type="text" id="joinCode" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="EX.: K7M2QX" style="text-transform:uppercase;letter-spacing:.2em"></div><button class="btn primary" type="submit">Entrar na liga</button></div>
+        <div class="msg" id="joinMsg" role="status" aria-live="polite"></div>
+      </form>
+      <h2 style="font-size:20px">Ligas abertas</h2>
+      <div class="row" style="margin-bottom:12px"><div class="grow"><label for="search">Buscar pelo nome</label><input type="text" id="search" placeholder="Buscar pelo nome"></div></div>
+      <div class="cards" id="openList"></div>
+    </div>
+
+    <form class="box" id="t-new" hidden>
+      <div class="field"><label for="nName">Nome da liga</label><input type="text" id="nName" maxlength="30" minlength="3" required></div>
+      <div class="field"><label for="nDesc">Descrição</label><textarea id="nDesc" maxlength="140" placeholder="Opcional. Ex.: Liga da firma, o último paga o churrasco."></textarea></div>
+      <div class="field"><label>Cor</label><div class="swatches" id="nColors" role="group" aria-label="Cor da liga"></div></div>
+      <div class="field"><label>Quem pode entrar</label>
+        <div class="radio">
+          <label><input type="radio" name="nOpen" value="1" checked><span>Aberta<small>Aparece na busca; qualquer um entra.</small></span></label>
+          <label><input type="radio" name="nOpen" value="0"><span>Fechada<small>Só entra quem tiver o código. A tabela fica só para membros.</small></span></label>
+        </div></div>
+      <button class="btn primary" type="submit">Criar liga</button>
+      <div class="msg" id="newMsg" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <!-- liga -->
+  <section id="league" hidden>
+    <p><button class="btn small" type="button" id="back">← Ligas</button></p>
+    <div class="lhead" id="lHead"></div>
+    <div class="invite" id="invite" hidden>
+      <span style="color:var(--muted)">Código</span><span class="code" id="lCode"></span>
+      <button class="btn small primary" type="button" id="share">Convidar amigos</button>
+      <span class="msg ok" id="shareMsg" style="margin:0"></span>
+    </div>
+    <div id="joinBox" class="box" hidden style="margin-bottom:14px"><div class="row" style="align-items:center;justify-content:space-between"><span>Você ainda não está nesta liga.</span><button class="btn primary" type="button" id="joinThis">Entrar na liga</button></div></div>
+    <div class="tabs" role="group" aria-label="Período" id="period">
+      <button type="button" data-p="rodada" aria-pressed="true">Rodada</button>
+      <button type="button" data-p="mes" aria-pressed="false">Mês</button>
+      <button type="button" data-p="geral" aria-pressed="false">Campeonato</button>
+    </div>
+    <p class="hint" id="periodHint" style="margin:-6px 0 10px"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">#</th><th scope="col">Jogador</th><th scope="col">Pts</th><th scope="col">J</th><th scope="col">V</th><th scope="col">D</th><th scope="col">Gols</th><th scope="col">Clássicos</th><th scope="col" id="thAct" hidden></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
+    <p class="rules"><b>Pontos:</b> vitória 3 · cada gol marcado 1 · vitória contra outro membro da liga (clássico) +2. Contam as partidas online com placar confirmado pelos dois jogadores, jogadas depois que a pessoa entrou na liga. <b>Rodada</b> vai de segunda a domingo. Desempate: vitórias, saldo de gols, gols marcados.</p>
+
+    <div class="owner box" id="ownerBox" hidden>
+      <h2 style="font-size:20px">Administrar liga</h2>
+      <form id="editForm">
+        <div class="field"><label for="eName">Nome</label><input type="text" id="eName" maxlength="30" minlength="3" required></div>
+        <div class="field"><label for="eDesc">Descrição</label><textarea id="eDesc" maxlength="140"></textarea></div>
+        <div class="field"><label>Cor</label><div class="swatches" id="eColors" role="group" aria-label="Cor da liga"></div></div>
+        <div class="field"><label>Quem pode entrar</label>
+          <div class="radio">
+            <label><input type="radio" name="eOpen" value="1"><span>Aberta<small>Aparece na busca.</small></span></label>
+            <label><input type="radio" name="eOpen" value="0"><span>Fechada<small>Só com o código.</small></span></label>
+          </div></div>
+        <div class="row" style="justify-content:space-between"><button class="btn primary" type="submit">Salvar</button><button class="btn danger" type="button" id="delLeague">Excluir liga</button></div>
+        <div class="msg" id="eMsg" role="status" aria-live="polite"></div>
+      </form>
+    </div>
+    <p id="leaveWrap" hidden style="margin-top:22px"><button class="btn danger small" type="button" id="leave">Sair da liga</button></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const ID_KEY = 'penalti.online.v1';               // mesmo cadastro do jogo online (online.js)
+  const COLORS = ['#f2b632', '#2bb52b', '#1e88e5', '#e5484d', '#8e44ad', '#f29a32', '#14b8a6', '#e6e6e6'];
+  const ERR = {
+    credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.',
+    limite_ligas: 'Você já criou 10 ligas, o máximo.', codigo_invalido: 'Nenhuma liga com esse código.',
+    liga_cheia: 'Essa liga já tem 200 membros.', limite_participacao: 'Você já está em 20 ligas, o máximo.',
+    dono_nao_sai: 'Quem criou a liga não pode sair: exclua a liga se quiser encerrá-la.', so_dono: 'Só quem criou a liga pode fazer isso.',
+    liga_inexistente: 'Essa liga não existe mais.', liga_fechada: 'Liga fechada: entre com o código para ver a tabela.',
+    apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.'
+  };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const msg = (el, t, kind) => { $(el).textContent = t || ''; $(el).className = 'msg' + (kind ? ' ' + kind : ''); };
+  async function rpc(name, args) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+    const txt = await r.text(); let d = null; try { d = JSON.parse(txt); } catch (e) { /* vazio */ }
+    if (!r.ok) {
+      const m = (d && (d.message || d.details)) || txt;
+      for (const k in ERR) if (m.includes(k)) throw new Error(ERR[k]);
+      throw new Error(/check constraint|nickname/.test(m) ? 'Use de 3 a 16 letras, números, espaço, ponto, hífen ou _.' : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.');
+    }
+    if (d && d.erro) { const e = new Error(ERR[d.erro] || d.erro); e.code = d.erro; e.data = d; throw e; }
+    return d;
+  }
+
+  // ---------- identidade (a mesma do jogo online) ----------
+  let me = null;
+  try { me = JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { /* sem armazenamento */ }
+  const auth = () => ({ p_id: me && me.id, p_secret: me && me.secret });
+  function renderWho() {
+    $('regForm').hidden = !!me;
+    $('who').hidden = !me;
+    if (me) $('who').innerHTML = `<span>Você: <b>${esc(me.nickname)}</b></span><span style="color:var(--muted);font-size:15px">mesmo apelido do jogo online</span>`;
+  }
+  $('regForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const d = await rpc('penalti_register', { p_nickname: $('regNick').value.trim() });
+      me = { id: d.id, secret: d.secret, nickname: d.nickname, rating: d.rating };
+      try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e2) { /* ok */ }
+      renderWho(); loadMine(); route();
+    } catch (err) { msg('regMsg', err.message, 'err'); }
+  });
+  const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
+
+  // ---------- abas ----------
+  let tab = 'mine';
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll('#tabs [data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
+    $('t-mine').hidden = t !== 'mine'; $('t-find').hidden = t !== 'find'; $('t-new').hidden = t !== 'new';
+    if (t === 'find') loadOpen();
+    if (t === 'mine') loadMine();
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) setTab(b.dataset.t); });
+
+  const card = l => `<button type="button" class="lg" style="--c:${esc(l.color)}" data-id="${esc(l.id)}">
+      <div class="n">${esc(l.name)}${l.dono ? '<span class="tag">Dono</span>' : ''}${l.open === false ? '<span class="tag" style="color:var(--muted)">Fechada</span>' : ''}</div>
+      <div class="d">${esc(l.description || '')}</div>
+      <div class="m">${l.membros} ${l.membros == 1 ? 'membro' : 'membros'}${l.dono_nick ? ' · criada por ' + esc(l.dono_nick) : ''}</div></button>`;
+  async function loadMine() {
+    if (!me) { $('mine').innerHTML = '<div class="empty">Escolha um apelido para criar ou entrar em ligas.</div>'; return; }
+    try {
+      const d = await rpc('penalti_league_mine', auth());
+      $('mine').innerHTML = d.ligas.length ? d.ligas.map(card).join('') : '<div class="empty">Você ainda não está em nenhuma liga. Crie uma ou entre com um código em "Encontrar liga".</div>';
+    } catch (e) { $('mine').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  }
+  let searchT = 0;
+  async function loadOpen() {
+    try {
+      const d = await rpc('penalti_league_open_list', { p_search: $('search').value });
+      $('openList').innerHTML = d.ligas.length ? d.ligas.map(card).join('') : '<div class="empty">Nenhuma liga aberta encontrada.</div>';
+    } catch (e) { $('openList').innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
+  }
+  $('search').addEventListener('input', () => { clearTimeout(searchT); searchT = setTimeout(loadOpen, 300); });
+  document.addEventListener('click', e => { const c = e.target.closest('.lg[data-id]'); if (c) go(c.dataset.id); });
+
+  $('joinForm').addEventListener('submit', async e => {
+    e.preventDefault(); if (needMe('joinMsg')) return;
+    try { const d = await rpc('penalti_league_join', Object.assign(auth(), { p_code: $('joinCode').value })); $('joinCode').value = ''; go(d.id); }
+    catch (err) { msg('joinMsg', err.message, 'err'); }
+  });
+
+  // ---------- cores ----------
+  function swatches(el, val) {
+    $(el).innerHTML = COLORS.map(c => `<button type="button" style="background:${c}" data-c="${c}" aria-label="Cor ${c}" aria-pressed="${c === val}"></button>`).join('');
+  }
+  const picked = el => { const b = $(el).querySelector('[aria-pressed="true"]'); return b ? b.dataset.c : COLORS[0]; };
+  ['nColors', 'eColors'].forEach(id => $(id).addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (!b) return; $(id).querySelectorAll('[data-c]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); }));
+  swatches('nColors', COLORS[0]);
+
+  $('t-new').addEventListener('submit', async e => {
+    e.preventDefault(); if (needMe('newMsg')) return;
+    try {
+      const d = await rpc('penalti_league_create', Object.assign(auth(), { p_name: $('nName').value, p_desc: $('nDesc').value, p_color: picked('nColors'),
+        p_open: document.querySelector('[name=nOpen]:checked').value === '1' }));
+      $('nName').value = ''; $('nDesc').value = ''; go(d.id, true);
+    } catch (err) { msg('newMsg', err.message, 'err'); }
+  });
+
+  // ---------- liga ----------
+  let cur = null, period = 'rodada';
+  function go(id, fresh) {
+    const u = new URL(location.href); u.searchParams.delete('codigo'); u.searchParams.set('liga', id);
+    history.pushState({ liga: id }, '', u); openLeague(id, fresh);
+  }
+  $('back').addEventListener('click', () => { const u = new URL(location.href); u.searchParams.delete('liga'); history.pushState({}, '', u); route(); });
+  window.addEventListener('popstate', route);
+  const PERIOD_TXT = { rodada: 'Rodada atual: desde segunda-feira.', mes: 'Mês atual.', geral: 'Campeonato: desde a criação da liga.' };
+  async function openLeague(id, fresh) {
+    $('home').hidden = true; $('league').hidden = false; msg('lMsg', ''); msg('shareMsg', '');
+    $('rows').innerHTML = '<tr><td colspan="9" class="empty">Carregando…</td></tr>';
+    let d;
+    try { d = await rpc('penalti_league_table', Object.assign({ p_league: id, p_period: period }, me ? auth() : { p_id: null, p_secret: null })); }
+    catch (e) {
+      const l = e.data && e.data.liga;
+      $('lHead').style.setProperty('--c', l ? l.color : 'var(--gold)');
+      $('lHead').innerHTML = `<h2>${esc(l ? l.name : 'Liga')}</h2><p>${esc(e.message)}</p>`;
+      $('rows').innerHTML = ''; $('invite').hidden = true; $('ownerBox').hidden = true; $('leaveWrap').hidden = true; $('joinBox').hidden = true;
+      cur = null; return;
+    }
+    cur = d.liga;
+    $('lHead').style.setProperty('--c', cur.color);
+    $('lHead').innerHTML = `<h2>${esc(cur.name)}</h2><p>${esc(cur.description || '')}${cur.description ? '<br>' : ''}${cur.open ? 'Liga aberta' : 'Liga fechada'} · criada por ${esc(cur.dono_nick)} · ${d.tabela.length} ${d.tabela.length == 1 ? 'membro' : 'membros'}</p>`;
+    $('invite').hidden = !cur.code; $('lCode').textContent = cur.code || '';
+    $('joinBox').hidden = cur.membro;
+    $('periodHint').textContent = PERIOD_TXT[period];
+    const owner = cur.dono; $('thAct').hidden = !owner;
+    $('rows').innerHTML = d.tabela.length ? d.tabela.map((r, i) => `<tr class="${i < 3 && r.pts > 0 ? 'top3' : ''} ${me && r.id === me.id ? 'mine' : ''}">
+        <td class="pos">${i + 1}</td><td class="nick">${esc(r.nick)}</td><td class="pts">${r.pts}</td><td>${r.j}</td><td>${r.v}</td><td>${r.d}</td>
+        <td>${r.gp}:${r.gc}</td><td>${r.cl}</td>
+        ${owner ? `<td>${me && r.id === me.id ? '' : `<button class="btn small danger" type="button" data-kick="${esc(r.id)}" data-nick="${esc(r.nick)}">Remover</button>`}</td>` : ''}</tr>`).join('')
+      : '<tr><td colspan="9" class="empty">Sem membros.</td></tr>';
+    $('ownerBox').hidden = !owner; $('leaveWrap').hidden = !cur.membro || owner;
+    if (owner) {
+      $('eName').value = cur.name; $('eDesc').value = cur.description || ''; swatches('eColors', cur.color);
+      document.querySelector(`[name=eOpen][value="${cur.open ? 1 : 0}"]`).checked = true;
+    }
+    if (fresh) msg('shareMsg', 'Liga criada! Convide seus amigos.', 'ok');
+  }
+  $('period').addEventListener('click', e => {
+    const b = e.target.closest('[data-p]'); if (!b || !cur) return;
+    period = b.dataset.p; document.querySelectorAll('#period [data-p]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); openLeague(cur.id);
+  });
+  $('share').addEventListener('click', async () => {
+    const link = new URL('ligas.html?codigo=' + cur.code, location.href).href;
+    const text = `Entre na minha liga "${cur.name}" no jogo Pênalti! Código ${cur.code}`;
+    if (navigator.share) { try { await navigator.share({ title: 'Liga ' + cur.name, text, url: link }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(text + '\n' + link); msg('shareMsg', 'Convite copiado.', 'ok'); }
+    catch (e) { prompt('Copie o convite:', text + '\n' + link); }
+  });
+  $('joinThis').addEventListener('click', async () => {
+    if (needMe('lMsg')) return;
+    try { await rpc('penalti_league_join', Object.assign(auth(), { p_code: cur.code })); openLeague(cur.id); }
+    catch (e) { msg('lMsg', e.message, 'err'); }
+  });
+  $('rows').addEventListener('click', async e => {
+    const b = e.target.closest('[data-kick]'); if (!b) return;
+    if (!confirm(`Remover ${b.dataset.nick} da liga?`)) return;
+    try { await rpc('penalti_league_kick', Object.assign(auth(), { p_league: cur.id, p_player: b.dataset.kick })); openLeague(cur.id); }
+    catch (err) { msg('lMsg', err.message, 'err'); }
+  });
+  $('leave').addEventListener('click', async () => {
+    if (!confirm(`Sair da liga "${cur.name}"?`)) return;
+    try { await rpc('penalti_league_leave', Object.assign(auth(), { p_league: cur.id })); $('back').click(); }
+    catch (e) { msg('lMsg', e.message, 'err'); }
+  });
+  $('editForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      await rpc('penalti_league_update', Object.assign(auth(), { p_league: cur.id, p_name: $('eName').value, p_desc: $('eDesc').value, p_color: picked('eColors'),
+        p_open: document.querySelector('[name=eOpen]:checked').value === '1' }));
+      await openLeague(cur.id); msg('eMsg', 'Salvo.', 'ok');
+    } catch (err) { msg('eMsg', err.message, 'err'); }
+  });
+  $('delLeague').addEventListener('click', async () => {
+    if (!confirm(`Excluir a liga "${cur.name}"? Todos os membros saem dela. Os jogos e o ranking geral não mudam.`)) return;
+    try { await rpc('penalti_league_delete', Object.assign(auth(), { p_league: cur.id })); $('back').click(); }
+    catch (e) { msg('eMsg', e.message, 'err'); }
+  });
+
+  // ---------- rota: ?liga=ID abre a liga; ?codigo=XXXXXX prepara a entrada ----------
+  function route() {
+    const qs = new URLSearchParams(location.search), id = qs.get('liga'), code = qs.get('codigo');
+    if (id) { openLeague(id); return; }
+    $('league').hidden = true; $('home').hidden = false; cur = null;
+    if (code) { $('joinCode').value = code.toUpperCase(); setTab('find'); msg('joinMsg', 'Toque em "Entrar na liga" para participar.', 'ok'); }
+    else setTab(tab);
+  }
+  renderWho(); route();
+})();
+</script>

@@ -68,7 +68,7 @@
     </div>
     <div class="on-row"><input id="onCode" maxlength="4" placeholder="Código da sala" autocomplete="off" aria-label="Código da sala"><button class="btn" type="button" id="onJoin">Entrar</button></div>
     <div class="on-status" id="onStatus" role="status" aria-live="polite"></div>
-    <div class="on-row" style="justify-content:space-between"><a class="on-link" href="ranking.html">Ver ranking</a><button class="btn ghost" type="button" id="onBack">Voltar</button></div>
+    <div class="on-row" style="justify-content:space-between"><span><a class="on-link" href="ranking.html">Ver ranking</a> · <a class="on-link" href="ligas.html">Ligas</a></span><button class="btn ghost" type="button" id="onBack">Voltar</button></div>
   </div>`;
   document.getElementById('app').appendChild(ov);
   const $ = id => document.getElementById(id);
