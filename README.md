@@ -20,3 +20,13 @@ python build.py
 ```
 
 e faça commit da pasta `docs/` junto.
+
+## Testes
+
+- `npm test`: motor do jogo (regras da disputa, moedas, sorteio com semente, patrocínio) e todas as páginas (sintaxe dos scripts, arquivos incluídos no `build.py`, nenhuma chave secreta no código). Não precisa instalar nada além do Node 22.
+- `npm run test:db`: regras do banco (placar online decidido pelo servidor, W.O., contas com senha, sessão do gestor, limites de moedas, quiz, bônus, missões, loja e conquistas). Cada arquivo de `tests/db/` roda numa transação que é desfeita no fim, então nada fica gravado. Precisa de `npm install pg` e da variável `SUPABASE_DB_URL` (texto de conexão do banco, em Supabase → Connect).
+- No GitHub, `.github/workflows/testes.yml` roda tudo a cada envio. Os testes do banco só rodam se o segredo `SUPABASE_DB_URL` estiver cadastrado no repositório (Settings → Secrets and variables → Actions).
+
+## Funções no servidor
+
+`supabase/functions/` guarda o código das funções do Supabase: `penalti-push` (avisos no celular, a cada minuto) e `penalti-quiz-sync` (toda segunda confere no Wikidata o clube atual dos jogadores do quiz e deixa sugestões para o gestor aprovar no cadastro).

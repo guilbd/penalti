@@ -1,0 +1,13 @@
+{
+  "name": "penalti",
+  "private": true,
+  "description": "Jogo de pênaltis e quiz de futebol (GitHub Pages + Supabase)",
+  "scripts": {
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:db": "node tests/db/run.mjs",
+    "build": "python build.py"
+  },
+  "devDependencies": {
+    "pg": "8.13.1"
+  }
+}

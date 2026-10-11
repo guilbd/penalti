@@ -181,6 +181,11 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       </div>
       <p class="hint" id="qCount" style="margin:0 0 8px"></p>
       <div id="qList" style="max-height:520px;overflow:auto"></div>
+      <div class="bar" style="margin:22px 0 8px"><h2 style="font-size:20px">Atualização automática (Wikidata)</h2><button class="btn small" type="button" id="syncNow">Verificar agora</button></div>
+      <p class="hint" style="margin:0 0 8px">Toda segunda às 6h o sistema confere no Wikidata o clube atual de cada jogador em atividade e sugere as mudanças. Nada muda sozinho: o Wikidata às vezes erra ou atrasa, então confira e toque em Aceitar (dá para desfazer depois). Sugestão rejeitada não volta, e correções feitas à mão continuam valendo.</p>
+      <p class="hint" id="syncInfo" style="margin:0 0 8px"></p>
+      <div class="list" id="syncList" style="gap:6px;max-height:420px;overflow:auto"></div>
+      <div class="msg" id="syncMsg" role="status" aria-live="polite"></div>
     </div>
   </section>
 </main>
@@ -471,7 +476,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   function open(d) {
     data = d; show('app'); $('logout').hidden = false;
     $('sTempo').value = d.tempo; $('sContato').value = d.contato || '';
-    render(); renderUsers(); loadQuiz(); loadEngage();
+    render(); renderUsers(); loadQuiz(); loadEngage(); loadSync();
   }
   async function reload() { try { open(await arpc('penalti_admin_list')); } catch (e) { msg('listMsg', e.message, 'err'); } }
   function render() {
@@ -701,6 +706,28 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       multiplier: +$('evMul').value, cor: $('evCor').value, ativo: $('evOn').checked } }); $('evDlg').close(); loadEngage(); } catch (err) { msg('evMsg', err.message, 'err'); }
   });
   $('evDel').addEventListener('click', async () => { if (!evCur || !confirm('Excluir este evento?')) return; try { await arpc('penalti_admin_event_save', { p_e: { id: evCur.id, apagar: true } }); $('evDlg').close(); loadEngage(); } catch (err) { msg('evMsg', err.message, 'err'); } });
+
+  // ---------- atualização das trajetórias pelo Wikidata ----------
+  const SYNC_ST = { aplicada: ['on', 'Aplicada'], pendente: ['sched', 'Pendente'], rejeitada: ['end', 'Rejeitada'], aceita: ['on', 'Aceita'], desfeita: ['end', 'Desfeita'] };
+  async function loadSync() {
+    let d; try { d = await arpc('penalti_admin_quiz_updates'); } catch (e) { $('syncInfo').textContent = e.message; return; }
+    const u = d.ultima;
+    $('syncInfo').textContent = u ? `Última verificação: ${new Date(u.at).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} · ${u.checked} jogadores conferidos, ${u.applied} atualizados, ${u.pending} pendentes${u.errors ? `, ${u.errors} com erro` : ''}.` : 'Ainda não houve verificação.';
+    $('syncList').innerHTML = d.mudancas.length ? d.mudancas.map(m => { const [k, l] = SYNC_ST[m.status] || ['end', m.status];
+      return `<div class="user"><div><b>${esc(m.jogador)}</b><span class="chip ${k}">${l}</span>${m.status === 'pendente' ? `<span class="chip ${m.novo ? 'on' : 'pause'}">${m.novo ? 'Transferência' : 'Confira: clube antigo'}</span>` : ''}<br><span>${esc(m.antes.join(' → '))} <b style="color:var(--gold)">→ ${esc(m.clube_wd)}</b>${m.por ? ' · ' + esc(m.por) : ''}</span></div>
+        <span style="display:flex;gap:6px">${m.status === 'pendente' ? `<button class="btn small primary" type="button" data-sy="aceitar" data-id="${m.id}">Aceitar</button><button class="btn small" type="button" data-sy="rejeitar" data-id="${m.id}">Rejeitar</button>`
+          : m.status === 'aplicada' || m.status === 'aceita' ? `<button class="btn small" type="button" data-sy="desfazer" data-id="${m.id}">Desfazer</button>` : ''}</span></div>`; }).join('') : '<div class="empty">Nenhuma mudança encontrada ainda.</div>';
+  }
+  $('syncList').addEventListener('click', async e => {
+    const b = e.target.closest('[data-sy]'); if (!b) return;
+    b.disabled = true;
+    try { await arpc('penalti_admin_quiz_update_decide', { p_id: +b.dataset.id, p_action: b.dataset.sy }); await loadSync(); loadQuiz(); }
+    catch (err) { msg('syncMsg', err.message, 'err'); b.disabled = false; }
+  });
+  $('syncNow').addEventListener('click', async () => {
+    try { await arpc('penalti_admin_quiz_sync_now'); msg('syncMsg', 'Verificação iniciada. Leva cerca de 1 minuto; atualize esta lista depois.', 'ok'); setTimeout(loadSync, 70000); }
+    catch (err) { msg('syncMsg', err.message === 'aguarde' ? 'Já houve uma verificação há poucos minutos. Tente mais tarde.' : err.message, 'err'); }
+  });
 
   async function loadQuiz() { try { quiz = (await arpc('penalti_admin_quiz_list')).jogadores || []; renderQuiz(); } catch (e) { $('qList').textContent = e.message; } }
   function renderQuiz() {

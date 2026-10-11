@@ -1,0 +1,26 @@
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Motor do jogo e páginas
+        run: npm test
+      - name: Publicação (docs/) gerada a partir dos arquivos atuais
+        run: |
+          python3 build.py
+          git diff --exit-code --stat docs || (echo "docs/ desatualizado: rode python build.py antes do commit" && exit 1)
+      - name: Banco de dados (só com o segredo SUPABASE_DB_URL configurado)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -n "$SUPABASE_DB_URL" ]; then npm install --no-save pg@8.13.1 && npm run test:db; else echo "Sem SUPABASE_DB_URL: testes do banco pulados"; fi
