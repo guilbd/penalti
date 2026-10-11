@@ -302,8 +302,8 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
         : `<div class="hint"><span>${n}</span><button class="btn small" type="button" data-hint="${k}" ${me ? '' : 'disabled'}>${c} moedas</button></div>`).join('') + '</div>';
       h += `<p class="lead" style="font-size:13px;margin:10px 0 0">Cada pessoa recebe um jogador sorteado só para ela. </p>`;
     } else {
-      h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : d.esgotou ? 'Tempo esgotado' : 'Não foi dessa vez'}</div>
-        <p>Resposta: <b>${esc(d.resposta)}</b>.${d.acertou ? ` Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : ''}</p>
+      h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : d.esgotou ? 'Tempo esgotado' : 'Tente de novo mais tarde'}</div>
+        <p>${d.acertou ? `Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : `${d.esgotou ? 'O tempo acabou.' : 'Errou as 2 chances.'} A resposta continua em segredo: essa pergunta pode voltar, então guarde para a próxima! Amanhã tem pergunta nova.`}</p>
         <p style="margin:0 0 10px"><a href="#treino" id="toTreino" style="color:var(--gold);font-weight:700">Quer mais? Faça o treino por nível →</a></p>
         <p class="num">Próximo desafio em <span id="nextIn"></span></p>
         <div class="row">${waBtn(shareText(), 'Desafiar amigos no WhatsApp')}<button class="btn" type="button" id="copyShare">Copiar resultado</button></div></div>`;
@@ -354,7 +354,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     stopMeter('trMeter');
     let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]} · ${t.segundos} s</div>${!t.terminou ? meterHtml('trMeter') : ''}${qHtml(t)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_i, t.terminou)}`;
     if (!t.terminou && !t.eliminou) h += `<div class="hint" style="margin-top:6px"><span>Dica: eliminar 1 alternativa</span><button class="btn small" type="button" id="trHint">${t.custo_dica} moedas</button></div>`;
-    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Errou'}</div><p>Resposta: <b>${esc(t.resposta)}</b>.${t.acertou ? ` +${t.pontos} pts nas ligas e +${t.moedas} moedas.` : ''}</p>
+    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Ainda não foi'}</div><p>${t.acertou ? `+${t.pontos} pts nas ligas e +${t.moedas} moedas.` : 'Não foi dessa vez. Tente outra pergunta, e quando esta voltar você terá outra chance!'}</p>
       ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : '<p class="num">Você fez as 10 perguntas de hoje. Volte amanhã!</p>'}</div>`;
     $('treinoBox').innerHTML = h;
     bindOpts('tr', async id => { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: id })); renderTreino(); if (tr.terminou) refreshCoins(); });
@@ -389,7 +389,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       if (x.status === 'pendente' && !x.eu_desafiei) return `<div class="duel"><span><b>${esc(x.adversario)}</b> desafiou você · ${tag}</span><span class="row"><button class="btn small primary" type="button" data-acc="${x.id}">Aceitar e jogar</button><button class="btn small" type="button" data-rej="${x.id}">Recusar</button></span></div>`;
       if (x.status === 'pendente') return `<div class="duel"><span>Esperando <b>${esc(x.adversario)}</b> aceitar · ${tag}${x.terminei ? (x.acertei ? ' · você acertou' : ' · você errou') : ''}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Continuar</button>`}</div>`;
       if (x.status === 'andamento') return `<div class="duel"><span>Duelo com <b>${esc(x.adversario)}</b> · ${tag} · ${x.terminei ? 'esperando o adversário terminar' : 'sua vez'}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Jogar</button>`}</div>`;
-      if (x.status === 'concluido') return `<div class="duel"><span>${x.empate ? 'Empate' : x.eu_venci ? `<b>Você venceu</b>` : `<b>${esc(x.vencedor)}</b> venceu`} contra ${esc(x.adversario)} · resposta: ${esc(x.resposta)}${x.eu_venci ? ` · +${x.premio.pontos} pts e +${x.premio.moedas} moedas` : ''}</span></div>`;
+      if (x.status === 'concluido') return `<div class="duel"><span>${x.empate ? 'Empate' : x.eu_venci ? `<b>Você venceu</b>` : `<b>${esc(x.vencedor)}</b> venceu`} contra ${esc(x.adversario)}${x.eu_venci ? ` · +${x.premio.pontos} pts e +${x.premio.moedas} moedas` : ''}</span></div>`;
       return `<div class="duel"><span>Duelo com ${esc(x.adversario)} ${x.status === 'recusado' ? 'recusado' : 'expirou (não foi aceito em 24 h)'}</span></div>`;
     }).join('') : '<div class="empty">Nenhum duelo ainda. Desafie alguém das suas ligas!</div>';
   }
@@ -409,8 +409,8 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       const x = playing;
       let h = `<div class="row" style="justify-content:space-between;align-items:center"><div class="num">Duelo com ${esc(x.adversario)} · ${MODE[x.modo]} · ${LEVEL[x.nivel]}</div>
         ${!x.terminei && end ? '<div class="timer" id="duelTimer"></div>' : ''}</div>${qHtml(x)}${optsHtml('du', x.opcoes, x.tentativas, x.resposta_i, x.terminei)}`;
-      if (x.terminei) h += `<div class="result"><div class="big">${x.acertei ? 'Você acertou!' : 'Fim do seu tempo'}</div>
-        <p>${x.resposta ? `Resposta: <b>${esc(x.resposta)}</b>. ` : ''}${x.status === 'concluido' ? (x.empate ? 'Empate.' : x.eu_venci ? `Você venceu! +${x.premio.pontos} pts e +${x.premio.moedas} moedas.` : `${esc(x.vencedor)} venceu.`) : 'O resultado sai quando o adversário jogar.'}</p>
+      if (x.terminei) h += `<div class="result"><div class="big">${x.acertei ? 'Você acertou!' : 'Tente de novo no próximo duelo'}</div>
+        <p>${x.acertei ? '' : 'Não foi dessa vez. '}${x.status === 'concluido' ? (x.empate ? 'Empate.' : x.eu_venci ? `Você venceu! +${x.premio.pontos} pts e +${x.premio.moedas} moedas.` : `${esc(x.vencedor)} venceu.`) : 'O resultado sai quando o adversário jogar.'}</p>
         <button class="btn" type="button" id="duelClose">Fechar</button></div>`;
       $('duelPlay').innerHTML = h; $('duelPlay').hidden = false;
       bindOpts('du', async id => { playing = await rpc('penalti_quiz_duel_guess', Object.assign(auth(), { p_duel: x.id, p_guess: id })); render(); if (playing.terminei) { loadDuels(); refreshCoins(); } });
