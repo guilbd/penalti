@@ -40,7 +40,8 @@
     el.innerHTML = `<button type="button" class="pk-link">Já tenho conta: entrar com apelido e senha</button>
       <form hidden><input type="text" name="nick" placeholder="Seu apelido" maxlength="16" autocomplete="username" aria-label="Apelido" required>
         <input type="password" name="pass" placeholder="Senha da conta" autocomplete="current-password" aria-label="Senha" required>
-        <div class="pk-row"><button class="btn primary" type="submit">Entrar</button></div><div class="pk-msg" role="status" aria-live="polite"></div></form>`;
+        <div class="pk-row"><button class="btn primary" type="submit">Entrar</button></div><div class="pk-msg" role="status" aria-live="polite"></div>
+        <p class="pk-warn" style="margin:2px 0 0">Nunca criou senha? Abra o jogo no aparelho onde você jogava e crie em "Sua conta" (aba Hoje do quiz ou "Jogar online" no jogo). Sem o aparelho antigo, peça um link de acesso à organização do jogo.</p></form>`;
     const f = el.querySelector('form'), m = f.querySelector('.pk-msg');
     el.querySelector('.pk-link').onclick = () => { f.hidden = !f.hidden; if (!f.hidden) f.nick.focus(); };
     f.onsubmit = async e => {
@@ -85,5 +86,14 @@
     render(false);
   }
 
-  root.PKConta = { mountLogin, mountProtect };
+  // apelido já usado no cadastro: abre o "entrar com senha" com o apelido preenchido
+  function openLogin(el, nick) {
+    if (!el) return;
+    if (!el.querySelector('form')) mountLogin(el);
+    const f = el.querySelector('form'); f.hidden = false;
+    if (nick) f.nick.value = nick;
+    el.hidden = false; f.pass.focus();
+  }
+
+  root.PKConta = { mountLogin, mountProtect, openLogin };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -250,7 +250,7 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
     liga_cheia: 'Essa liga já tem 200 membros.', limite_participacao: 'Você já está em 20 ligas, o máximo.',
     dono_nao_sai: 'Quem criou a liga não pode sair: exclua a liga se quiser encerrá-la.', so_dono: 'Só quem criou a liga pode fazer isso.',
     liga_inexistente: 'Essa liga não existe mais.', liga_fechada: 'Liga fechada: entre com o código para ver a tabela.',
-    apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.'
+    apelido_em_uso: 'Esse apelido já tem dono. Se a conta é sua, entre com a senha logo abaixo.'
   };
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -312,7 +312,7 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
       me = { id: d.id, secret: d.secret, nickname: d.nickname, rating: d.rating };
       try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e2) { /* ok */ }
       renderWho(); loadMine(); route();
-    } catch (err) { msg('regMsg', err.message, 'err'); }
+    } catch (err) { msg('regMsg', err.message, 'err'); if (/dono/.test(err.message) && window.PKConta) PKConta.openLogin($('loginBox'), $('regNick').value.trim()); }
   });
   const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
 

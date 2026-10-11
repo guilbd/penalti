@@ -18,7 +18,7 @@
   const load = () => { try { return JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { return null; } };
   const save = v => { try { localStorage.setItem(ID_KEY, JSON.stringify(v)); } catch (e) { /* sem armazenamento */ } };
   const ERR = {
-    apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.',
+    apelido_em_uso: 'Esse apelido já tem dono. Se a conta é sua, entre com a senha logo abaixo.',
     credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.',
     placar_invalido: 'Placar inválido.'
   };
@@ -112,7 +112,7 @@
           let rc = new URLSearchParams(location.search).get('ref'); try { rc = rc || localStorage.getItem('penalti.ref'); } catch (e2) { /* ok */ }
           if (rc) { rpc('penalti_ref_set', { p_id: me.id, p_secret: me.secret, p_code: rc }).catch(() => {}); try { localStorage.removeItem('penalti.ref'); } catch (e2) { /* ok */ } }
         }
-        catch (e) { status(msgOf(e), true); }
+        catch (e) { status(msgOf(e), true); if (/apelido_em_uso/.test((e && e.message) || '') && root.PKConta) root.PKConta.openLogin($('onLogin'), nick); }
       };
       w.insertAdjacentHTML('beforeend', '<div id="onLogin" style="margin-top:10px"></div>');
       if (root.PKConta) root.PKConta.mountLogin($('onLogin'), { onLogin: m => { me = m; save(m); status(''); renderWho(); syncWallet(); } });

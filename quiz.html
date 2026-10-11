@@ -297,7 +297,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   const MODE = { br: 'Brasileirão', mundo: 'Mundo' }, LEVEL = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
   const HINTS = [['setor', 'Setor do campo', 40], ['continente', 'Continente', 50], ['decada', 'Década de nascimento', 60], ['eliminar', 'Eliminar 1 alternativa', 100]];
   const ERR = {
-    credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.', apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.',
+    credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.', apelido_em_uso: 'Esse apelido já tem dono. Se a conta é sua, entre com a senha logo abaixo.',
     moedas_insuficientes: 'Moedas insuficientes para essa dica.', limite_diario: 'Você já usou as 3 perguntas grátis de hoje.',
     limite_duelos: 'Você já criou 5 duelos hoje.', sem_liga_comum: 'Vocês precisam estar na mesma liga.', duelo_indisponivel: 'Esse duelo não está mais disponível.',
     jogador_invalido: 'Escolha um nome da lista.', ja_pegou: 'Você já pegou o bônus de hoje. Volte amanhã!', missao_incompleta: 'Complete a missão primeiro.',
@@ -339,7 +339,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
       me = { id: d.id, secret: d.secret, nickname: d.nickname, rating: d.rating };
       try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e2) { /* ok */ }
       renderWho(); loadDia(); loadDuels(); applyRef(); loadHoje();
-    } catch (err) { msg('regMsg', err.message, 'err'); }
+    } catch (err) { msg('regMsg', err.message, 'err'); if (/dono/.test(err.message) && window.PKConta) PKConta.openLogin($('loginBox'), $('regNick').value.trim()); }
   });
   const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
 
