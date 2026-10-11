@@ -135,13 +135,47 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 .page h3 { font: 800 18px var(--display); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
 .page h3 small { font: 600 13px var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); }
 .page h3 small.ok { color: var(--win); }
-.stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+/* figurinha: moldura branca de álbum, fundo nas cores do clube, silhueta com a camisa, faixa com o nome e selo de raridade */
+.fig { position: relative; aspect-ratio: 5 / 7; border-radius: 9px; padding: 5px; background: #f4f1e8; box-shadow: 0 6px 16px rgba(0,0,0,.45); transition: transform .2s; overflow: hidden; color: #fff; }
+.fig:hover { transform: translateY(-3px) rotate(-1deg); }
+.fig .in { position: relative; height: 100%; border-radius: 6px; overflow: hidden; background: linear-gradient(160deg, var(--c1) 0%, var(--c1) 48%, var(--c2) 140%); display: flex; flex-direction: column; }
+.fig .in::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.07) 0 6px, transparent 6px 14px); }
+.fig .top { position: relative; display: flex; justify-content: space-between; align-items: center; padding: 5px 6px 0; font: 800 12px var(--display); letter-spacing: .04em; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.fig .top img { width: 20px; height: 14px; object-fit: cover; border-radius: 2px; box-shadow: 0 0 0 1px rgba(255,255,255,.7); }
+.fig .club { position: relative; text-align: center; font: 800 10px var(--display); letter-spacing: .12em; text-transform: uppercase; opacity: .9; text-shadow: 0 1px 2px rgba(0,0,0,.6); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; }
+.fig svg { position: relative; flex: 1; width: 100%; min-height: 0; }
+.fig .name { position: relative; background: linear-gradient(90deg, rgba(5,9,20,.92), rgba(5,9,20,.78)); padding: 5px 6px 6px; border-top: 2px solid var(--rar); }
+.fig .name b { display: block; font: 800 15px/1 var(--display); text-transform: uppercase; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fig .name small { display: block; font: 600 10px var(--body); color: #c9d2e3; margin-top: 2px; padding-right: 44px; }
+.fig .rar { position: absolute; right: 11px; bottom: 12px; z-index: 2; background: var(--rar); color: #1a1406; font: 800 9px var(--display); letter-spacing: .1em; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.fig.r-facil { --rar: #d08b4e; } .fig.r-medio { --rar: #d9dde3; } .fig.r-dificil { --rar: #f5c542; }
+.fig.r-facil { background: linear-gradient(135deg, #f6cfa6, #b0682f 50%, #f6cfa6); }
+.fig.r-medio { background: linear-gradient(135deg, #f4f6f9, #b9c0ca 50%, #f4f6f9); }
+.fig.r-dificil { background: linear-gradient(135deg, #fff3b0, #d4a017 45%, #fff3b0 70%, #b8860b); }
+.fig.r-dificil::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.55) 45%, rgba(255,255,255,0) 60%); background-size: 250% 100%; animation: holo 3.2s linear infinite; pointer-events: none; mix-blend-mode: overlay; }
+@keyframes holo { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+.fig .new { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); background: #e5484d; color: #fff; font: 800 10px var(--display); letter-spacing: .1em; padding: 1px 7px; border-radius: 9px; z-index: 2; box-shadow: 0 0 0 2px #fff; }
+.fig.fresh { animation: pop .7s ease-out 2; }
+.fig.miss { background: #1a2440; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08); }
+.fig.miss .in { background: repeating-linear-gradient(135deg, #111a33 0 10px, #0d152b 10px 20px); align-items: center; justify-content: center; }
+.fig.miss .q { font: 800 46px var(--display); color: rgba(255,255,255,.14); }
+.fig.miss .nm { position: absolute; top: 6px; left: 7px; font: 800 12px var(--display); color: rgba(255,255,255,.35); }
+.fig.miss .lv2 { position: absolute; bottom: 7px; left: 0; right: 0; text-align: center; font: 700 10px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--rar); opacity: .8; }
+@media (prefers-reduced-motion: reduce) { .fig.r-dificil::after, .fig.fresh { animation: none; } .fig:hover { transform: none; } }
 .stk { aspect-ratio: 3 / 4; border: 1px solid var(--line); background: #0a1226; display: grid; place-items: center; text-align: center; padding: 6px; font: 700 14px/1.15 var(--display); letter-spacing: .02em; position: relative; }
 .stk.has { background: linear-gradient(160deg, #1f3566, #0d1730); border-color: #3a5694; }
 .stk.has.dificil { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
 .stk.has.medio { border-color: #8fb0ff; }
 .stk .q { font-size: 34px; color: rgba(255,255,255,.12); }
 .stk .lv { position: absolute; bottom: 4px; left: 0; right: 0; font: 600 10px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.stk .new { position: absolute; top: 4px; right: 4px; background: var(--gold); color: #1a1406; font: 800 10px var(--display); letter-spacing: .08em; padding: 1px 5px; }
+.stk.has.fresh { animation: pop .6s ease-out 2; }
+@keyframes pop { 50% { transform: scale(1.06); box-shadow: 0 0 0 3px var(--gold); } }
+@media (prefers-reduced-motion: reduce) { .stk.has.fresh { animation: none; } }
+.recent { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; margin-top: 8px; }
+.recent .fig { flex: 0 0 118px; }
+.toast { cursor: default; } .toast.link { cursor: pointer; text-decoration: underline; }
 .prog { height: 10px; background: #13203f; border: 1px solid var(--line); margin: 6px 0 14px; } .prog i { display: block; height: 100%; background: var(--gold); }
 /* ranking */
 table.rk { width: 100%; border-collapse: collapse; font-size: 15px; }
@@ -186,7 +220,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
     <button type="button" role="tab" data-t="dia" aria-selected="false">Jogador do dia</button>
     <button type="button" role="tab" data-t="treino" aria-selected="false">Treino</button>
     <button type="button" role="tab" data-t="duelos" aria-selected="false">Duelos<span class="badge" id="duelBadge" hidden></span></button>
-    <button type="button" role="tab" data-t="album" aria-selected="false">Álbum</button>
+    <button type="button" role="tab" data-t="album" aria-selected="false">Álbum<span class="badge" id="albBadge" hidden></span></button>
     <button type="button" role="tab" data-t="ranking" aria-selected="false">Ranking</button>
     <button type="button" role="tab" data-t="loja" aria-selected="false">Loja</button>
   </div>
@@ -207,8 +241,9 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   <section id="t-album" hidden>
     <div class="card2">
       <h2>Álbum de figurinhas <small id="albCount"></small></h2>
-      <p class="lead" style="font-size:14px;margin:0 0 6px">Cada jogador que você acerta no quiz (jogador do dia, treino, duelo ou desafio patrocinado) vira figurinha. Complete uma página e ganhe moedas: 150 por página de clube e 400 pelas páginas Lendas e Outros clubes.</p>
+      <p class="lead" style="font-size:14px;margin:0 0 6px">Cada jogador que você acerta no quiz (jogador do dia, treino, duelo ou desafio patrocinado) vira figurinha: Bronze (fácil), Prata (médio) ou Ouro (difícil). Complete uma página e ganhe moedas: 150 por página de clube e 400 pelas páginas Lendas e Outros clubes.</p>
       <div class="prog"><i id="albBar" style="width:0"></i></div>
+      <div id="albRecent"></div>
       <div class="tabs" role="group" aria-label="Campeonato" id="albMode">
         <button type="button" data-m="br" aria-pressed="true">Brasileirão</button>
         <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
@@ -622,9 +657,29 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
 
   // ---------- avisos rápidos ----------
   let toastT = 0;
-  function toast(t) {
+  function toast(t, onClick) {
     let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
-    el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4200);
+    el.textContent = t; el.hidden = false; el.classList.toggle('link', !!onClick);
+    el.onclick = onClick ? () => { el.hidden = true; onClick(); } : null;
+    clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, onClick ? 6000 : 4200);
+  }
+  // figurinha nova: aviso na hora do acerto (cada uma só uma vez por aparelho)
+  const FIG_KEY = 'penalti.figs.avisadas';
+  let figBusy = false;
+  async function checkStickers() {
+    if (!me || figBusy) return; figBusy = true;
+    try {
+      const d = await rpc('penalti_album_new', auth());
+      let seen = []; try { seen = JSON.parse(localStorage.getItem(FIG_KEY)) || []; } catch (e) { /* ok */ }
+      const fresh = d.novas.filter(x => !seen.includes(x.id));
+      if (fresh.length) {
+        try { localStorage.setItem(FIG_KEY, JSON.stringify(seen.concat(fresh.map(x => x.id)).slice(-300))); } catch (e) { /* ok */ }
+        const x = fresh[fresh.length - 1];
+        setTimeout(() => toast(`🃏 Figurinha nova: ${x.nome} (${x.modo === 'mundo' ? 'Mundo' : 'Brasileirão'} · ${x.pagina}). Toque para ver o álbum`, () => { albMode = x.modo; setTab('album'); }), 900);
+        const n = (+$('albBadge').textContent || 0) + fresh.length; $('albBadge').textContent = n; $('albBadge').hidden = false;
+      }
+    } catch (e) { /* ok */ }
+    figBusy = false;
   }
   const BR_DATE = d => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
@@ -740,7 +795,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
       ${meterHtml('scMeter')}${qHtml(q)}${optsHtml('sc', q.opcoes, [], null, false)}</div>`;
     paintBrands(box);
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    const send = async g => { scPlaying = await rpc('penalti_sc_answer', Object.assign(auth(), { p_challenge: c.id, p_guess: g })); renderSCPlay(); };
+    const send = async g => { scPlaying = await rpc('penalti_sc_answer', Object.assign(auth(), { p_challenge: c.id, p_guess: g })); renderSCPlay(); if (scPlaying.ultimo && scPlaying.ultimo.certo) checkStickers(); };
     bindOpts('sc', send);
     runMeter('scMeter', 20, q.resta, 0, () => { send(-1).catch(() => { /* ok */ }); });
   }
@@ -808,6 +863,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   // ---------- conquistas ----------
   let achBusy = false;
   async function checkAch() {
+    checkStickers();
     if (!me || achBusy) return; achBusy = true;
     try {
       const d = await rpc('penalti_achievements_check', auth());
@@ -826,24 +882,84 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
     if (!me) $('achBox').innerHTML = '<h2>Conquistas</h2><p class="lead" style="margin:0">Escolha um apelido para colecionar medalhas.</p>';
   }
 
+  // ---------- figurinhas: cores dos clubes, bandeiras e desenho ----------
+  const CLUB_COLORS = {
+    'Flamengo': ['#c8102e', '#111111'], 'Palmeiras': ['#006437', '#ffffff'], 'Corinthians': ['#1b1b1b', '#ffffff'], 'São Paulo': ['#c8102e', '#111111'], 'Santos': ['#1b1b1b', '#f2f2f2'],
+    'Grêmio': ['#0d80bf', '#111111'], 'Internacional': ['#c8102e', '#ffffff'], 'Atlético-MG': ['#1b1b1b', '#ffffff'], 'Cruzeiro': ['#1b3f8f', '#ffffff'], 'Vasco': ['#1b1b1b', '#ffffff'],
+    'Botafogo': ['#1b1b1b', '#ffffff'], 'Fluminense': ['#7a1e3a', '#0f6b3a'], 'Bahia': ['#1d4fb8', '#e30613'], 'Vitória': ['#c8102e', '#111111'], 'Athletico-PR': ['#c8102e', '#111111'],
+    'Coritiba': ['#0a6b3a', '#ffffff'], 'Bragantino': ['#c8102e', '#ffffff'], 'Mirassol': ['#e8b923', '#0a6b3a'], 'Chapecoense': ['#0a7a3a', '#ffffff'], 'Remo': ['#0b2a6b', '#ffffff'],
+    'Fortaleza': ['#1d4fb8', '#c8102e'], 'Ceará': ['#1b1b1b', '#ffffff'], 'Sport': ['#c8102e', '#111111'], 'Juventude': ['#0a7a3a', '#ffffff'], 'Atlético-GO': ['#c8102e', '#111111'],
+    'Vila Nova': ['#c8102e', '#ffffff'], 'Guarani': ['#0a7a3a', '#ffffff'], 'Botafogo-SP': ['#c8102e', '#111111'],
+    'Real Madrid': ['#f2f2f2', '#c9a227'], 'Barcelona': ['#a50044', '#004d98'], 'Manchester City': ['#6cabdd', '#1c2c5b'], 'Liverpool': ['#c8102e', '#00b2a9'], 'Arsenal': ['#ef0107', '#ffffff'],
+    'Chelsea': ['#034694', '#ffffff'], 'Manchester United': ['#da291c', '#111111'], 'Bayern de Munique': ['#dc052d', '#0066b2'], 'PSG': ['#004170', '#da291c'], 'Inter de Milão': ['#0068a8', '#111111'],
+    'Milan': ['#fb090b', '#111111'], 'Juventus': ['#1b1b1b', '#ffffff'], 'Napoli': ['#12a0d7', '#ffffff'], 'Atlético de Madrid': ['#cb3524', '#262f61'], 'Borussia Dortmund': ['#fde100', '#111111'],
+    'Tottenham': ['#132257', '#ffffff'], 'Benfica': ['#e30613', '#ffffff'], 'Porto': ['#003d91', '#ffffff'], 'Sporting': ['#008057', '#ffffff'], 'Inter Miami': ['#f7b5cd', '#231f20'],
+    'Al-Nassr': ['#fdd007', '#00338d'], 'Al-Hilal': ['#005eb8', '#ffffff'], 'Al-Ittihad': ['#fde100', '#111111'], 'RB Leipzig': ['#dd0741', '#ffffff'], 'Roma': ['#8e1f2f', '#f0bc42'],
+    'Parma': ['#ffd200', '#1d3d8f'], 'Zenit': ['#0093d0', '#ffffff'], 'Olympique de Marseille': ['#2faee0', '#ffffff'], 'Monaco': ['#e51b22', '#ffffff'], 'Galatasaray': ['#a32638', '#fdb912'],
+    'Trabzonspor': ['#7b1e3c', '#4fa3d8'], 'Boca Juniors': ['#103f79', '#f3b229'], 'River Plate': ['#e30613', '#ffffff'], 'Rosario Central': ['#1d3f8f', '#f6c90e'],
+    'LA Galaxy': ['#00245d', '#ffd200'], 'New York City': ['#6cace4', '#041e42'], 'Orlando City': ['#612b9b', '#fdd116'], 'Monterrey': ['#0b2a6b', '#ffffff'], 'Kashima Antlers': ['#b8002b', '#111111']
+  };
+  function clubColors(c) {
+    if (CLUB_COLORS[c]) return CLUB_COLORS[c];
+    let h = 0; for (const ch of String(c || '?')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;      // clube sem cor cadastrada: cor estável pelo nome
+    return [`hsl(${h % 360} 62% 38%)`, `hsl(${(h >> 8) % 360} 55% 22%)`];
+  }
+  const FLAG = { 'Alemanha': 'de', 'Argentina': 'ar', 'Áustria': 'at', 'Bélgica': 'be', 'Brasil': 'br', 'Camarões': 'cm', 'Colômbia': 'co', 'Coreia do Sul': 'kr', 'Costa do Marfim': 'ci',
+    'Croácia': 'hr', 'Dinamarca': 'dk', 'Egito': 'eg', 'Equador': 'ec', 'Escócia': 'gb-sct', 'Espanha': 'es', 'Estados Unidos': 'us', 'França': 'fr', 'Geórgia': 'ge', 'Guiné': 'gn',
+    'Holanda': 'nl', 'Hungria': 'hu', 'Inglaterra': 'gb-eng', 'Itália': 'it', 'Marrocos': 'ma', 'Nigéria': 'ng', 'Noruega': 'no', 'Paraguai': 'py', 'Polônia': 'pl', 'Portugal': 'pt',
+    'Senegal': 'sn', 'Suécia': 'se', 'Suíça': 'ch', 'Turquia': 'tr', 'Ucrânia': 'ua', 'Uruguai': 'uy', 'Venezuela': 've', 'Chile': 'cl', 'Peru': 'pe', 'México': 'mx', 'Japão': 'jp' };
+  const POS = { 'Goleiro': 'GOL', 'Zagueiro': 'ZAG', 'Lateral': 'LAT', 'Meio-campista': 'MEI', 'Atacante': 'ATA' };
+  const RAR = { facil: 'Bronze', medio: 'Prata', dificil: 'Ouro' };
+  // silhueta do jogador com a camisa do clube (goleiro de manga longa e luvas)
+  function figSvg(c1, c2, gk) {
+    const shirt = gk ? '#2bb52b' : c1, trim = gk ? '#111' : c2;
+    return `<svg viewBox="0 0 100 92" aria-hidden="true" preserveAspectRatio="xMidYMax meet">
+      <ellipse cx="50" cy="88" rx="38" ry="5" fill="rgba(0,0,0,.25)"/>
+      <path d="M14 92 C16 66 26 58 38 55 L62 55 C74 58 84 66 86 92 Z" fill="${shirt}"/>
+      <path d="M38 55 L50 68 L62 55 L58 54 L50 62 L42 54 Z" fill="${trim}"/>
+      <path d="M14 92 C15 80 18 72 23 66 L28 70 C25 77 24 85 24 92 Z M86 92 C85 80 82 72 77 66 L72 70 C75 77 76 85 76 92 Z" fill="${trim}" opacity=".55"/>
+      <rect x="44" y="44" width="12" height="13" rx="4" fill="#00000055"/>
+      <circle cx="50" cy="32" r="17" fill="#0b1020" opacity=".88"/>
+      <path d="M33 30 C33 16 67 16 67 30 C64 22 36 22 33 30 Z" fill="#0b1020"/>
+      ${gk ? '<circle cx="18" cy="86" r="6" fill="#f2f2f2"/><circle cx="82" cy="86" r="6" fill="#f2f2f2"/>' : ''}
+    </svg>`;
+  }
+  function figCard(f, extra) {
+    if (!f.tem) return `<div class="fig miss r-${f.nivel}" aria-label="Figurinha que falta"><div class="in"><span class="nm">#${f.num || ''}</span><span class="q">?</span><span class="lv2">${RAR[f.nivel] || ''}</span></div></div>`;
+    const i = f.info || {}, [c1, c2] = clubColors(i.clube), fl = FLAG[i.pais];
+    return `<div class="fig r-${f.nivel}${f.nova ? ' fresh' : ''}" style="--c1:${c1};--c2:${c2}" title="${esc(f.nome)} · ${esc(i.pos || '')} · ${esc(i.pais || '')}${i.ano ? ' · ' + i.ano : ''}">
+      ${f.nova ? '<span class="new">NOVA</span>' : ''}<span class="rar">${RAR[f.nivel] || ''}</span>
+      <div class="in"><div class="top"><span>#${f.num || ''}</span>${fl ? `<img src="https://flagcdn.com/w40/${fl}.png" alt="${esc(i.pais)}" loading="lazy">` : `<span>${esc((i.pais || '').slice(0, 3).toUpperCase())}</span>`}</div>
+        <div class="club">${esc(i.aposentado ? 'Lenda · ' + (i.clube || '') : (i.clube || ''))}</div>
+        ${figSvg(c1, c2, i.pos === 'Goleiro')}
+        <div class="name"><b>${esc(f.nome)}</b><small>${POS[i.pos] || ''}${i.ano ? ' · ' + i.ano : ''}${extra ? ' · ' + esc(extra) : ''}</small></div></div></div>`;
+  }
+
   // ---------- álbum ----------
-  let album = null, albMode = 'br';
+  let album = null, albMode = 'br', albPicked = false;
   async function loadAlbum() {
     if (!me) { $('albBox').innerHTML = '<div class="empty">Escolha um apelido acima para começar seu álbum.</div>'; return; }
     $('albBox').innerHTML = '<p class="num">Carregando…</p>';
     try { album = await rpc('penalti_album', auth()); } catch (e) { $('albBox').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
     setCoins(album.carteira);
     album.premios_novos.forEach(x => toast(`Página "${x.pagina}" completa! +${x.moedas} moedas`));
+    $('albBadge').hidden = true; $('albBadge').textContent = '';
+    if (!albPicked && album.recentes && album.recentes.length) albMode = album.recentes[0].modo;
     renderAlbum();
   }
   function renderAlbum() {
     const a = album;
     $('albCount').textContent = `${a.tenho} de ${a.total} figurinhas`;
     $('albBar').style.width = Math.round(100 * a.tenho / Math.max(1, a.total)) + '%';
-    $('albBox').innerHTML = a.paginas.filter(pg => pg.modo === albMode).map(pg => `<div class="page card2"><h3>${esc(pg.pagina)}<small class="${pg.tenho === pg.total ? 'ok' : ''}">${pg.tenho}/${pg.total}${pg.tenho === pg.total ? ' · completa ✓' : ` · ${pg.premio} moedas ao completar`}</small></h3>
-      <div class="stickers">${pg.figurinhas.map(f => f.tem ? `<div class="stk has ${f.nivel}">${esc(f.nome)}<span class="lv">${LEVEL[f.nivel]}</span></div>` : `<div class="stk" aria-label="Figurinha que falta"><span class="q">?</span><span class="lv">${LEVEL[f.nivel]}</span></div>`).join('')}</div></div>`).join('');
+    const pm = a.por_modo || {};
+    $('albMode').querySelectorAll('[data-m]').forEach(b => { b.setAttribute('aria-pressed', String(b.dataset.m === albMode)); b.textContent = `${MODE[b.dataset.m]} (${pm[b.dataset.m] || 0})`; });
+    $('albRecent').innerHTML = (a.recentes || []).length ? `<div class="num" style="margin-top:4px">Suas últimas figurinhas</div><div class="recent">${a.recentes.map(x => figCard(Object.assign({ tem: true }, x))).join('')}</div>`
+      : '<p class="num" style="margin:4px 0 0">Acerte perguntas sobre jogadores para ganhar figurinhas.</p>';
+    const pages = a.paginas.filter(pg => pg.modo === albMode).sort((x, y) => (y.figurinhas.some(f => f.nova) ? 1 : 0) - (x.figurinhas.some(f => f.nova) ? 1 : 0));
+    $('albBox').innerHTML = pages.map(pg => `<div class="page card2"><h3>${esc(pg.pagina)}<small class="${pg.tenho === pg.total ? 'ok' : ''}">${pg.tenho}/${pg.total}${pg.tenho === pg.total ? ' · completa ✓' : ` · ${pg.premio} moedas ao completar`}</small></h3>
+      <div class="stickers">${pg.figurinhas.map(f => figCard(f)).join('')}</div></div>`).join('');
   }
-  $('albMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; albMode = b.dataset.m; $('albMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); if (album) renderAlbum(); });
+  $('albMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; albMode = b.dataset.m; albPicked = true; $('albMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); if (album) renderAlbum(); });
 
   // ---------- ranking semanal ----------
   async function loadRanking() {
