@@ -151,10 +151,11 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
         <button type="button" data-l="medio" aria-pressed="false">Médio<small>20 s · até 5 pts e 60 moedas</small></button>
         <button type="button" data-l="dificil" aria-pressed="false">Difícil<small>12 s · até 8 pts e 100 moedas</small></button>
       </div>
-      <p class="lead" style="font-size:14px;margin:10px 0">4 alternativas e 1 chance. O prêmio cai a cada segundo: responda rápido! Quanto mais difícil, menos tempo e mais pontos. Até 10 perguntas por dia.</p>
+      <p class="lead" style="font-size:14px;margin:10px 0">4 alternativas e 1 chance. O prêmio cai a cada segundo: responda rápido! Quanto mais difícil, menos tempo e mais pontos. 3 perguntas grátis por dia; depois, cada pergunta extra custa 50 moedas.</p>
       <button class="btn primary" type="button" id="trStart">Nova pergunta</button>
       <span class="num" id="trCount" style="margin-left:8px"></span>
       <div class="msg" id="trMsg" role="status" aria-live="polite"></div>
+      <div id="trBuyBox" hidden style="margin-top:10px"><button class="btn primary" type="button" id="trBuy">Comprar mais 1 pergunta · 50 moedas</button></div>
     </div>
     <div class="box" id="treinoBox" hidden style="margin-top:10px"></div>
   </section>
@@ -195,7 +196,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   const HINTS = [['setor', 'Setor do campo', 40], ['continente', 'Continente', 50], ['decada', 'Década de nascimento', 60], ['eliminar', 'Eliminar 1 alternativa', 100]];
   const ERR = {
     credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.', apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.',
-    moedas_insuficientes: 'Moedas insuficientes para essa dica.', limite_diario: 'Você já fez as 10 perguntas de treino de hoje. Volte amanhã!',
+    moedas_insuficientes: 'Moedas insuficientes para essa dica.', limite_diario: 'Você já usou as 3 perguntas grátis de hoje.',
     limite_duelos: 'Você já criou 5 duelos hoje.', sem_liga_comum: 'Vocês precisam estar na mesma liga.', duelo_indisponivel: 'Esse duelo não está mais disponível.',
     jogador_invalido: 'Escolha um nome da lista.'
   };
@@ -344,21 +345,31 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   $('trStart').addEventListener('click', async () => {
     if (needMe('trMsg')) return;
     msg('trMsg', '');
+    $('trBuyBox').hidden = true;
     try { tr = await rpc('penalti_quiz_free_start', Object.assign(auth(), { p_mode: trMode, p_level: trLevel })); renderTreino(); }
-    catch (e) { msg('trMsg', e.message, 'err'); }
+    catch (e) { msg('trMsg', e.message, 'err'); if (e.code === 'limite_diario') { $('trBuyBox').hidden = false; $('treinoBox').hidden = true; } }
+  });
+  $('trBuy').addEventListener('click', async () => {
+    $('trBuy').disabled = true;
+    try {
+      const r = await rpc('penalti_quiz_free_buy', auth());
+      setCoins(r.carteira); $('trBuyBox').hidden = true; msg('trMsg', 'Pergunta extra liberada!', 'ok'); $('trStart').click();
+    } catch (e) { msg('trMsg', e.code === 'moedas_insuficientes' ? 'Moedas insuficientes. Jogue o desafio do dia ou partidas para ganhar mais.' : e.message, 'err'); }
+    $('trBuy').disabled = false;
   });
   function renderTreino() {
     const t = tr;
-    $('trCount').textContent = `${t.feitas_hoje} de ${t.limite} hoje`;
+    $('trCount').textContent = `${t.feitas_hoje} de ${t.limite} hoje${t.limite > t.gratis ? ` (${t.limite - t.gratis} comprada${t.limite - t.gratis > 1 ? 's' : ''})` : ''}`;
     $('treinoBox').hidden = false;
     stopMeter('trMeter');
     let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]} · ${t.segundos} s</div>${!t.terminou ? meterHtml('trMeter') : ''}${qHtml(t)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_i, t.terminou)}`;
     if (!t.terminou && !t.eliminou) h += `<div class="hint" style="margin-top:6px"><span>Dica: eliminar 1 alternativa</span><button class="btn small" type="button" id="trHint">${t.custo_dica} moedas</button></div>`;
     if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Ainda não foi'}</div><p>${t.acertou ? `+${t.pontos} pts nas ligas e +${t.moedas} moedas.` : 'Não foi dessa vez. Tente outra pergunta, e quando esta voltar você terá outra chance!'}</p>
-      ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : '<p class="num">Você fez as 10 perguntas de hoje. Volte amanhã!</p>'}</div>`;
+      ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : `<p class="num" style="margin-bottom:8px">Acabaram as perguntas grátis de hoje.</p><button class="btn primary" type="button" id="trMore">Comprar mais 1 pergunta · ${t.preco_extra} moedas</button>`}</div>`;
     $('treinoBox').innerHTML = h;
     bindOpts('tr', async id => { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: id })); renderTreino(); if (tr.terminou) refreshCoins(); });
     const nx = $('trNext'); if (nx) nx.onclick = () => $('trStart').click();
+    const mo = $('trMore'); if (mo) mo.onclick = () => $('trBuy').click();
     if (!t.terminou && t.restante != null) runMeter('trMeter', t.segundos, t.restante, t.moedas_max, async () => {
       try { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: -1 })); renderTreino(); } catch (e) { /* ok */ }
     });
