@@ -99,6 +99,13 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 .meter .val { font-size: 16px; color: var(--ink); } .meter .val b { color: var(--gold); font-size: 20px; }
 .start { text-align: center; padding: 18px 8px; }
 .start .big { font: 800 30px var(--display); text-transform: uppercase; margin-bottom: 6px; }
+.sponsor { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); padding: 8px 10px; margin: -6px 0 16px; }
+.sponsor .lbl { font-family: var(--display); font-weight: 700; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.sponsor canvas { height: 40px; width: 320px; max-width: 100%; display: block; border-radius: 2px; }
+.sponsor .sp-go { margin-left: auto; }
+.sp-line { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.sp-line a { color: var(--gold); font-weight: 700; }
+@media (max-width: 520px) { .sponsor canvas { width: 100%; height: auto; aspect-ratio: 8 / 1; } .sponsor .sp-go { margin-left: 0; } }
 .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 18px; }
 @media (max-width: 520px) { .try, .try-head { grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(0, 1fr)); } .try > div { font-size: 12px; padding: 4px; } .club { font-size: 16px; padding: 6px 9px; } }
 </style>
@@ -113,6 +120,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     <div class="t">Desafie seus conhecimentos sobre futebol</div>
     <p>Trajetórias, primeiro clube, cidade natal, ano de nascimento, curiosidades e muito mais. Acertou? Ganhe moedas para as skills e pontos nas suas ligas.</p>
   </div>
+  <div class="sponsor" id="spBar" hidden aria-label="Patrocinador"></div>
 
   <div class="me" id="who" hidden></div>
   <form class="box" id="regForm" hidden style="margin-bottom:14px">
@@ -184,6 +192,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 </main>
 
 
+<script src="engine.js"></script>
 <script>
 (function () {
   'use strict';
@@ -287,7 +296,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       $('diaBox').innerHTML = `<div class="num">${MODE[diaMode]} · desafio nº ${d.numero}${d.sequencia ? ` · 🔥 sequência de ${d.sequencia}` : ''}</div>
         <div class="start"><div class="big">Pergunta do dia</div><p class="lead" style="margin:0 0 14px">Você terá <b>${d.segundos} segundos</b> e 2 chances. De primeira, o prêmio começa em <b>${d.premio_max} moedas</b> e vai caindo com o tempo. Cada pessoa recebe uma pergunta sorteada.</p>
         <button class="btn primary" type="button" id="diaGo" style="font-size:20px;padding:14px 28px">Começar</button></div>`;
-      $('diaGo').onclick = async () => { try { dia = await rpc('penalti_quiz_daily_start', Object.assign(auth(), { p_mode: diaMode })); renderDia(); } catch (e) { alert(e.message); } };
+      $('diaGo').onclick = async () => { try { dia = await rpc('penalti_quiz_daily_start', Object.assign(auth(), { p_mode: diaMode })); nextSponsor(); renderDia(); } catch (e) { alert(e.message); } };
       return;
     }
     if (!d.conta) { $('diaBox').innerHTML = '<p class="lead">Escolha um apelido acima para receber a sua pergunta do dia e ganhar moedas.</p>'; return; }
@@ -303,6 +312,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     } else {
       h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : d.esgotou ? 'Tempo esgotado' : 'Tente de novo mais tarde'}</div>
         <p>${d.acertou ? `Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : `${d.esgotou ? 'O tempo acabou.' : 'Errou as 2 chances.'} A resposta continua em segredo: essa pergunta pode voltar, então guarde para a próxima! Amanhã tem pergunta nova.`}</p>
+        ${spLine()}
         <p style="margin:0 0 10px"><a href="#treino" id="toTreino" style="color:var(--gold);font-weight:700">Quer mais? Faça o treino por nível →</a></p>
         <p class="num">Próximo desafio em <span id="nextIn"></span></p>
         <div class="row">${waBtn(shareText(), 'Desafiar amigos no WhatsApp')}<button class="btn" type="button" id="copyShare">Copiar resultado</button></div></div>`;
@@ -344,7 +354,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     if (needMe('trMsg')) return;
     msg('trMsg', '');
     $('trBuyBox').hidden = true;
-    try { tr = await rpc('penalti_quiz_free_start', Object.assign(auth(), { p_mode: trMode, p_level: trLevel })); renderTreino(); }
+    try { tr = await rpc('penalti_quiz_free_start', Object.assign(auth(), { p_mode: trMode, p_level: trLevel })); nextSponsor(); renderTreino(); }
     catch (e) { msg('trMsg', e.message, 'err'); if (e.code === 'limite_diario') { $('trBuyBox').hidden = false; $('treinoBox').hidden = true; } }
   });
   $('trBuy').addEventListener('click', async () => {
@@ -362,7 +372,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     stopMeter('trMeter');
     let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]} · ${t.segundos} s</div>${!t.terminou ? meterHtml('trMeter') : ''}${qHtml(t)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_i, t.terminou)}`;
     if (!t.terminou && !t.eliminou) h += `<div class="hint" style="margin-top:6px"><span>Dica: eliminar 1 alternativa</span><button class="btn small" type="button" id="trHint">${t.custo_dica} moedas</button></div>`;
-    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Ainda não foi'}</div><p>${t.acertou ? `+${t.pontos} pts nas ligas e +${t.moedas} moedas.` : 'Não foi dessa vez. Tente outra pergunta, e quando esta voltar você terá outra chance!'}</p>
+    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Ainda não foi'}</div><p>${t.acertou ? `+${t.pontos} pts nas ligas e +${t.moedas} moedas.` : 'Não foi dessa vez. Tente outra pergunta, e quando esta voltar você terá outra chance!'}</p>${spLine()}
       ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : `<p class="num" style="margin-bottom:8px">Acabaram as perguntas grátis de hoje.</p><button class="btn primary" type="button" id="trMore">Comprar mais 1 pergunta · ${t.preco_extra} moedas</button>`}</div>`;
     $('treinoBox').innerHTML = h;
     bindOpts('tr', async id => { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: id })); renderTreino(); if (tr.terminou) refreshCoins(); });
@@ -411,7 +421,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     } catch (err) { alert(err.message); loadDuels(); }
   });
   async function openDuel(d) {
-    playing = d;
+    playing = d; nextSponsor();
     clearInterval(playTimer);
     const end = d.restante != null ? performance.now() + d.restante * 1000 : 0;
     const render = () => {
@@ -443,6 +453,69 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     } catch (err) { msg('dMsg', err.message, 'err'); }
   });
 
+  // ---------- patrocinadores: "Patrocinado por" (mesmo cadastro e relatório do painel de LED) ----------
+  const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && !/[?&]stats=1/.test(location.search);
+  let device = null;
+  try { device = localStorage.getItem('penalti.aparelho.v1'); if (!device) localStorage.setItem('penalti.aparelho.v1', device = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random())); }
+  catch (e) { device = device || (crypto.randomUUID ? crypto.randomUUID() : null); }
+  let spList = [], spQueue = [], spPos = -1, spCur = null, spContato = '';
+  const spStats = {}, spStat = id => spStats[id] || (spStats[id] = { v: 0, t: 0, c: 0 });
+  const spImgs = {};
+  async function loadSponsors() {
+    try {
+      const d = await rpc('penalti_sponsors_public', {}), hoje = PK.todayBR();
+      spContato = d.contato || '';
+      spList = (d.marcas || []).filter(m => m.no_quiz !== false && PK.sponsorOnAir(m, hoje));
+      // fila da rodada: marca com peso 2 aparece duas vezes, espalhada
+      const slots = []; spList.forEach((m, i) => { const p = Math.max(1, m.peso | 0); for (let k = 0; k < p; k++) slots.push([(k + (i + 1) / (spList.length + 1)) / p, i]); });
+      spQueue = slots.sort((a, b) => a[0] - b[0]).map(x => x[1]);
+      spPos = Math.floor(Math.random() * Math.max(1, spQueue.length)) - 1;
+    } catch (e) { spList = []; spQueue = []; }
+    nextSponsor();
+  }
+  function nextSponsor() {
+    if (!spQueue.length) { spCur = null; renderSponsor(); return; }
+    spPos = (spPos + 1) % spQueue.length; spCur = spList[spQueue[spPos]];
+    spStat(spCur.id).v++; renderSponsor();
+  }
+  const spLink = m => m && !m.exemplo && /^(https?:|mailto:|tel:)/i.test(m.link || '') ? m.link : null;
+  function renderSponsor() {
+    const bar = $('spBar');
+    if (!spCur) {
+      bar.hidden = !spContato;
+      bar.innerHTML = `<span class="lbl">Seu anúncio aqui</span><span style="font-size:14px">Coloque sua marca no quiz e no painel do estádio.</span><a class="btn small sp-go" href="${esc(spContato)}" target="_blank" rel="noopener">Anunciar</a>`;
+      return;
+    }
+    const m = spCur, link = spLink(m);
+    bar.hidden = false;
+    bar.innerHTML = `<span class="lbl">${m.exemplo ? 'Anuncie aqui' : 'Patrocinado por'}</span><canvas width="512" height="64" role="img" aria-label="${esc(m.nome)}"></canvas>` +
+      (link ? `<a class="btn small sp-go" href="${esc(link)}" target="_blank" rel="noopener sponsored" data-sp="${esc(m.id)}">Visitar</a>` :
+       m.exemplo && spContato ? `<a class="btn small sp-go" href="${esc(spContato)}" target="_blank" rel="noopener">Anunciar</a>` : '');
+    const cv = bar.querySelector('canvas'), g = cv.getContext('2d');
+    const draw = img => PK.paintSponsorTile(g, 512, 64, m, img);
+    if (m.logo) {
+      if (!spImgs[m.id]) { const im = new Image(); im.onload = () => { if (spCur === m) draw(im); }; im.src = m.logo; spImgs[m.id] = im; }
+      draw(spImgs[m.id].complete ? spImgs[m.id] : null);
+    } else draw(null);
+  }
+  // linha "Oferecimento" no resultado de cada pergunta
+  const spLine = () => spCur && !spCur.exemplo ? `<p class="sp-line">Pergunta oferecida por <b>${esc(spCur.nome)}</b>${spLink(spCur) ? ` · <a href="${esc(spLink(spCur))}" target="_blank" rel="noopener sponsored" data-sp="${esc(spCur.id)}">Visitar</a>` : ''}</p>` : '';
+  document.addEventListener('click', e => { const a = e.target.closest('[data-sp]'); if (a) { spStat(a.dataset.sp).c++; spFlush(true); } });
+  // tempo de tela da marca enquanto a página está à vista
+  setInterval(() => { if (spCur && !document.hidden) spStat(spCur.id).t += 1; }, 1000);
+  function spFlush(keepalive) {
+    if (local || !device) return;
+    const items = [];
+    for (const id in spStats) { const x = spStats[id]; if (x.v || x.c || x.t >= 1) { items.push({ s: id, v: x.v, t: x.t, c: x.c }); x.v = 0; x.t = 0; x.c = 0; } }
+    if (!items.length) return;
+    fetch(`${SB_URL}/rest/v1/rpc/penalti_sponsor_track`, { method: 'POST', keepalive: !!keepalive,
+      headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_device: device, p_items: items.slice(0, 30) }) })
+      .then(r => { if (!r.ok) throw 0; }).catch(() => items.forEach(i => { const x = spStat(i.s); x.v += i.v; x.t += i.t; x.c += i.c; }));
+  }
+  setInterval(() => spFlush(false), 30000);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) spFlush(true); });
+  window.addEventListener('pagehide', () => spFlush(true));
+
   // ---------- abas ----------
   function setTab(t) {
     document.querySelectorAll('#tabs [data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
@@ -452,7 +525,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) setTab(b.dataset.t); });
   setInterval(() => { if (!document.hidden && !playing) loadDuels(); }, 20000);
 
-  renderWho(); loadDia(); loadDuels(); refreshCoins();
+  renderWho(); loadDia(); loadDuels(); refreshCoins(); loadSponsors();
   setTab(location.hash === '#duelos' ? 'duelos' : location.hash === '#treino' ? 'treino' : 'dia');
 })();
 </script>
