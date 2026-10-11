@@ -99,7 +99,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
 <main>
   <div class="top">
     <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocinadores</h1></div>
-    <div class="links"><a href="relatorio-patrocinadores.html">Relatório</a><a href="index.html">Jogar</a><button class="btn" type="button" id="logout" hidden>Sair</button></div>
+    <div class="links"><a href="admin-usuarios.html">Usuários</a><a href="relatorio-patrocinadores.html">Relatório</a><a href="index.html">Jogar</a><button class="btn" type="button" id="logout" hidden>Sair</button></div>
   </div>
   <p class="lead">Cadastre os jogadores do quiz e as marcas do painel de LED da arquibancada (para as marcas, escolha o período em que cada uma fica no ar e quanto tempo de tela ela recebe. As mudanças valem para quem abrir o jogo depois de salvar).</p>
 
@@ -161,6 +161,18 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       <div class="msg" id="uMsg" role="status" aria-live="polite"></div>
     </div>
 
+    <div class="bar" style="margin-top:34px"><h2>Desafios patrocinados</h2><button class="btn small primary" type="button" id="scAdd">+ Novo desafio</button></div>
+    <div class="box">
+      <p class="hint" style="margin:0 0 10px">Campanha de uma marca no quiz: a pessoa responde algumas perguntas (20 s cada) e, se acertar o mínimo, ganha moedas. A arte da marca aparece no desafio e as exibições e cliques entram no relatório dela.</p>
+      <div class="list" id="scList" style="gap:6px"></div>
+    </div>
+
+    <div class="bar" style="margin-top:34px"><h2>Eventos temáticos</h2><button class="btn small primary" type="button" id="evAdd">+ Novo evento</button></div>
+    <div class="box">
+      <p class="hint" style="margin:0 0 10px">Semanas especiais (Copa, Libertadores, clássicos…): aparecem no topo do quiz e multiplicam as moedas ganhas no quiz durante o período.</p>
+      <div class="list" id="evList" style="gap:6px"></div>
+    </div>
+
     <div class="bar" style="margin-top:34px"><h2>Quiz "Quem é o jogador?"</h2><button class="btn small primary" type="button" id="qAdd">+ Novo jogador</button></div>
     <div class="box">
       <p class="hint" style="margin:0 0 10px">Jogadores usados no quiz. Fácil = muito conhecidos; Difícil = menos conhecidos (valem mais pontos). Use "Buscar no Wikidata" para preencher a trajetória e confira antes de salvar.</p>
@@ -173,6 +185,44 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     </div>
   </section>
 </main>
+
+<dialog id="scDlg" aria-labelledby="scTitle">
+  <form class="dlg" id="scForm">
+    <h2 id="scTitle" style="margin-bottom:12px">Desafio patrocinado</h2>
+    <div class="field"><label for="scName">Título</label><input type="text" id="scName" maxlength="80" required placeholder="Desafio Copa da Marca X"></div>
+    <div class="field"><label for="scDesc">Descrição (opcional)</label><input type="text" id="scDesc" maxlength="200"></div>
+    <div class="grid2">
+      <div class="field"><label for="scSponsor">Marca</label><select id="scSponsor"></select></div>
+      <div class="field"><label for="scPrize">Prêmio (moedas)</label><input type="number" id="scPrize" min="0" max="5000" value="300" required></div>
+      <div class="field"><label for="scMode">Campeonato</label><select id="scMode"><option value="br">Brasileirão</option><option value="mundo">Mundo</option></select></div>
+      <div class="field"><label for="scLevel">Nível</label><select id="scLevel"><option value="facil">Fácil</option><option value="medio" selected>Médio</option><option value="dificil">Difícil</option></select></div>
+      <div class="field"><label for="scQ">Perguntas</label><input type="number" id="scQ" min="3" max="10" value="5" required></div>
+      <div class="field"><label for="scMin">Acertos para ganhar</label><input type="number" id="scMin" min="1" max="10" value="3" required></div>
+      <div class="field"><label for="scIni">Início</label><input type="date" id="scIni" required></div>
+      <div class="field"><label for="scFim">Fim</label><input type="date" id="scFim" required></div>
+    </div>
+    <label class="check"><input type="checkbox" id="scOn" checked> No ar</label>
+    <div class="msg" id="scMsg" role="status" aria-live="polite"></div>
+    <div class="dlg-foot"><span><button class="btn danger" type="button" id="scDel">Excluir</button></span><span><button class="btn" type="button" id="scCancel">Cancelar</button> <button class="btn primary" type="submit">Salvar</button></span></div>
+  </form>
+</dialog>
+
+<dialog id="evDlg" aria-labelledby="evTitle">
+  <form class="dlg" id="evForm">
+    <h2 id="evTitle" style="margin-bottom:12px">Evento temático</h2>
+    <div class="field"><label for="evName">Nome</label><input type="text" id="evName" maxlength="60" required placeholder="Semana da Libertadores"></div>
+    <div class="field"><label for="evDesc">Descrição</label><input type="text" id="evDesc" maxlength="200" placeholder="Perguntas especiais e moedas em dobro!"></div>
+    <div class="grid2">
+      <div class="field"><label for="evIni">Início</label><input type="date" id="evIni" required></div>
+      <div class="field"><label for="evFim">Fim</label><input type="date" id="evFim" required></div>
+      <div class="field"><label for="evMul">Multiplicador de moedas do quiz</label><select id="evMul"><option value="1">Sem bônus (só destaque)</option><option value="1.5">1,5×</option><option value="2" selected>2×</option><option value="3">3×</option></select></div>
+      <div class="field"><label for="evCor">Cor</label><input type="color" id="evCor" value="#f2b632"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="evOn" checked> Ativo</label>
+    <div class="msg" id="evMsg" role="status" aria-live="polite"></div>
+    <div class="dlg-foot"><span><button class="btn danger" type="button" id="evDel">Excluir</button></span><span><button class="btn" type="button" id="evCancel">Cancelar</button> <button class="btn primary" type="submit">Salvar</button></span></div>
+  </form>
+</dialog>
 
 <dialog id="qDlg" aria-labelledby="qTitle">
   <form class="dlg" id="qForm" method="dialog">
@@ -413,7 +463,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   function open(d) {
     data = d; show('app'); $('logout').hidden = false;
     $('sTempo').value = d.tempo; $('sContato').value = d.contato || '';
-    render(); renderUsers(); loadQuiz();
+    render(); renderUsers(); loadQuiz(); loadEngage();
   }
   async function reload() { try { open(await arpc('penalti_admin_list')); } catch (e) { msg('listMsg', e.message, 'err'); } }
   function render() {
@@ -597,6 +647,53 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   // ---------- quiz: jogadores ----------
   const QLV = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' }, QMD = { br: 'Brasileirão', mundo: 'Mundo' };
   let quiz = [], qCur = null;
+  // ---------- desafios patrocinados e eventos ----------
+  let eng = { eventos: [], desafios: [] }, scCur = null, evCur = null;
+  async function loadEngage() {
+    try { eng = await arpc('penalti_admin_engage_list'); } catch (e) { $('scList').textContent = e.message; return; }
+    const t = today(), st = x => !x.ativo ? ['pause', 'Pausado'] : x.fim < t ? ['end', 'Encerrado'] : x.inicio > t ? ['sched', 'Agendado'] : ['on', 'No ar'];
+    const nome = id => { const m = data.marcas.find(x => x.id === id); return m ? m.nome : 'sem marca'; };
+    $('scList').innerHTML = eng.desafios.length ? eng.desafios.map((c, i) => { const [k, l] = st(c); return `<div class="user"><div><b>${esc(c.title)}</b><span class="chip ${k}">${l}</span><br>
+      <span>${esc(nome(c.sponsor))} · ${fmt(c.inicio)} a ${fmt(c.fim)} · ${c.questions} perguntas, mínimo ${c.min_correct} · ${c.prize} moedas · ${c.participantes} participantes, ${c.premiados} premiados</span></div>
+      <button class="btn small" type="button" data-sc="${i}">Editar</button></div>`; }).join('') : '<div class="empty">Nenhum desafio patrocinado ainda.</div>';
+    $('evList').innerHTML = eng.eventos.length ? eng.eventos.map((x, i) => { const [k, l] = st(x); return `<div class="user"><div><b style="color:${esc(x.cor)}">${esc(x.name)}</b><span class="chip ${k}">${l}</span><br>
+      <span>${fmt(x.inicio)} a ${fmt(x.fim)} · moedas do quiz ${String(x.multiplier).replace('.', ',')}× ${x.description ? '· ' + esc(x.description) : ''}</span></div>
+      <button class="btn small" type="button" data-ev="${i}">Editar</button></div>`; }).join('') : '<div class="empty">Nenhum evento ainda.</div>';
+  }
+  function scEdit(c) {
+    scCur = c || null;
+    $('scSponsor').innerHTML = '<option value="">Sem marca</option>' + data.marcas.filter(m => !m.exemplo).map(m => `<option value="${esc(m.id)}">${esc(m.nome)}</option>`).join('');
+    $('scName').value = c ? c.title : ''; $('scDesc').value = c ? c.description : ''; $('scSponsor').value = c ? c.sponsor || '' : '';
+    $('scPrize').value = c ? c.prize : 300; $('scMode').value = c ? c.mode : 'br'; $('scLevel').value = c ? c.level : 'medio';
+    $('scQ').value = c ? c.questions : 5; $('scMin').value = c ? c.min_correct : 3; $('scIni').value = c ? c.inicio : today(); $('scFim').value = c ? c.fim : addDays(today(), 6);
+    $('scOn').checked = c ? c.ativo : true; $('scDel').hidden = !c; msg('scMsg', ''); $('scDlg').showModal();
+  }
+  function evEdit(x) {
+    evCur = x || null;
+    $('evName').value = x ? x.name : ''; $('evDesc').value = x ? x.description : ''; $('evIni').value = x ? x.inicio : today(); $('evFim').value = x ? x.fim : addDays(today(), 6);
+    $('evMul').value = x ? String(+x.multiplier) : '2'; $('evCor').value = x ? x.cor : '#f2b632'; $('evOn').checked = x ? x.ativo : true; $('evDel').hidden = !x; msg('evMsg', ''); $('evDlg').showModal();
+  }
+  $('scAdd').addEventListener('click', () => scEdit(null)); $('evAdd').addEventListener('click', () => evEdit(null));
+  $('scList').addEventListener('click', e => { const b = e.target.closest('[data-sc]'); if (b) scEdit(eng.desafios[+b.dataset.sc]); });
+  $('evList').addEventListener('click', e => { const b = e.target.closest('[data-ev]'); if (b) evEdit(eng.eventos[+b.dataset.ev]); });
+  $('scCancel').addEventListener('click', () => $('scDlg').close()); $('evCancel').addEventListener('click', () => $('evDlg').close());
+  $('scForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if ($('scFim').value < $('scIni').value) return msg('scMsg', 'O fim precisa ser depois do início.', 'err');
+    if (+$('scMin').value > +$('scQ').value) return msg('scMsg', 'O mínimo de acertos não pode passar do número de perguntas.', 'err');
+    try { await arpc('penalti_admin_sc_save', { p_c: { id: scCur && scCur.id, title: $('scName').value.trim(), description: $('scDesc').value.trim(), sponsor: $('scSponsor').value,
+      mode: $('scMode').value, level: $('scLevel').value, questions: +$('scQ').value, min_correct: +$('scMin').value, prize: +$('scPrize').value, inicio: $('scIni').value, fim: $('scFim').value, ativo: $('scOn').checked } });
+      $('scDlg').close(); loadEngage(); } catch (err) { msg('scMsg', err.message, 'err'); }
+  });
+  $('scDel').addEventListener('click', async () => { if (!scCur || !confirm('Excluir este desafio e as participações?')) return; try { await arpc('penalti_admin_sc_save', { p_c: { id: scCur.id, apagar: true } }); $('scDlg').close(); loadEngage(); } catch (err) { msg('scMsg', err.message, 'err'); } });
+  $('evForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if ($('evFim').value < $('evIni').value) return msg('evMsg', 'O fim precisa ser depois do início.', 'err');
+    try { await arpc('penalti_admin_event_save', { p_e: { id: evCur && evCur.id, name: $('evName').value.trim(), description: $('evDesc').value.trim(), inicio: $('evIni').value, fim: $('evFim').value,
+      multiplier: +$('evMul').value, cor: $('evCor').value, ativo: $('evOn').checked } }); $('evDlg').close(); loadEngage(); } catch (err) { msg('evMsg', err.message, 'err'); }
+  });
+  $('evDel').addEventListener('click', async () => { if (!evCur || !confirm('Excluir este evento?')) return; try { await arpc('penalti_admin_event_save', { p_e: { id: evCur.id, apagar: true } }); $('evDlg').close(); loadEngage(); } catch (err) { msg('evMsg', err.message, 'err'); } });
+
   async function loadQuiz() { try { quiz = (await arpc('penalti_admin_quiz_list')).jogadores || []; renderQuiz(); } catch (e) { $('qList').textContent = e.message; } }
   function renderQuiz() {
     const t = $('qSearch').value.trim().toLowerCase(), f = $('qFilter').value;

@@ -55,7 +55,7 @@ footer { margin-top: 36px; color: var(--muted); font-size: 14px; line-height: 1.
   <p class="lead">Três modos contra o computador: disputa de pênaltis, duelo de faltas com barreira e desafio dos alvos com chute carregado. A bola tem gravidade, resistência do ar e efeito, e o goleiro só alcança o canto se saltar na hora certa. Ganhe moedas, evolua seu jogador e personalize o uniforme.</p>
   <a class="quiz-cta" href="quiz.html">
     <span><span class="k">Novo · Quiz de futebol diário</span><span class="t" style="display:block">Desafie seus conhecimentos sobre futebol</span>
-    <p>Quem é o jogador? Descubra pela trajetória de clubes, ganhe moedas e duele com os amigos das suas ligas.</p></span>
+    <p>Quem é o jogador? Bônus diário, missões, álbum de figurinhas, ranking semanal com prêmios e duelos com os amigos das suas ligas.</p></span>
     <span class="b">Jogar o quiz →</span>
   </a>
   <div class="grid">
@@ -64,11 +64,13 @@ footer { margin-top: 36px; color: var(--muted); font-size: 14px; line-height: 1.
     <a class="card" data-desk href="penalti-2d.html"><span class="tag">Computador</span><h2>PC 2D</h2><p>Mira com o mouse e força segurando o clique. Q/E para efeito.</p><span class="go">Jogar →</span></a>
     <a class="card" data-desk href="penalti-3d.html"><span class="tag">Computador</span><h2>PC 3D</h2><p>Versão 3D para mouse, com câmera de transmissão atrás do gol.</p><span class="go">Jogar →</span></a>
   </div>
-  <p style="margin:24px 0 0"><a href="ranking.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px">Ranking online →</a> <a href="ligas.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px;margin-left:12px">Ligas →</a> <span style="color:var(--muted)">Jogue contra outras pessoas pelo botão "Jogar online" do menu.</span></p>
-  <p style="margin:12px 0 0"><a href="admin-patrocinadores.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px">Cadastro de patrocinadores →</a> <span style="color:var(--muted)">Marcas do painel de LED do estádio (acesso com senha).</span></p>
+  <p style="margin:24px 0 0"><a href="ranking.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px">Ranking online →</a> <a href="ligas.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px;margin-left:12px">Ligas →</a> <a href="quiz.html#album" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px;margin-left:12px">Álbum →</a> <a href="quiz.html#loja" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px;margin-left:12px">Loja →</a> <span style="color:var(--muted)">Jogue contra outras pessoas pelo botão "Jogar online" do menu.</span></p>
+  <p style="margin:12px 0 0"><a href="admin-patrocinadores.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px">Cadastro de patrocinadores →</a> <a href="admin-usuarios.html" style="color:var(--gold);font-family:var(--display);font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;font-size:18px;margin-left:12px">Gestão de usuários →</a> <span style="color:var(--muted)">Área do gestor (acesso com senha).</span></p>
   <footer>Dica: no celular, use "Adicionar à tela de início" no navegador para jogar em tela cheia.</footer>
 </main>
 <script>
+  // link de indicação: guarda o código para quando a conta for criada (no quiz ou no jogo online)
+  try { const rc = new URLSearchParams(location.search).get('ref'); if (rc) localStorage.setItem('penalti.ref', rc.toUpperCase().slice(0, 8)); } catch (e) { /* ok */ }
   // destaca as versões que combinam com o aparelho
   const touch = window.matchMedia('(pointer: coarse)').matches;
   document.querySelectorAll(touch ? '[data-touch]' : '[data-desk]').forEach(a => {

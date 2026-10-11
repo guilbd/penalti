@@ -1,0 +1,389 @@
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="patrocinio.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/patrocinio-32.png">
+<link rel="apple-touch-icon" href="assets/icons/patrocinio-180.png">
+<meta name="theme-color" content="#060b16">
+<meta name="robots" content="noindex">
+<title>Gestão de Usuários</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesmo visual do cadastro de patrocinadores: noite de estádio, filete dourado. */
+:root {
+  --night: #060b16; --panel: #0d1730; --panel2: #13203f; --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --ok: #3cc47a; --warn: #f29a32; --bad: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 1100px; margin: 0 auto; padding: calc(32px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(44px, 9vw, 76px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 24px; text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+h3 { font-family: var(--display); font-weight: 700; font-size: 16px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin: 16px 0 6px; }
+.lead { color: var(--muted); line-height: 1.5; max-width: 70ch; margin: 12px 0 22px; }
+.btn, .links a { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 10px 16px; background: transparent; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; }
+.btn.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.btn.danger { color: #ff9a9a; border-color: rgba(229, 72, 77, .5); }
+.btn.wa { background: #25d366; border-color: #25d366; color: #06230f; }
+.btn.small { padding: 6px 10px; min-height: 36px; font-size: 14px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.box { background: var(--panel); border: 1px solid var(--line); padding: 18px; }
+label { display: block; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=search], select, textarea {
+  width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
+textarea { min-height: 70px; resize: vertical; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 5px; line-height: 1.4; }
+.msg { min-height: 22px; margin-top: 10px; font-size: 15px; } .msg.err { color: #ff8a8a; } .msg.ok { color: var(--ok); }
+.login { max-width: 420px; }
+.field { margin-bottom: 14px; }
+.check { display: flex; gap: 10px; align-items: center; font-family: var(--body); font-size: 16px; letter-spacing: 0; text-transform: none; color: var(--ink); cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 0; accent-color: var(--gold); }
+/* números */
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.kpi { background: var(--panel); border: 1px solid var(--line); padding: 12px; }
+.kpi b { display: block; font: 800 32px/1 var(--display); color: var(--gold); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 13px; color: var(--muted); }
+.kpi small { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.chart-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { font: 700 13px var(--display); letter-spacing: .08em; text-transform: uppercase; color: var(--ink); background: transparent; border: 1px solid var(--line); padding: 6px 10px; cursor: pointer; min-height: 34px; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.chart svg { width: 100%; height: 180px; display: block; }
+.chart .ax { fill: var(--muted); font: 600 11px var(--body); }
+/* lista */
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 28px 0 12px; }
+.filters { display: grid; grid-template-columns: 1fr 180px 180px; gap: 8px; margin-bottom: 10px; }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--panel); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; min-width: 760px; }
+th { font: 700 12px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.click { cursor: pointer; } tr.click:hover td { background: rgba(255,255,255,.04); }
+tr.blocked td { opacity: .6; }
+.av { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; background: var(--panel2); vertical-align: middle; margin-right: 8px; display: inline-grid; place-items: center; font: 700 14px var(--display); color: var(--muted); }
+.chip { display: inline-block; font: 700 12px var(--display); letter-spacing: .1em; text-transform: uppercase; padding: 1px 6px; margin-left: 6px; border: 1px solid currentColor; vertical-align: middle; }
+.chip.bad { color: var(--bad); } .chip.new { color: var(--ok); }
+.pager { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.empty { color: var(--muted); padding: 18px; }
+/* detalhe */
+dialog { width: min(820px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); background: var(--panel); color: var(--ink); border: 1px solid var(--line); padding: 0; }
+dialog::backdrop { background: rgba(2, 5, 12, .75); }
+.dlg { padding: 20px; }
+.dlg-top { display: flex; gap: 14px; align-items: center; margin-bottom: 8px; }
+.dlg-top .av { width: 56px; height: 56px; font-size: 24px; margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; }
+.stats div { background: var(--panel2); padding: 8px 10px; font-size: 13px; color: var(--muted); }
+.stats b { display: block; font: 800 22px var(--display); color: var(--ink); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.skills { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.list-s { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 0; padding-left: 18px; }
+.foot { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.linkbox { background: var(--night); border: 1px dashed var(--gold); padding: 10px; font-size: 13px; overflow-wrap: anywhere; margin: 8px 0; }
+@media (max-width: 720px) { .filters { grid-template-columns: 1fr; } .grid2 { grid-template-columns: 1fr; } .skills { grid-template-columns: repeat(3, 1fr); } }
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Pênalti · área do gestor</div><h1>Usuários</h1></div>
+    <div class="links"><a href="admin-patrocinadores.html">Patrocinadores</a><a href="relatorio-patrocinadores.html">Relatório</a><a href="index.html">Jogar</a><button class="btn" type="button" id="logout" hidden>Sair</button></div>
+  </div>
+  <p class="lead">Contas do jogo online, do quiz e das ligas: números gerais, busca, edição de moedas e skills, bloqueio, novo link de acesso e exclusão. Toda alteração fica registrada no histórico da conta.</p>
+
+  <section class="box login" id="login" hidden>
+    <h2>Entrar</h2>
+    <p class="hint">Mesmo e-mail e senha do cadastro de patrocinadores.</p>
+    <form id="lForm">
+      <div class="field"><label for="lEmail">E-mail</label><input type="email" id="lEmail" autocomplete="username" required></div>
+      <div class="field"><label for="lPass">Senha</label><input type="password" id="lPass" autocomplete="current-password" required></div>
+      <button class="btn primary" type="submit" id="lBtn">Entrar</button>
+      <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
+    </form>
+  </section>
+
+  <section id="app" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="box chart">
+      <div class="chart-head"><h2>Últimos 30 dias</h2>
+        <div class="seg" role="group" aria-label="Indicador do gráfico" id="metric">
+          <button type="button" data-k="ativos" aria-pressed="true">Ativos</button><button type="button" data-k="novos" aria-pressed="false">Novos</button>
+          <button type="button" data-k="partidas" aria-pressed="false">Partidas</button><button type="button" data-k="quiz" aria-pressed="false">Quiz</button>
+        </div></div>
+      <div id="chart"></div>
+    </div>
+
+    <div class="bar"><h2>Contas <small id="total" style="font:600 15px var(--body);color:var(--muted);text-transform:none;letter-spacing:0"></small></h2>
+      <div class="links"><button class="btn small" type="button" id="csv">Exportar CSV</button><button class="btn small primary" type="button" id="add">+ Novo usuário</button></div></div>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Buscar por apelido, código de indicação ou ID" aria-label="Buscar">
+      <select id="filter" aria-label="Filtro"><option value="">Todas as contas</option><option value="novos">Novas (7 dias)</option><option value="online">Jogaram online</option><option value="inativos">Inativas há 30+ dias</option><option value="bloqueados">Bloqueadas</option></select>
+      <select id="sort" aria-label="Ordenar"><option value="recentes">Mais recentes</option><option value="atividade">Última atividade</option><option value="nome">Apelido (A–Z)</option><option value="rating">Pontos do ranking</option><option value="moedas">Moedas</option><option value="partidas">Partidas online</option><option value="quiz">Acertos no quiz</option></select>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Usuário</th><th class="n">Ranking</th><th class="n">Partidas</th><th class="n">Vitórias</th><th class="n">Quiz</th><th class="n">Figurinhas</th><th class="n">Moedas</th><th>Criado</th><th>Última atividade</th></tr></thead>
+      <tbody id="rows"></tbody></table></div>
+    <div class="pager"><span id="pageInfo"></span><span class="links"><button class="btn small" type="button" id="prev">← Anteriores</button><button class="btn small" type="button" id="next">Próximos →</button></span></div>
+    <div class="msg" id="listMsg" role="status" aria-live="polite"></div>
+  </section>
+</main>
+
+<!-- detalhe / edição -->
+<dialog id="dlg" aria-labelledby="uNick">
+  <div class="dlg" id="dBody"></div>
+</dialog>
+
+<!-- novo usuário -->
+<dialog id="newDlg" aria-labelledby="nTitle">
+  <form class="dlg" id="nForm">
+    <h2 id="nTitle" style="margin-bottom:12px">Novo usuário</h2>
+    <div class="grid2">
+      <div class="field"><label for="nNick">Apelido</label><input type="text" id="nNick" minlength="3" maxlength="16" required autocomplete="off"><div class="hint">3 a 16 letras, números, espaço, ponto, hífen ou _.</div></div>
+      <div class="field"><label for="nCoins">Moedas iniciais</label><input type="number" id="nCoins" min="0" max="100000" value="0"></div>
+    </div>
+    <div id="nResult"></div>
+    <div class="msg" id="nMsg" role="status" aria-live="polite"></div>
+    <div class="foot"><button class="btn" type="button" id="nClose">Fechar</button><button class="btn primary" type="submit" id="nBtn">Criar usuário</button></div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  'use strict';
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const msg = (el, t, kind) => { const m = $(el); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
+  const ERR = {
+    senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.', trocar_senha: 'Crie sua senha no cadastro de patrocinadores antes de continuar.',
+    apelido_em_uso: 'Esse apelido já está em uso.', apelido_invalido: 'Apelido inválido: use 3 a 16 letras, números, espaço, ponto, hífen ou _.', usuario_inexistente: 'Essa conta não existe mais.'
+  };
+  const SKILLS = [['power', 'Força'], ['accuracy', 'Precisão'], ['curve', 'Efeito'], ['reflex', 'Reflexo'], ['reach', 'Impulsão']];
+  const nf = n => Number(n || 0).toLocaleString('pt-BR');
+  const dt = s => s ? new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'America/Sao_Paulo' }) : '—';
+  const dth = s => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '—';
+  function ago(s) {
+    if (!s) return 'nunca';
+    const m = (Date.now() - new Date(s)) / 60000;
+    if (m < 60) return 'há ' + Math.max(1, Math.round(m)) + ' min';
+    if (m < 1440) return 'há ' + Math.round(m / 60) + ' h';
+    return 'há ' + Math.round(m / 1440) + ' dia(s)';
+  }
+  const avatar = (foto, nick) => foto ? `<img class="av" src="${esc(foto)}" alt="">` : `<span class="av" aria-hidden="true">${esc((nick || '?')[0].toUpperCase())}</span>`;
+
+  async function rpc(name, args) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+    const txt = await r.text(); let d = null; try { d = JSON.parse(txt); } catch (e) { /* vazio */ }
+    if (!r.ok) { const m = (d && (d.message || d.details)) || txt; for (const k in ERR) if (m.includes(k)) throw new Error(ERR[k]); throw new Error(/check constraint/.test(m) ? ERR.apelido_invalido : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.'); }
+    return d;
+  }
+  // mesma sessão do cadastro de patrocinadores (guardada só nesta aba)
+  let cred = null;
+  try { cred = JSON.parse(sessionStorage.getItem('penalti.admin')) || null; } catch (e) { /* ok */ }
+  const keep = () => { try { sessionStorage.setItem('penalti.admin', JSON.stringify(cred)); } catch (e) { /* ok */ } };
+  async function arpc(name, args) {
+    const d = await rpc(name, Object.assign({ p_email: cred && cred.email, p_pass: cred && cred.pass }, args));
+    if (d && d.erro) {
+      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
+      if (d.erro === 'trocar_senha') location.href = 'admin-patrocinadores.html';
+      throw new Error(ERR[d.erro] || d.erro);
+    }
+    return d;
+  }
+  const show = id => ['login', 'app'].forEach(x => { $(x).hidden = x !== id; });
+  function logout() { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('logout').hidden = true; show('login'); }
+  $('logout').addEventListener('click', logout);
+  $('lForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('lEmail').value.trim().toLowerCase(), p = $('lPass').value;
+    $('lBtn').disabled = true; msg('lMsg', 'Entrando…');
+    try {
+      const r = await rpc('penalti_admin_login', { p_email: email, p_pass: p });
+      if (r.erro) throw new Error(ERR[r.erro] || r.erro);
+      cred = { email, pass: p }; keep(); $('lPass').value = ''; msg('lMsg', '');
+      if (r.trocar) { location.href = 'admin-patrocinadores.html'; return; }
+      start();
+    } catch (err) { msg('lMsg', err.message, 'err'); }
+    $('lBtn').disabled = false;
+  });
+
+  // ---------- números gerais ----------
+  let stats = null, metric = 'ativos';
+  async function loadStats() {
+    try { stats = await arpc('penalti_admin_users_stats'); } catch (e) { msg('listMsg', e.message, 'err'); return; }
+    const s = stats, acc = s.quiz_respostas ? Math.round(100 * s.quiz_acertos / s.quiz_respostas) : 0;
+    const k = (v, t, sub) => `<div class="kpi"><b>${v}</b><span>${t}</span>${sub ? `<small>${sub}</small>` : ''}</div>`;
+    $('kpis').innerHTML = k(nf(s.total), 'usuários', `${nf(s.novos_hoje)} hoje · ${nf(s.novos_7)} em 7 dias · ${nf(s.novos_30)} em 30`) +
+      k(nf(s.ativos_hoje), 'ativos hoje', `${nf(s.ativos_7)} em 7 dias · ${nf(s.ativos_30)} em 30`) +
+      k(s.total ? Math.round(100 * s.ativos_7 / s.total) + '%' : '—', 'ativos na semana', 'do total de contas') +
+      k(nf(s.partidas), 'partidas online', `${nf(s.partidas_7)} nos últimos 7 dias`) +
+      k(nf(s.quiz_respostas), 'respostas no quiz', `${acc}% de acerto · ${nf(s.duelos)} duelos`) +
+      k(nf(s.ligas), 'ligas criadas') +
+      k(nf(s.moedas), 'moedas em circulação', s.top_moedas && s.top_moedas.length ? 'mais rico: ' + esc(s.top_moedas[0].nick) : '') +
+      k(nf(s.figurinhas), 'figurinhas coletadas', `${nf(s.itens_vendidos)} itens vendidos na loja`) +
+      k(nf(s.indicacoes), 'indicações', `${nf(s.indicacoes_pagas)} premiadas`) +
+      k(nf(s.avisos), 'com avisos no celular', `${nf(s.com_foto)} com foto`) +
+      k(nf(s.bloqueados), 'contas bloqueadas');
+    drawChart();
+  }
+  function drawChart() {
+    if (!stats) return;
+    const d = stats.dias, vals = d.map(x => x[metric]), max = Math.max(1, ...vals), W = 600, H = 180, pad = 22, bw = (W - pad) / d.length;
+    const bars = d.map((x, i) => { const h = (H - 30) * x[metric] / max, y = H - 18 - h;
+      return `<rect x="${pad + i * bw + 1}" y="${y}" width="${Math.max(1, bw - 3)}" height="${h}" fill="var(--gold)" opacity="${i === d.length - 1 ? 1 : .75}"><title>${x.dia.split('-').reverse().slice(0, 2).join('/')}: ${x[metric]}</title></rect>`; }).join('');
+    const lab = i => `<text class="ax" x="${pad + i * bw + bw / 2}" y="${H - 4}" text-anchor="middle">${d[i].dia.slice(8)}/${d[i].dia.slice(5, 7)}</text>`;
+    $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gráfico de ${metric} por dia">
+      <text class="ax" x="0" y="12">${max}</text><line x1="${pad}" x2="${W}" y1="${H - 18}" y2="${H - 18}" stroke="var(--line)"/>${bars}${lab(0)}${lab(14)}${lab(d.length - 1)}</svg>
+      <p class="hint" style="margin:6px 0 0">Total no período: <b>${nf(vals.reduce((a, b) => a + b, 0))}</b> · média por dia: ${(vals.reduce((a, b) => a + b, 0) / d.length).toFixed(1).replace('.', ',')}</p>`;
+  }
+  $('metric').addEventListener('click', e => { const b = e.target.closest('[data-k]'); if (!b) return; metric = b.dataset.k; $('metric').querySelectorAll('[data-k]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); drawChart(); });
+
+  // ---------- lista ----------
+  let offset = 0, total = 0, rows = [], qT = 0;
+  const params = () => ({ p_q: $('q').value.trim(), p_sort: $('sort').value, p_filter: $('filter').value });
+  async function loadList() {
+    let d; try { d = await arpc('penalti_admin_users', Object.assign(params(), { p_offset: offset })); } catch (e) { msg('listMsg', e.message, 'err'); return; }
+    rows = d.linhas; total = d.total;
+    $('total').textContent = `(${nf(total)})`;
+    const week = Date.now() - 7 * 864e5;
+    $('rows').innerHTML = rows.length ? rows.map(u => `<tr class="click ${u.bloqueado ? 'blocked' : ''}" data-id="${esc(u.id)}" tabindex="0">
+      <td>${avatar(u.foto, u.nick)}<b>${esc(u.nick)}</b>${u.bloqueado ? '<span class="chip bad">Bloqueado</span>' : new Date(u.criado) > week ? '<span class="chip new">Novo</span>' : ''}</td>
+      <td class="n">${u.rating}</td><td class="n">${u.partidas}</td><td class="n">${u.vitorias}</td><td class="n">${u.acertos}</td><td class="n">${u.figurinhas}</td><td class="n">${nf(u.moedas)}</td>
+      <td>${dt(u.criado)}</td><td>${ago(u.visto)}</td></tr>`).join('') : '<tr><td colspan="9" class="empty">Nenhuma conta encontrada.</td></tr>';
+    $('pageInfo').textContent = total ? `${offset + 1}–${offset + rows.length} de ${nf(total)}` : '';
+    $('prev').disabled = offset === 0; $('next').disabled = offset + rows.length >= total;
+  }
+  $('q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => { offset = 0; loadList(); }, 300); });
+  $('filter').addEventListener('change', () => { offset = 0; loadList(); });
+  $('sort').addEventListener('change', () => { offset = 0; loadList(); });
+  $('prev').addEventListener('click', () => { offset = Math.max(0, offset - 50); loadList(); });
+  $('next').addEventListener('click', () => { offset += 50; loadList(); });
+  $('rows').addEventListener('click', e => { const tr = e.target.closest('[data-id]'); if (tr) openUser(tr.dataset.id); });
+  $('rows').addEventListener('keydown', e => { const tr = e.target.closest('[data-id]'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openUser(tr.dataset.id); } });
+
+  // exporta todas as contas do filtro atual
+  $('csv').addEventListener('click', async () => {
+    const b = $('csv'); b.disabled = true; b.textContent = 'Exportando…';
+    try {
+      const all = [];
+      for (let o = 0; ; o += 50) { const d = await arpc('penalti_admin_users', Object.assign(params(), { p_offset: o })); all.push(...d.linhas); if (all.length >= d.total || !d.linhas.length) break; }
+      const head = ['id', 'apelido', 'ranking', 'partidas', 'vitorias', 'acertos_quiz', 'figurinhas', 'moedas', 'bloqueado', 'criado', 'ultima_atividade'];
+      const q = v => { const s = String(v == null ? '' : v); return /[";,\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+      const csv = '﻿' + [head.join(';')].concat(all.map(u => [u.id, u.nick, u.rating, u.partidas, u.vitorias, u.acertos, u.figurinhas, u.moedas, u.bloqueado ? 'sim' : 'não', u.criado, u.visto || ''].map(q).join(';'))).join('\n');
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' })); a.download = `usuarios-penalti-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e) { msg('listMsg', e.message, 'err'); }
+    b.disabled = false; b.textContent = 'Exportar CSV';
+  });
+
+  // ---------- link de acesso: abre a conta em outro aparelho ----------
+  function accessLink(r) {
+    return new URL(`quiz.html#acesso=${r.id}.${r.secret}&n=${encodeURIComponent(r.nickname)}`, location.href).href;
+  }
+  function linkHtml(r, intro) {
+    const link = accessLink(r);
+    const text = `Olá, ${r.nickname}! Este é o seu link de acesso ao Pênalti (jogo e quiz). Abra no seu celular: ${link}`;
+    return `<p class="hint" style="color:var(--ink)">${intro}</p><div class="linkbox">${esc(link)}</div>
+      <p class="hint">Quem tiver este link entra na conta: envie só para a própria pessoa. Ele não aparece de novo depois que você fechar esta janela.</p>
+      <div class="links"><a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text)}">Enviar pelo WhatsApp</a><button class="btn small" type="button" data-copy="${esc(link)}">Copiar link</button></div>`;
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-copy]'); if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copiado!'; } catch (err) { prompt('Copie o link:', b.dataset.copy); }
+  });
+
+  // ---------- detalhe e edição ----------
+  let cur = null;
+  async function openUser(id) {
+    try { cur = await arpc('penalti_admin_user_get', { p_player: id }); } catch (e) { msg('listMsg', e.message, 'err'); return; }
+    renderUser(); if (!$('dlg').open) $('dlg').showModal();
+  }
+  function renderUser(extra) {
+    const u = cur, w = u.carteira || { coins: 0, upgrades: {}, itens: [] }, o = u.online, q = u.quiz;
+    const pct = (a, b) => b ? Math.round(100 * a / b) + '%' : '—';
+    const lvl = q.por_nivel || {};
+    $('dBody').innerHTML = `<div class="dlg-top">${avatar(u.foto, u.nick)}<div><h2 id="uNick">${esc(u.nick)}${u.bloqueado ? '<span class="chip bad">Bloqueado</span>' : ''}</h2>
+        <div class="hint" style="margin:2px 0 0">Criado em ${dth(u.criado)} · última atividade ${ago(u.visto)} · código ${esc(u.codigo || '—')}${u.indicado_por ? ` · indicado por ${esc(u.indicado_por)}${u.indicacao_paga ? ' (premiada)' : ''}` : ''}</div></div></div>
+      ${extra || ''}
+      <h3>Jogo online</h3><div class="stats">
+        <div><b>${u.rating}</b>pontos no ranking</div><div><b>${o.partidas}</b>partidas</div><div><b>${o.vitorias}/${o.empates}/${o.derrotas}</b>V/E/D</div>
+        <div><b>${pct(o.vitorias, o.partidas)}</b>aproveitamento</div><div><b>${o.gols_pro}:${o.gols_contra}</b>gols pró:contra</div><div><b>${(u.ligas || []).length}</b>ligas</div></div>
+      <h3>Quiz</h3><div class="stats">
+        <div><b>${q.dia_acertos}/${q.dia_jogados}</b>jogador do dia</div><div><b>${q.treino_acertos}/${q.treino_jogados}</b>treino</div>
+        ${['facil', 'medio', 'dificil'].map(k => `<div><b>${lvl[k] ? `${lvl[k].acertos}/${lvl[k].jogadas}` : '0/0'}</b>treino ${({ facil: 'fácil', medio: 'médio', dificil: 'difícil' })[k]}</div>`).join('')}
+        <div><b>${q.duelos_vencidos}/${q.duelos}</b>duelos vencidos</div><div><b>${q.pontos}</b>pontos (${q.pontos_semana} na semana)</div><div><b>${q.sequencia || 0}</b>dias seguidos</div>
+        <div><b>${u.figurinhas}/${u.figurinhas_total}</b>figurinhas</div><div><b>${u.bonus ? u.bonus.sequencia : 0}</b>bônus seguidos (recorde ${u.bonus ? u.bonus.melhor : 0})</div>
+        <div><b>${u.indicados}</b>amigos indicados</div><div><b>${u.avisos ? 'sim' : 'não'}</b>avisos no celular</div></div>
+      ${(u.conquistas || []).length ? `<h3>Conquistas (${u.conquistas.length})</h3><p class="hint" style="margin:0">${u.conquistas.map(esc).join(' · ')}</p>` : ''}
+      ${(u.ligas || []).length ? `<h3>Ligas</h3><p class="hint" style="margin:0">${u.ligas.map(esc).join(' · ')}</p>` : ''}
+      ${(w.itens || []).length ? `<h3>Itens da loja</h3><p class="hint" style="margin:0">${w.itens.map(x => esc(x.nome)).join(' · ')}</p>` : ''}
+      ${o.ultimas.length ? `<h3>Últimas partidas</h3><ul class="list-s">${o.ultimas.map(m => `<li>${dth(m.quando)} · ${m.venceu ? 'venceu' : 'contra'} ${esc(m.contra || 'conta excluída')} · ${esc(m.placar)}</li>`).join('')}</ul>` : ''}
+
+      <form id="eForm">
+        <h3>Editar conta</h3>
+        <div class="grid2">
+          <div class="field"><label for="eNick">Apelido</label><input type="text" id="eNick" value="${esc(u.nick)}" minlength="3" maxlength="16" required></div>
+          <div class="field"><label for="eRating">Pontos do ranking</label><input type="number" id="eRating" value="${u.rating}" min="0" max="5000" required></div>
+          <div class="field"><label for="eCoins">Moedas</label><input type="number" id="eCoins" value="${w.coins}" min="0" max="1000000" required></div>
+          <div class="field" style="padding-top:28px"><label class="check"><input type="checkbox" id="eBlock" ${u.bloqueado ? 'checked' : ''}> Conta bloqueada (não entra no jogo online, quiz nem ligas e some do ranking)</label></div>
+        </div>
+        <div class="field"><label>Skills (0 a 10)</label><div class="skills">${SKILLS.map(([k, n]) => `<div><label for="sk-${k}" style="font-size:12px">${n}</label><input type="number" id="sk-${k}" min="0" max="10" value="${(w.upgrades || {})[k] || 0}" required></div>`).join('')}</div></div>
+        <div class="field"><label for="eNote">Nota interna (só gestores veem)</label><textarea id="eNote" maxlength="500">${esc(u.nota)}</textarea></div>
+        ${u.foto ? '<label class="check" style="margin-bottom:12px"><input type="checkbox" id="eNoPhoto"> Remover a foto do perfil</label>' : ''}
+        <div class="msg" id="eMsg" role="status" aria-live="polite"></div>
+        <div class="foot">
+          <span class="links"><button class="btn danger" type="button" id="eDel">Excluir conta</button><button class="btn" type="button" id="eAccess">Novo link de acesso</button></span>
+          <span class="links"><button class="btn" type="button" id="eClose">Fechar</button><button class="btn primary" type="submit">Salvar</button></span>
+        </div>
+      </form>
+      ${(u.log || []).length ? `<h3>Histórico de alterações</h3><ul class="list-s">${u.log.map(l => `<li>${dth(l.quando)} · ${esc(l.gestor)} · ${esc({ criar: 'criou a conta', editar: 'editou', novo_acesso: 'gerou novo link de acesso' }[l.acao] || l.acao)}${l.detalhe && l.acao === 'editar' ? ': ' + esc(Object.keys(l.detalhe).join(', ')) : ''}</li>`).join('')}</ul>` : ''}`;
+    $('eClose').onclick = () => $('dlg').close();
+    $('eForm').onsubmit = async e => {
+      e.preventDefault();
+      const p = { nick: $('eNick').value.trim(), rating: +$('eRating').value, moedas: +$('eCoins').value, bloqueado: $('eBlock').checked, nota: $('eNote').value,
+        skills: Object.fromEntries(SKILLS.map(([k]) => [k, Math.max(0, Math.min(10, +$('sk-' + k).value | 0))])) };
+      if ($('eNoPhoto') && $('eNoPhoto').checked) p.remover_foto = true;
+      if (p.bloqueado && !u.bloqueado && !confirm(`Bloquear ${u.nick}? A pessoa não consegue mais jogar online, no quiz nem nas ligas até ser desbloqueada.`)) return;
+      try { cur = await arpc('penalti_admin_user_update', { p_player: u.id, p_u: p }); renderUser(); msg('eMsg', 'Alterações salvas.', 'ok'); loadList(); loadStats(); }
+      catch (err) { msg('eMsg', err.message, 'err'); }
+    };
+    $('eAccess').onclick = async () => {
+      if (!confirm(`Gerar um novo link de acesso para ${u.nick}? O aparelho que a pessoa usa hoje sai da conta, e ela entra de novo pelo link.`)) return;
+      try { const r = await arpc('penalti_admin_user_access', { p_player: u.id }); cur = await arpc('penalti_admin_user_get', { p_player: u.id }); renderUser(`<div class="box" style="margin:8px 0">${linkHtml(r, 'Novo link de acesso criado:')}</div>`); }
+      catch (err) { msg('eMsg', err.message, 'err'); }
+    };
+    $('eDel').onclick = async () => {
+      const typed = prompt(`Excluir a conta "${u.nick}" para sempre? Somem moedas, skills, figurinhas, partidas, duelos e as ligas que ela criou. Para confirmar, digite o apelido:`);
+      if (typed == null) return;
+      if (typed.trim().toLowerCase() !== u.nick.toLowerCase()) { msg('eMsg', 'O apelido digitado não confere. Nada foi excluído.', 'err'); return; }
+      try { await arpc('penalti_admin_user_delete', { p_player: u.id }); $('dlg').close(); msg('listMsg', `Conta "${u.nick}" excluída.`, 'ok'); loadList(); loadStats(); }
+      catch (err) { msg('eMsg', err.message, 'err'); }
+    };
+  }
+
+  // ---------- novo usuário ----------
+  $('add').addEventListener('click', () => { $('nNick').value = ''; $('nCoins').value = 0; $('nResult').innerHTML = ''; msg('nMsg', ''); $('nBtn').hidden = false; $('newDlg').showModal(); $('nNick').focus(); });
+  $('nClose').addEventListener('click', () => $('newDlg').close());
+  $('nForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    $('nBtn').disabled = true;
+    try {
+      const r = await arpc('penalti_admin_user_create', { p_nick: $('nNick').value.trim(), p_coins: Math.max(0, +$('nCoins').value | 0) });
+      $('nResult').innerHTML = linkHtml(r, `Conta "${esc(r.nickname)}" criada. Mande o link para a pessoa entrar no celular dela:`);
+      $('nBtn').hidden = true; msg('nMsg', ''); loadList(); loadStats();
+    } catch (err) { msg('nMsg', err.message, 'err'); }
+    $('nBtn').disabled = false;
+  });
+
+  function start() { show('app'); $('logout').hidden = false; loadStats(); loadList(); }
+  if (cred) arpc('penalti_admin_users_stats').then(() => start()).catch(() => show('login')); else show('login');
+})();
+</script>

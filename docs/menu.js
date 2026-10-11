@@ -51,6 +51,9 @@
   const GK_SHIRTS = [['#18a36a', 'Verde', 1], ['#f07a1a', 'Laranja', 1], ['#17181c', 'Preto', 1], ['#a6e22e', 'Limão', 2], ['#e85a9b', 'Rosa', 4], ['#5bb8f0', 'Celeste', 5]];
   const GLOVES = [['#2bb52b', 'Verdes', 1], ['#f5f5f5', 'Brancas', 1], ['#17181c', 'Pretas', 1], ['#a6e22e', 'Limão', 2], ['#f07a1a', 'Laranjas', 3]];
 
+  // itens comprados na Loja do quiz entram como cores extras (sem exigir nível)
+  const shopped = tipo => (data.items || []).filter(x => x.tipo === tipo).map(x => [x.cor, x.nome + ' (loja)', 1]);
+  const SHOP_NOTE = '<p style="font-size:13px;margin:4px 0 0">Mais cores exclusivas na <a href="quiz.html#loja" style="color:var(--gold)">Loja</a>, compradas com moedas.</p>';
   const kitBindings = [];
   // modelo "Next Player 2.2": camisa preta com gola, ombros e punhos verdes e nome verde nas costas
   const NP_GREEN = '#2bb52b';
@@ -95,6 +98,7 @@
     setWallet(w) {
       if (!w || typeof w.coins !== 'number') return;
       data.coins = w.coins; data.upgrades = Object.assign({ power: 0, accuracy: 0, curve: 0, reflex: 0, reach: 0 }, w.upgrades);
+      if (Array.isArray(w.itens)) data.items = w.itens.map(x => ({ tipo: x.tipo, cor: x.cor, nome: x.nome }));
       save(); renderStrip(); if (!ov.hidden) renderPlayer();
     },
     addRewards(d) {
@@ -236,9 +240,9 @@
       body.innerHTML = `<div class="pl-preview">${preview(k, false)}<div>
         <div class="opt-row"><div class="lbl">Modelo da camisa</div><div class="sws" role="group" aria-label="Modelo da camisa">
           <button type="button" class="np-opt" data-style="lisa" aria-pressed="${!np}">Lisa</button><button type="button" class="np-opt" data-style="nextplayer" aria-pressed="${np}">Next Player 2.2</button></div></div>
-        ${np ? `<div class="opt-row"><div class="lbl">Nome nas costas</div><input class="num-in" style="width:160px" id="plBack" maxlength="10" value="${(k.backName || '').replace(/"/g, '')}" placeholder="HULK" aria-label="Nome nas costas"></div>` : swatches('Camisa', SHIRTS, k, 'shirt')}${swatches('Calção', SHORTS, k, 'shorts')}${swatches('Meião', SOCKS, k, 'socks')}${swatches('Chuteira', BOOTS, k, 'boots')}${swatches('Pele', SKIN, k, 'skin')}${swatches('Cabelo', HAIR, k, 'hair')}
+        ${np ? `<div class="opt-row"><div class="lbl">Nome nas costas</div><input class="num-in" style="width:160px" id="plBack" maxlength="10" value="${(k.backName || '').replace(/"/g, '')}" placeholder="HULK" aria-label="Nome nas costas"></div>` : swatches('Camisa', SHIRTS.concat(shopped('camisa')), k, 'shirt')}${swatches('Calção', SHORTS, k, 'shorts')}${swatches('Meião', SOCKS, k, 'socks')}${swatches('Chuteira', BOOTS.concat(shopped('chuteira')), k, 'boots')}${swatches('Pele', SKIN, k, 'skin')}${swatches('Cabelo', HAIR, k, 'hair')}
         <div class="opt-row"><div class="lbl">Número</div><input class="num-in" id="plNum" type="number" min="1" max="99" value="${k.num}" aria-label="Número da camisa"></div></div></div>
-        <p style="font-size:13px;margin:8px 0 0">Nas versões 3D com jogador realista, pele e cabelo vêm do modelo e não mudam.</p>`;
+        ${SHOP_NOTE}<p style="font-size:13px;margin:8px 0 0">Nas versões 3D com jogador realista, pele e cabelo vêm do modelo e não mudam.</p>`;
       body.onclick = e => {
         const st = e.target.closest('[data-style]');
         if (st) {
@@ -257,7 +261,7 @@
       body.innerHTML = `<div class="pl-preview">${preview(Object.assign({}, g, { boots: '#111318' }), true)}<div>
         <div class="opt-row"><div class="lbl">Modelo da camisa</div><div class="sws" role="group" aria-label="Modelo da camisa do goleiro">
           <button type="button" class="np-opt" data-gstyle="lisa" aria-pressed="${!gnp}">Lisa</button><button type="button" class="np-opt" data-gstyle="nextplayer" aria-pressed="${gnp}">Next Player 2.2</button></div></div>
-        ${gnp ? '' : swatches('Camisa', GK_SHIRTS, g, 'shirt')}${swatches('Calção', SHORTS, g, 'shorts')}${swatches('Meião', GK_SHIRTS.concat(SOCKS), g, 'socks')}${swatches('Luvas', GLOVES, g, 'gloves')}</div></div>`;
+        ${gnp ? '' : swatches('Camisa', GK_SHIRTS, g, 'shirt')}${swatches('Calção', SHORTS, g, 'shorts')}${swatches('Meião', GK_SHIRTS.concat(SOCKS), g, 'socks')}${swatches('Luvas', GLOVES.concat(shopped('luvas')), g, 'gloves')}${SHOP_NOTE}</div></div>`;
       body.onclick = e => {
         const st = e.target.closest('[data-gstyle]');
         if (st) { g.style = st.dataset.gstyle; if (g.style === 'nextplayer') { g.shorts = '#17181c'; g.socks = '#17181c'; g.gloves = '#2bb52b'; } changed(); renderPlayer(); return; }

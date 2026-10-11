@@ -106,7 +106,12 @@
         const nick = $('onNick').value.trim();
         if (nick.length < 3) return status('O apelido precisa de pelo menos 3 caracteres.', true);
         status('Salvando…');
-        try { me = await rpc('penalti_register', { p_nickname: nick }); save(me); status(''); renderWho(); syncWallet(); }
+        try {
+          me = await rpc('penalti_register', { p_nickname: nick }); save(me); status(''); renderWho(); syncWallet();
+          // conta criada por um link de indicação (quiz.html?ref=CODIGO ou ?ref= aqui)
+          let rc = new URLSearchParams(location.search).get('ref'); try { rc = rc || localStorage.getItem('penalti.ref'); } catch (e2) { /* ok */ }
+          if (rc) { rpc('penalti_ref_set', { p_id: me.id, p_secret: me.secret, p_code: rc }).catch(() => {}); try { localStorage.removeItem('penalti.ref'); } catch (e2) { /* ok */ } }
+        }
         catch (e) { status(msgOf(e), true); }
       };
     } else {

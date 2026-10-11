@@ -106,6 +106,56 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 .sp-line { font-size: 14px; color: var(--muted); margin-top: 10px; }
 .sp-line a { color: var(--gold); font-weight: 700; }
 @media (max-width: 520px) { .sponsor canvas { width: 100%; height: auto; aspect-ratio: 8 / 1; } .sponsor .sp-go { margin-left: 0; } }
+/* aba Hoje */
+.card2 { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; margin-bottom: 12px; }
+.card2 h2 { font-size: 20px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.card2 h2 small { font: 600 13px var(--body); letter-spacing: 0; text-transform: none; color: var(--muted); }
+.event { border: 2px solid var(--gold); background: rgba(242,182,50,.1); padding: 12px 14px; margin-bottom: 12px; }
+.event .t { font: 800 22px var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 4px 0 10px; }
+.cal div { border: 1px solid var(--line); background: #13203f; text-align: center; padding: 6px 2px; font-family: var(--display); font-weight: 700; }
+.cal div small { display: block; font: 600 11px var(--body); color: var(--muted); }
+.cal .got { background: rgba(60,196,122,.25); border-color: var(--win); }
+.cal .now { border: 2px solid var(--gold); background: rgba(242,182,50,.18); }
+.mission { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mission:last-of-type { border-bottom: 0; }
+.mission .pb { grid-column: 1; height: 6px; background: #13203f; } .mission .pb i { display: block; height: 100%; background: var(--gold); }
+.mission .done { color: var(--win); font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: 14px; }
+.sc-card { border: 1px solid var(--gold); padding: 12px; margin-top: 8px; background: rgba(255,255,255,.02); }
+.sc-card canvas { width: 100%; max-width: 420px; height: auto; aspect-ratio: 8 / 1; display: block; margin-bottom: 8px; border-radius: 2px; }
+.sc-rank { font-size: 14px; margin: 8px 0 0; padding-left: 20px; } .sc-rank li.me { color: var(--gold); font-weight: 700; }
+.ach { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.ach div { border: 1px solid var(--line); padding: 8px; font-size: 13px; line-height: 1.3; opacity: .55; }
+.ach div b { display: block; font: 700 15px var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.ach div.on { opacity: 1; border-color: var(--gold); background: rgba(242,182,50,.08); }
+.ach div.on b::before { content: "🏅 "; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--gold); color: #1a1406; font: 700 17px var(--display); letter-spacing: .03em; padding: 12px 18px; z-index: 50; box-shadow: 0 8px 30px rgba(0,0,0,.5); max-width: calc(100vw - 32px); }
+/* álbum */
+.page { margin-bottom: 14px; }
+.page h3 { font: 800 18px var(--display); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+.page h3 small { font: 600 13px var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); }
+.page h3 small.ok { color: var(--win); }
+.stickers { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+.stk { aspect-ratio: 3 / 4; border: 1px solid var(--line); background: #0a1226; display: grid; place-items: center; text-align: center; padding: 6px; font: 700 14px/1.15 var(--display); letter-spacing: .02em; position: relative; }
+.stk.has { background: linear-gradient(160deg, #1f3566, #0d1730); border-color: #3a5694; }
+.stk.has.dificil { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.stk.has.medio { border-color: #8fb0ff; }
+.stk .q { font-size: 34px; color: rgba(255,255,255,.12); }
+.stk .lv { position: absolute; bottom: 4px; left: 0; right: 0; font: 600 10px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.prog { height: 10px; background: #13203f; border: 1px solid var(--line); margin: 6px 0 14px; } .prog i { display: block; height: 100%; background: var(--gold); }
+/* ranking */
+table.rk { width: 100%; border-collapse: collapse; font-size: 15px; }
+table.rk th { font: 700 12px var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 6px; border-bottom: 1px solid var(--line); }
+table.rk td { padding: 8px 6px; border-bottom: 1px solid var(--line); }
+table.rk td.n { text-align: right; font-family: var(--display); font-weight: 700; font-size: 18px; }
+table.rk tr.me td { background: rgba(242,182,50,.12); }
+table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 6px; background: #13203f; }
+/* loja */
+.shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.item { border: 1px solid var(--line); background: var(--panel); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.item .sw2 { height: 54px; border-radius: 3px; display: grid; place-items: center; font-size: 30px; }
+.item b { font: 700 16px var(--display); text-transform: uppercase; letter-spacing: .03em; }
+.item .own { color: var(--win); font: 700 14px var(--display); text-transform: uppercase; }
 .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 18px; }
 @media (max-width: 520px) { .try, .try-head { grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(0, 1fr)); } .try > div { font-size: 12px; padding: 4px; } .club { font-size: 16px; padding: 6px 9px; } }
 </style>
@@ -131,13 +181,55 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   </form>
 
   <div class="tabs" role="tablist" aria-label="Modos" id="tabs">
-    <button type="button" role="tab" data-t="dia" aria-selected="true">Jogador do dia</button>
+    <button type="button" role="tab" data-t="hoje" aria-selected="true">Hoje<span class="badge" id="hojeBadge" hidden></span></button>
+    <button type="button" role="tab" data-t="dia" aria-selected="false">Jogador do dia</button>
     <button type="button" role="tab" data-t="treino" aria-selected="false">Treino</button>
     <button type="button" role="tab" data-t="duelos" aria-selected="false">Duelos<span class="badge" id="duelBadge" hidden></span></button>
+    <button type="button" role="tab" data-t="album" aria-selected="false">Álbum</button>
+    <button type="button" role="tab" data-t="ranking" aria-selected="false">Ranking</button>
+    <button type="button" role="tab" data-t="loja" aria-selected="false">Loja</button>
   </div>
 
+  <!-- hoje: bônus, missões, desafio patrocinado, conquistas -->
+  <section id="t-hoje">
+    <div id="evBox"></div>
+    <div class="card2" id="bonusBox"></div>
+    <div class="card2" id="missBox"></div>
+    <div id="scBox"></div>
+    <div class="card2" id="pushBox" hidden></div>
+    <div class="card2" id="refBox"></div>
+    <div class="card2" id="achBox"></div>
+  </section>
+
+  <!-- álbum de figurinhas -->
+  <section id="t-album" hidden>
+    <div class="card2">
+      <h2>Álbum de figurinhas <small id="albCount"></small></h2>
+      <p class="lead" style="font-size:14px;margin:0 0 6px">Cada jogador que você acerta no quiz (jogador do dia, treino, duelo ou desafio patrocinado) vira figurinha. Complete uma página e ganhe moedas: 150 por página de clube e 400 pelas páginas Lendas e Outros clubes.</p>
+      <div class="prog"><i id="albBar" style="width:0"></i></div>
+      <div class="tabs" role="group" aria-label="Campeonato" id="albMode">
+        <button type="button" data-m="br" aria-pressed="true">Brasileirão</button>
+        <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
+      </div>
+    </div>
+    <div id="albBox"></div>
+  </section>
+
+  <!-- ranking semanal -->
+  <section id="t-ranking" hidden><div class="card2" id="rkBox"></div></section>
+
+  <!-- loja -->
+  <section id="t-loja" hidden>
+    <div class="card2">
+      <h2>Loja de itens <small id="shopCoins"></small></h2>
+      <p class="lead" style="font-size:14px;margin:0">Itens visuais para o seu jogador, comprados com moedas. Depois de comprar, escolha o item no jogo em <b>Jogador e skills</b> (Vestiário). Eles não mudam a força do chute: só o visual.</p>
+    </div>
+    <div class="shop" id="shopBox"></div>
+    <div class="msg" id="shopMsg" role="status" aria-live="polite"></div>
+  </section>
+
   <!-- jogador do dia -->
-  <section id="t-dia">
+  <section id="t-dia" hidden>
     <div class="tabs" role="group" aria-label="Campeonato" id="diaMode">
       <button type="button" data-m="br" aria-pressed="true">Brasileirão</button>
       <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
@@ -188,7 +280,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     <div id="duelList"></div>
   </section>
 
-  <p class="note"><b>Pontos nas ligas:</b> jogador do dia 5 pts · treino 3, 5 ou 8 pts conforme o nível · duelo vencido o dobro do nível. As moedas vão para a sua conta e compram skills no jogo. Fácil: trajetórias de craques. Médio: primeiro clube, cidade natal, clubes por onde passou. Difícil: jogadores menos conhecidos, ano de nascimento, clube anterior, curiosidades. Dados: clubes profissionais principais (fonte: Wikidata e curadoria), sem categorias de base.</p>
+  <p class="note"><b>Pontos nas ligas e no ranking semanal:</b> jogador do dia 5 pts · treino 3, 5 ou 8 pts conforme o nível · duelo vencido o dobro do nível. As moedas vão para a sua conta e compram skills no jogo. Fácil: trajetórias de craques. Médio: primeiro clube, cidade natal, clubes por onde passou. Difícil: jogadores menos conhecidos, ano de nascimento, clube anterior, curiosidades. Dados: clubes profissionais principais (fonte: Wikidata e curadoria), sem categorias de base.</p>
 </main>
 
 
@@ -205,7 +297,9 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.', apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.',
     moedas_insuficientes: 'Moedas insuficientes para essa dica.', limite_diario: 'Você já usou as 3 perguntas grátis de hoje.',
     limite_duelos: 'Você já criou 5 duelos hoje.', sem_liga_comum: 'Vocês precisam estar na mesma liga.', duelo_indisponivel: 'Esse duelo não está mais disponível.',
-    jogador_invalido: 'Escolha um nome da lista.'
+    jogador_invalido: 'Escolha um nome da lista.', ja_pegou: 'Você já pegou o bônus de hoje. Volte amanhã!', missao_incompleta: 'Complete a missão primeiro.',
+    ja_tem: 'Você já tem esse item.', item_invalido: 'Item indisponível.', codigo_invalido: 'Código de indicação inválido.', conta_antiga: 'O código de indicação vale só para contas novas (até 48 horas).',
+    ja_indicado: 'Você já usou um código de indicação.', desafio_indisponivel: 'Esse desafio não está mais no ar.'
   };
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -220,6 +314,12 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 
   // ---------- conta (a mesma do jogo online) ----------
   let me = null;
+  // link de acesso gerado pelo gestor (quiz.html#acesso=ID.SEGREDO&n=apelido): entra na conta neste aparelho
+  const acc = /acesso=([0-9a-f-]{36})\.([0-9a-f]{20,})(?:&n=([^&]*))?/.exec(location.hash);
+  if (acc) {
+    try { localStorage.setItem(ID_KEY, JSON.stringify({ id: acc[1], secret: acc[2], nickname: decodeURIComponent(acc[3] || 'Jogador'), rating: 1000 })); } catch (e) { /* ok */ }
+    history.replaceState(null, '', location.pathname + location.search);
+  }
   try { me = JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { /* sem armazenamento */ }
   const auth = () => ({ p_id: me && me.id, p_secret: me && me.secret });
   let coins = null;
@@ -234,7 +334,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       const d = await rpc('penalti_register', { p_nickname: $('regNick').value.trim() });
       me = { id: d.id, secret: d.secret, nickname: d.nickname, rating: d.rating };
       try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e2) { /* ok */ }
-      renderWho(); loadDia(); loadDuels();
+      renderWho(); loadDia(); loadDuels(); applyRef(); loadHoje();
     } catch (err) { msg('regMsg', err.message, 'err'); }
   });
   const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
@@ -252,7 +352,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       const left = Math.max(0, (end - performance.now()) / 1000), k = Math.max(0.2, left / total);
       el.querySelector('.fill').style.width = (100 * left / total) + '%';
       const sx = el.querySelector('.secs'); sx.textContent = Math.ceil(left) + ' s'; sx.classList.toggle('low', left <= total * 0.25);
-      el.querySelector('.val').innerHTML = left > 0 ? `vale <b>${Math.max(1, Math.round(maxCoins * k))}</b> moedas agora` : 'tempo esgotado';
+      el.querySelector('.val').innerHTML = left > 0 ? (maxCoins ? `vale <b>${Math.max(1, Math.round(maxCoins * k))}</b> moedas agora` : 'responda antes do fim!') : 'tempo esgotado';
       if (left <= 0) { clearInterval(meters[id]); onEnd(); }
     };
     tick(); meters[id] = setInterval(tick, 100);
@@ -324,7 +424,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     const tt = $('toTreino'); if (tt) tt.onclick = e => { e.preventDefault(); setTab('treino'); };
     bindOpts('dia', async id => {
       const r = await rpc('penalti_quiz_guess', Object.assign(auth(), { p_mode: diaMode, p_guess: id }));
-      dia = r; setCoins(r.carteira); renderDia();
+      dia = r; setCoins(r.carteira); renderDia(); if (r.terminou) checkAch();
       if (r.aviso === 'repetido') msg('diaMsg', 'Você já chutou esse nome.', 'err');
     });
     $('diaBox').querySelectorAll('[data-hint]').forEach(b => b.addEventListener('click', async () => {
@@ -387,7 +487,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       catch (e) { alert(e.message); th.disabled = false; }
     };
   }
-  async function refreshCoins() { if (!me) return; try { setCoins(await rpc('penalti_wallet', auth())); } catch (e) { /* ok */ } }
+  async function refreshCoins() { if (!me) return; try { setCoins(await rpc('penalti_wallet', auth())); } catch (e) { /* ok */ } checkAch(); }
 
   // ---------- duelos ----------
   let playing = null, playTimer = 0;
@@ -516,16 +616,276 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   document.addEventListener('visibilitychange', () => { if (document.hidden) spFlush(true); });
   window.addEventListener('pagehide', () => spFlush(true));
 
+  // ---------- avisos rápidos ----------
+  let toastT = 0;
+  function toast(t) {
+    let el = $('toast'); if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+    el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4200);
+  }
+  const BR_DATE = d => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+  // ---------- evento temático ----------
+  let evento = null;
+  async function loadEvent() {
+    try { const d = await rpc('penalti_events_public', {}); evento = d.atual; const nx = d.proximos[0];
+      $('evBox').innerHTML = evento ? `<div class="event" style="border-color:${esc(evento.cor)}"><div class="num" style="color:${esc(evento.cor)}">Evento até ${BR_DATE(evento.fim)}</div><div class="t">${esc(evento.name)}</div>
+        <p style="margin:4px 0 0">${esc(evento.description)}${evento.multiplier > 1 ? ` <b>Moedas do quiz x${String(evento.multiplier).replace('.', ',')}</b> durante o evento.` : ''}</p></div>`
+        : nx ? `<div class="card2"><div class="num">Próximo evento · ${BR_DATE(nx.inicio)}</div><b style="font:800 20px var(--display);text-transform:uppercase">${esc(nx.name)}</b></div>` : '';
+    } catch (e) { /* ok */ }
+  }
+
+  // ---------- bônus diário ----------
+  async function loadBonus(claim) {
+    const box = $('bonusBox');
+    if (!me) { box.innerHTML = '<h2>Bônus diário</h2><p class="lead" style="margin:0">Escolha um apelido acima para pegar moedas grátis todo dia.</p>'; return; }
+    let b;
+    try { b = await rpc(claim ? 'penalti_bonus_claim' : 'penalti_missions', auth()); } catch (e) { if (claim) msg('bonusMsg', e.message, 'err'); return; }
+    if (claim) { setCoins(b.carteira); toast(`+${b.ganhou} moedas de bônus!`); checkAch(); }
+    else b = b.bonus;
+    if (!b) return;
+    const day = b.dia_atual;
+    box.innerHTML = `<h2>Bônus diário <small>${b.sequencia ? `🔥 ${b.sequencia} dia${b.sequencia > 1 ? 's' : ''} seguido${b.sequencia > 1 ? 's' : ''}` : 'Entre todo dia: o prêmio cresce'}</small></h2>
+      <div class="cal">${b.valores.map((v, i) => `<div class="${i + 1 < day || (i + 1 === day && b.ja_pegou) ? 'got' : i + 1 === day ? 'now' : ''}">${v}<small>dia ${i + 1}</small></div>`).join('')}</div>
+      ${b.ja_pegou ? '<p class="num" style="margin:0">Bônus de hoje pego. Volte amanhã para não perder a sequência!</p>' : `<button class="btn primary" type="button" id="bonusGo">Pegar ${b.valores[day - 1]} moedas</button>`}
+      <div class="msg" id="bonusMsg" role="status" aria-live="polite"></div>`;
+    const g = $('bonusGo'); if (g) g.onclick = () => { g.disabled = true; loadBonus(true); };
+    badgeHoje();
+  }
+
+  // ---------- missões ----------
+  let missoes = null, bonusInfo = null;
+  async function loadMissions() {
+    const box = $('missBox');
+    if (!me) { box.innerHTML = '<h2>Missões do dia</h2><p class="lead" style="margin:0">Escolha um apelido para receber 3 missões por dia.</p>'; return; }
+    try { missoes = await rpc('penalti_missions', auth()); } catch (e) { return; }
+    renderMissions();
+  }
+  function renderMissions() {
+    const m = missoes, all = m.missoes.every(x => x.resgatada);
+    $('missBox').innerHTML = `<h2>Missões do dia <small>novas todo dia à meia-noite</small></h2>` + m.missoes.map(x => `<div class="mission"><div><div>${esc(x.titulo)}</div>
+      <div class="num" style="font-size:12px">${x.feito} de ${x.alvo} · ${x.moedas} moedas</div></div>
+      ${x.resgatada ? '<span class="done">✓ Feita</span>' : x.pronta ? `<button class="btn small primary" type="button" data-claim="${esc(x.code)}">Pegar ${x.moedas}</button>` : '<span class="num" style="font-size:12px">em andamento</span>'}
+      <div class="pb"><i style="width:${Math.round(100 * x.feito / x.alvo)}%"></i></div></div>`).join('') +
+      `<div class="mission"><div><b>Complete as 3 missões</b><div class="num" style="font-size:12px">bônus de ${m.bonus_todas} moedas</div></div>
+       ${m.bonus_resgatado ? '<span class="done">✓ Pego</span>' : all ? `<button class="btn small primary" type="button" data-claim="todas">Pegar ${m.bonus_todas}</button>` : ''}</div>
+       <div class="msg" id="missMsg" role="status" aria-live="polite"></div>`;
+    $('missBox').querySelectorAll('[data-claim]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { const r = await rpc('penalti_mission_claim', Object.assign(auth(), { p_code: b.dataset.claim })); missoes = r; setCoins(r.carteira); toast('Missão concluída! Moedas na conta.'); renderMissions(); checkAch(); }
+      catch (e) { msg('missMsg', e.message, 'err'); b.disabled = false; }
+    });
+    badgeHoje();
+  }
+  function badgeHoje() {
+    const n = (missoes ? missoes.missoes.filter(x => x.pronta && !x.resgatada).length : 0) + ($('bonusGo') ? 1 : 0);
+    $('hojeBadge').hidden = !n; $('hojeBadge').textContent = n;
+  }
+
+  // ---------- desafio patrocinado ----------
+  let scs = [], scPlaying = null;
+  async function loadSC() {
+    try { scs = (await rpc('penalti_sc_list', me ? auth() : { p_id: null, p_secret: null })).desafios; } catch (e) { scs = []; }
+    renderSC();
+  }
+  function scBrand(c) {
+    if (!c.marca) return '';
+    return `<canvas width="512" height="64" data-brand="${c.id}" role="img" aria-label="${esc(c.marca.nome)}"></canvas>`;
+  }
+  function paintBrands(root) {
+    root.querySelectorAll('[data-brand]').forEach(cv => {
+      const c = scs.find(x => String(x.id) === cv.dataset.brand) || scPlaying; if (!c || !c.marca) return;
+      const g = cv.getContext('2d'), m = c.marca, draw = img => PK.paintSponsorTile(g, 512, 64, m, img);
+      if (m.logo) { const im = new Image(); im.onload = () => draw(im); im.src = m.logo; draw(null); } else draw(null);
+      if (!cv.dataset.counted) { cv.dataset.counted = 1; spStat(m.id).v++; }
+    });
+  }
+  function renderSC() {
+    const box = $('scBox');
+    if (!scs.length) { box.innerHTML = ''; return; }
+    box.innerHTML = `<div class="card2"><h2>Desafio patrocinado <small>prêmio extra por tempo limitado</small></h2>` + scs.map(c => {
+      const link = c.marca && spLink(c.marca);
+      return `<div class="sc-card">${scBrand(c)}<div class="num">${c.marca ? `Oferecimento ${esc(c.marca.nome)} · ` : ''}até ${BR_DATE(c.fim)} · ${MODE[c.modo]} · ${LEVEL[c.nivel]}</div>
+        <b style="font:800 22px var(--display);text-transform:uppercase">${esc(c.titulo)}</b>
+        ${c.descricao ? `<p style="margin:4px 0">${esc(c.descricao)}</p>` : ''}
+        <p style="margin:6px 0">${c.perguntas} perguntas, 20 segundos cada. Acerte <b>${c.minimo}</b> ou mais e ganhe <b>${c.premio} moedas</b>. Uma tentativa por pessoa.</p>
+        ${c.terminou ? `<p class="num" style="color:${c.ganhou ? 'var(--win)' : 'var(--muted)'}">Você acertou ${c.acertos} de ${c.perguntas}${c.ganhou ? ` e ganhou ${c.ganhou} moedas!` : '.'}</p>`
+          : `<button class="btn primary" type="button" data-sc="${c.id}">${c.iniciado ? 'Continuar' : 'Começar desafio'}</button>`}
+        ${link ? ` <a class="btn small" href="${esc(link)}" target="_blank" rel="noopener sponsored" data-sp="${esc(c.marca.id)}">Conhecer a marca</a>` : ''}
+        ${c.ranking.length ? `<ol class="sc-rank">${c.ranking.map(x => `<li class="${x.eu ? 'me' : ''}">${esc(x.nick)} · ${x.acertos} acerto${x.acertos === 1 ? '' : 's'}</li>`).join('')}</ol>` : ''}
+        <p class="num" style="font-size:12px;margin:6px 0 0">${c.participantes} participante${c.participantes === 1 ? '' : 's'}</p></div>`;
+    }).join('') + '</div>';
+    paintBrands(box);
+    box.querySelectorAll('[data-sc]').forEach(b => b.onclick = async () => {
+      if (!me) { alert('Escolha um apelido primeiro.'); $('regNick').focus(); return; }
+      try { scPlaying = await rpc('penalti_sc_start', Object.assign(auth(), { p_challenge: +b.dataset.sc })); renderSCPlay(); } catch (e) { alert(e.message); }
+    });
+  }
+  function renderSCPlay() {
+    const c = scPlaying, box = $('scBox');
+    stopMeter('scMeter');
+    if (c.terminou) {
+      box.innerHTML = `<div class="card2"><div class="result" style="margin:0">${scBrand(c)}<div class="big">${c.ganhou ? 'Desafio vencido!' : 'Desafio encerrado'}</div>
+        <p>Você acertou <b>${c.acertos} de ${c.perguntas}</b>. ${c.ganhou ? `+${c.ganhou} moedas na sua conta.` : `Precisava de ${c.minimo}. Fique de olho nos próximos desafios!`}</p>
+        <button class="btn" type="button" id="scBack">Voltar</button></div></div>`;
+      paintBrands(box); $('scBack').onclick = () => { scPlaying = null; loadSC(); refreshCoins(); };
+      return;
+    }
+    const q = c.pergunta;
+    box.innerHTML = `<div class="card2">${scBrand(c)}<div class="num">${esc(c.titulo)} · pergunta ${q.numero} de ${c.perguntas} · ${c.acertos} acerto${c.acertos === 1 ? '' : 's'}</div>
+      ${c.ultimo ? `<p class="num" style="color:${c.ultimo.certo ? 'var(--win)' : 'var(--loss)'};margin:4px 0">${c.ultimo.certo ? 'Acertou a anterior!' : 'Errou a anterior.'}</p>` : ''}
+      ${meterHtml('scMeter')}${qHtml(q)}${optsHtml('sc', q.opcoes, [], null, false)}</div>`;
+    paintBrands(box);
+    box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const send = async g => { scPlaying = await rpc('penalti_sc_answer', Object.assign(auth(), { p_challenge: c.id, p_guess: g })); renderSCPlay(); };
+    bindOpts('sc', send);
+    runMeter('scMeter', 20, q.resta, 0, () => { send(-1).catch(() => { /* ok */ }); });
+  }
+
+  // ---------- notificações no celular ----------
+  const canPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent), standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  async function renderPush() {
+    const box = $('pushBox'); if (!me) { box.hidden = true; return; }
+    box.hidden = false;
+    let on = false;
+    if (canPush) { try { const reg = await navigator.serviceWorker.getRegistration(); on = !!(reg && await reg.pushManager.getSubscription()) && Notification.permission === 'granted'; } catch (e) { /* ok */ } }
+    box.innerHTML = `<h2>Avisos no celular <small>${on ? '✓ ativados' : 'desafios, duelos e a pergunta do dia'}</small></h2>` + (
+      !canPush ? (isIOS && !standalone ? '<p style="margin:0;font-size:14px">No iPhone, primeiro adicione o jogo à tela de início (Compartilhar → Adicionar à Tela de Início) e abra por lá; depois ative os avisos aqui.</p>'
+        : '<p style="margin:0;font-size:14px">Este navegador não aceita avisos. Tente pelo Chrome no Android ou pelo app adicionado à tela de início.</p>')
+      : Notification.permission === 'denied' ? '<p style="margin:0;font-size:14px">Os avisos estão bloqueados nas configurações do navegador para este site.</p>'
+      : on ? '<p style="margin:0 0 8px;font-size:14px">Você vai receber um aviso quando alguém te desafiar e um lembrete por dia, ao meio-dia, se ainda não tiver jogado.</p><button class="btn small" type="button" id="pushOff">Desativar</button>'
+      : '<p style="margin:0 0 8px;font-size:14px">Receba um aviso quando alguém te desafiar e um lembrete da pergunta do dia (no máximo 1 por dia).</p><button class="btn primary" type="button" id="pushOn">Ativar avisos</button>') +
+      '<div class="msg" id="pushMsg" role="status" aria-live="polite"></div>';
+    const a = $('pushOn'); if (a) a.onclick = async () => {
+      a.disabled = true;
+      try {
+        const key = await rpc('penalti_push_key', {}); if (!key) throw new Error('Avisos ainda não estão disponíveis. Tente mais tarde.');
+        if (await Notification.requestPermission() !== 'granted') throw new Error('Permissão negada.');
+        const reg = await navigator.serviceWorker.register('sw.js'); await navigator.serviceWorker.ready;
+        const raw = atob(key.replace(/-/g, '+').replace(/_/g, '/')), arr = Uint8Array.from(raw, ch => ch.charCodeAt(0));
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: arr });
+        await rpc('penalti_push_subscribe', Object.assign(auth(), { p_sub: sub.toJSON() }));
+        toast('Avisos ativados!');
+      } catch (e) { msg('pushMsg', e.message, 'err'); }
+      renderPush();
+    };
+    const o = $('pushOff'); if (o) o.onclick = async () => {
+      try { const reg = await navigator.serviceWorker.getRegistration(); const sub = reg && await reg.pushManager.getSubscription();
+        if (sub) { await rpc('penalti_push_unsubscribe', { p_endpoint: sub.endpoint }); await sub.unsubscribe(); } } catch (e) { /* ok */ }
+      renderPush();
+    };
+  }
+
+  // ---------- indique um amigo ----------
+  const REF_KEY = 'penalti.ref';
+  try { const rc = new URLSearchParams(location.search).get('ref'); if (rc) localStorage.setItem(REF_KEY, rc.toUpperCase().slice(0, 8)); } catch (e) { /* ok */ }
+  async function applyRef() {
+    let rc = null; try { rc = localStorage.getItem(REF_KEY); } catch (e) { /* ok */ }
+    if (!rc || !me) return;
+    try { await rpc('penalti_ref_set', Object.assign(auth(), { p_code: rc })); toast('Indicação registrada! Acerte 3 perguntas e vocês dois ganham 200 moedas.'); }
+    catch (e) { /* código inválido ou conta antiga: ignora */ }
+    try { localStorage.removeItem(REF_KEY); } catch (e) { /* ok */ }
+  }
+  async function loadRef() {
+    const box = $('refBox');
+    if (!me) { box.innerHTML = ''; box.hidden = true; return; }
+    let d; try { d = await rpc('penalti_ref', auth()); } catch (e) { return; }
+    box.hidden = false;
+    if (d.novos_pagos) { setCoins(d.carteira); toast(`+${d.novos_pagos * d.moedas} moedas por indicação!`); }
+    const link = new URL('quiz.html?ref=' + d.codigo, location.href).href;
+    const text = `⚽ Bora jogar o "Quem é o jogador?" e o Pênalti comigo! Entre por este link e a gente ganha ${d.moedas} moedas cada: ${link}`;
+    box.innerHTML = `<h2>Indique um amigo <small>${d.pagos} de ${d.limite} indicações premiadas</small></h2>
+      <p style="margin:0 0 8px;font-size:14px">Quando seu amigo criar a conta pelo seu link e acertar 3 perguntas (ou jogar 1 partida online), <b>vocês dois ganham ${d.moedas} moedas</b>.${d.indicados > d.pagos ? ` ${d.indicados - d.pagos} indicado${d.indicados - d.pagos > 1 ? 's' : ''} ainda jogando.` : ''}</p>
+      <div class="row">${waBtn(text, 'Convidar pelo WhatsApp')}<button class="btn" type="button" id="refCopy">Copiar link</button></div>
+      <p class="num" style="font-size:12px;margin:8px 0 0">Seu código: <b style="color:var(--gold)">${esc(d.codigo)}</b></p>`;
+    $('refCopy').onclick = async () => { try { await navigator.clipboard.writeText(link); $('refCopy').textContent = 'Copiado!'; } catch (e) { prompt('Copie:', link); } };
+  }
+
+  // ---------- conquistas ----------
+  let achBusy = false;
+  async function checkAch() {
+    if (!me || achBusy) return; achBusy = true;
+    try {
+      const d = await rpc('penalti_achievements_check', auth());
+      d.novas.forEach((x, i) => setTimeout(() => toast(`🏅 Conquista: ${x.titulo} · +${x.moedas} moedas`), i * 4400));
+      if (d.novas.length) setCoins(d.carteira);
+      const have = d.lista.filter(x => x.tenho).length;
+      $('achBox').innerHTML = `<h2>Conquistas <small>${have} de ${d.lista.length}</small></h2><div class="ach">${d.lista.map(x => `<div class="${x.tenho ? 'on' : ''}"><b>${esc(x.titulo)}</b>${esc(x.descricao)}<br><span class="num" style="font-size:11px">${x.moedas} moedas</span></div>`).join('')}</div>`;
+      if (!$('t-hoje').hidden) loadMissions();
+    } catch (e) { /* ok */ }
+    achBusy = false;
+  }
+
+  function loadHoje() {
+    loadEvent(); loadBonus(false); loadMissions(); loadSC(); renderPush(); loadRef(); checkAch();
+    if (!me) $('achBox').innerHTML = '<h2>Conquistas</h2><p class="lead" style="margin:0">Escolha um apelido para colecionar medalhas.</p>';
+  }
+
+  // ---------- álbum ----------
+  let album = null, albMode = 'br';
+  async function loadAlbum() {
+    if (!me) { $('albBox').innerHTML = '<div class="empty">Escolha um apelido acima para começar seu álbum.</div>'; return; }
+    $('albBox').innerHTML = '<p class="num">Carregando…</p>';
+    try { album = await rpc('penalti_album', auth()); } catch (e) { $('albBox').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+    setCoins(album.carteira);
+    album.premios_novos.forEach(x => toast(`Página "${x.pagina}" completa! +${x.moedas} moedas`));
+    renderAlbum();
+  }
+  function renderAlbum() {
+    const a = album;
+    $('albCount').textContent = `${a.tenho} de ${a.total} figurinhas`;
+    $('albBar').style.width = Math.round(100 * a.tenho / Math.max(1, a.total)) + '%';
+    $('albBox').innerHTML = a.paginas.filter(pg => pg.modo === albMode).map(pg => `<div class="page card2"><h3>${esc(pg.pagina)}<small class="${pg.tenho === pg.total ? 'ok' : ''}">${pg.tenho}/${pg.total}${pg.tenho === pg.total ? ' · completa ✓' : ` · ${pg.premio} moedas ao completar`}</small></h3>
+      <div class="stickers">${pg.figurinhas.map(f => f.tem ? `<div class="stk has ${f.nivel}">${esc(f.nome)}<span class="lv">${LEVEL[f.nivel]}</span></div>` : `<div class="stk" aria-label="Figurinha que falta"><span class="q">?</span><span class="lv">${LEVEL[f.nivel]}</span></div>`).join('')}</div></div>`).join('');
+  }
+  $('albMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; albMode = b.dataset.m; $('albMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); if (album) renderAlbum(); });
+
+  // ---------- ranking semanal ----------
+  async function loadRanking() {
+    const box = $('rkBox'); box.innerHTML = '<p class="num">Carregando…</p>';
+    let d; try { d = await rpc('penalti_quiz_ranking', me ? auth() : { p_id: null, p_secret: null }); } catch (e) { box.innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+    if (d.carteira) setCoins(d.carteira);
+    d.premios_novos.forEach(x => toast(`Você ficou em ${x.posicao}º no ranking da semana! +${x.moedas} moedas`));
+    const fim = new Date(d.fim + '-03:00'), s = Math.max(0, (fim - Date.now()) / 1000);
+    box.innerHTML = `<h2>Ranking semanal do quiz <small>termina em ${Math.floor(s / 86400)}d ${Math.floor(s / 3600) % 24}h</small></h2>
+      <p style="margin:0 0 10px;font-size:14px">Some pontos acertando o jogador do dia, o treino e os duelos. No fim da semana (domingo, meia-noite) os 3 primeiros ganham <b>${d.premios[0]}</b>, <b>${d.premios[1]}</b> e <b>${d.premios[2]} moedas</b> (com pelo menos 5 participantes).</p>
+      ${d.tabela.length ? `<table class="rk"><thead><tr><th>#</th><th>Jogador</th><th style="text-align:right">Pontos</th></tr></thead><tbody>${d.tabela.map(x => `<tr class="${x.eu ? 'me' : ''}"><td>${x.pos <= 3 ? ['🥇', '🥈', '🥉'][x.pos - 1] : x.pos}</td><td>${x.foto ? `<img class="av" src="${esc(x.foto)}" alt="">` : ''}${esc(x.nick)}</td><td class="n">${x.pts}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty">Ninguém pontuou nesta semana ainda. Seja o primeiro!</div>'}
+      ${d.ultima.length ? `<p class="num" style="margin:14px 0 0">Campeões da semana passada: ${d.ultima.map(x => `${x.pos}º ${esc(x.nick)} (+${x.moedas})`).join(' · ')}</p>` : ''}`;
+  }
+
+  // ---------- loja ----------
+  const KIND_ICON = { chuteira: '👟', luvas: '🧤', camisa: '👕' };
+  async function loadShop() {
+    let d; try { d = await rpc('penalti_shop', me ? auth() : { p_id: null, p_secret: null }); } catch (e) { msg('shopMsg', e.message, 'err'); return; }
+    if (d.carteira) setCoins(d.carteira);
+    $('shopCoins').textContent = coins != null ? `você tem ${coins} moedas` : '';
+    $('shopBox').innerHTML = d.itens.map(x => `<div class="item"><div class="sw2" style="background:${esc(x.cor)}">${KIND_ICON[x.tipo] || ''}</div><b>${esc(x.nome)}</b>
+      ${x.tenho ? '<span class="own">✓ Comprado</span>' : `<button class="btn small primary" type="button" data-item="${esc(x.id)}" data-price="${x.preco}">Comprar · ${x.preco}</button>`}</div>`).join('');
+    $('shopBox').querySelectorAll('[data-item]').forEach(b => b.onclick = async () => {
+      if (!me) { msg('shopMsg', 'Escolha um apelido primeiro.', 'err'); return; }
+      if (!confirm(`Comprar por ${b.dataset.price} moedas?`)) return;
+      b.disabled = true;
+      try { const r = await rpc('penalti_shop_buy', Object.assign(auth(), { p_item: b.dataset.item })); setCoins(r.carteira); toast('Item comprado! Escolha no Vestiário do jogo.'); loadShop(); }
+      catch (e) { msg('shopMsg', e.code === 'moedas_insuficientes' ? 'Moedas insuficientes.' : e.message, 'err'); b.disabled = false; }
+    });
+  }
+
   // ---------- abas ----------
   function setTab(t) {
     document.querySelectorAll('#tabs [data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
-    ['dia', 'treino', 'duelos'].forEach(x => { $('t-' + x).hidden = x !== t; });
+    ['hoje', 'dia', 'treino', 'duelos', 'album', 'ranking', 'loja'].forEach(x => { $('t-' + x).hidden = x !== t; });
     if (t === 'duelos') { loadOpponents(); loadDuels(); }
+    if (t === 'hoje') loadHoje();
+    if (t === 'album') loadAlbum();
+    if (t === 'ranking') loadRanking();
+    if (t === 'loja') loadShop();
   }
   $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) setTab(b.dataset.t); });
   setInterval(() => { if (!document.hidden && !playing) loadDuels(); }, 20000);
 
-  renderWho(); loadDia(); loadDuels(); refreshCoins(); loadSponsors();
-  setTab(location.hash === '#duelos' ? 'duelos' : location.hash === '#treino' ? 'treino' : 'dia');
+  renderWho(); loadDia(); loadDuels(); refreshCoins(); loadSponsors(); applyRef();
+  const h0 = location.hash.slice(1);
+  setTab(['dia', 'treino', 'duelos', 'album', 'ranking', 'loja'].includes(h0) ? h0 : 'hoje');
 })();
 </script>
