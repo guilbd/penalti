@@ -16,6 +16,8 @@
   const smooth = (a, b, t) => { t = clamp((t - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
   const plain = v => ({ x: v.x, y: v.y, z: v.z });
   const tint = (m, c) => m.color.set(c).convertSRGBToLinear();
+  // chuteira: a textura original é escura e engoliria a cor, então vira cor lisa
+  const paintShoes = (m, c) => { if (!c) return; m.map = null; tint(m, c); m.needsUpdate = true; };
 
   function bonesOf(model) {
     const B = {};
@@ -179,6 +181,7 @@
         if (/Shirt/.test(n)) { tint(o.material, kit.shirt); this.shirt = o; this.shirtMap0 = o.material.map; }
         else if (/Shorts/.test(n)) tint(o.material, kit.shorts);
         else if (/Socks/.test(n)) tint(o.material, kit.socks);
+        else if (/Shoes/.test(n)) paintShoes(o.material, kit.boots);
         this.mats.push(o.material);
       });
       if (role === 'gk' && kit.gloves) {        // luvas de goleiro presas às mãos
@@ -310,7 +313,7 @@
     }
     recolor(kit) {           // troca o uniforme (perfil do jogador ou barreira do outro time)
       for (const m of this.mats) {
-        if (/Shirt/.test(m.name)) { this.styleKey = null; this.applyStyle(kit); if (kit.style !== 'nextplayer') tint(m, kit.shirt); } else if (/Shorts/.test(m.name)) tint(m, kit.shorts); else if (/Socks/.test(m.name)) tint(m, kit.socks);
+        if (/Shirt/.test(m.name)) { this.styleKey = null; this.applyStyle(kit); if (kit.style !== 'nextplayer') tint(m, kit.shirt); } else if (/Shorts/.test(m.name)) tint(m, kit.shorts); else if (/Socks/.test(m.name)) tint(m, kit.socks); else if (/Shoes/.test(m.name)) paintShoes(m, kit.boots);
       }
       if (this.gloveMat && kit.gloves) tint(this.gloveMat, kit.gloves);
     }

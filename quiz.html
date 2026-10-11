@@ -224,7 +224,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   <section id="t-loja" hidden>
     <div class="card2">
       <h2>Loja de itens <small id="shopCoins"></small></h2>
-      <p class="lead" style="font-size:14px;margin:0">Itens visuais para o seu jogador, comprados com moedas. Depois de comprar, escolha o item no jogo em <b>Jogador e skills</b> (Vestiário). Eles não mudam a força do chute: só o visual.</p>
+      <p class="lead" style="font-size:14px;margin:0">Itens visuais para o seu jogador, comprados com moedas. Ao comprar, o item já vai para o seu jogador neste aparelho; em outro aparelho, toque em "Usar" ou escolha em <b>Jogador e skills</b> no jogo. Eles não mudam a força do chute: só o visual.</p>
     </div>
     <div class="shop" id="shopBox"></div>
     <div class="msg" id="shopMsg" role="status" aria-live="polite"></div>
@@ -398,7 +398,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
     stopMeter('diaMeter');
     if (d.conta && !d.iniciado && !d.terminou) {
       $('diaBox').innerHTML = `<div class="num">${MODE[diaMode]} · desafio nº ${d.numero}${d.sequencia ? ` · 🔥 sequência de ${d.sequencia}` : ''}</div>
-        <div class="start"><div class="big">Pergunta do dia</div><p class="lead" style="margin:0 0 14px">Você terá <b>${d.segundos} segundos</b> e 2 chances. De primeira, o prêmio começa em <b>${d.premio_max} moedas</b> e vai caindo com o tempo. Cada pessoa recebe uma pergunta sorteada.</p>
+        <div class="start"><div class="big">Pergunta do dia</div><p class="lead" style="margin:0 0 14px">Você terá <b>${d.segundos} segundos</b> e 2 chances (se errar a primeira, ganha mais 15 segundos). De primeira, o prêmio começa em <b>${d.premio_max} moedas</b> e vai caindo com o tempo. Cada pessoa recebe uma pergunta sorteada.</p>
         <button class="btn primary" type="button" id="diaGo" style="font-size:20px;padding:14px 28px">Começar</button></div>`;
       $('diaGo').onclick = async () => { try { dia = await rpc('penalti_quiz_daily_start', Object.assign(auth(), { p_mode: diaMode })); nextSponsor(); renderDia(); } catch (e) { alert(e.message); } };
       return;
@@ -861,17 +861,33 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
 
   // ---------- loja ----------
   const KIND_ICON = { chuteira: '👟', luvas: '🧤', camisa: '👕' };
+  // o uniforme fica no perfil do aparelho (o mesmo que o jogo lê em "Jogador e skills")
+  const PERFIL = 'penalti.perfil.v1';
+  const perfil = () => { try { return JSON.parse(localStorage.getItem(PERFIL)) || {}; } catch (e) { return {}; } };
+  function inUse(x) {
+    const p = perfil(), k = p.kit || {}, g = p.gk || {};
+    return x.tipo === 'chuteira' ? k.boots === x.cor : x.tipo === 'luvas' ? g.gloves === x.cor : k.style === 'lisa' && k.shirt === x.cor;
+  }
+  function equip(x) {
+    const p = perfil(); p.kit = p.kit || {}; p.gk = p.gk || {};
+    if (x.tipo === 'chuteira') p.kit.boots = x.cor;
+    else if (x.tipo === 'luvas') p.gk.gloves = x.cor;
+    else { p.kit.shirt = x.cor; p.kit.style = 'lisa'; }      // camisa colorida usa o modelo liso
+    p.items = (p.items || []).filter(i => i.cor !== x.cor || i.tipo !== x.tipo).concat({ tipo: x.tipo, cor: x.cor, nome: x.nome });
+    try { localStorage.setItem(PERFIL, JSON.stringify(p)); } catch (e) { /* ok */ }
+  }
   async function loadShop() {
     let d; try { d = await rpc('penalti_shop', me ? auth() : { p_id: null, p_secret: null }); } catch (e) { msg('shopMsg', e.message, 'err'); return; }
     if (d.carteira) setCoins(d.carteira);
     $('shopCoins').textContent = coins != null ? `você tem ${coins} moedas` : '';
     $('shopBox').innerHTML = d.itens.map(x => `<div class="item"><div class="sw2" style="background:${esc(x.cor)}">${KIND_ICON[x.tipo] || ''}</div><b>${esc(x.nome)}</b>
-      ${x.tenho ? '<span class="own">✓ Comprado</span>' : `<button class="btn small primary" type="button" data-item="${esc(x.id)}" data-price="${x.preco}">Comprar · ${x.preco}</button>`}</div>`).join('');
+      ${x.tenho ? (inUse(x) ? '<span class="own">✓ Em uso no seu jogador</span>' : `<button class="btn small" type="button" data-use="${esc(x.id)}">Usar no meu jogador</button>`) : `<button class="btn small primary" type="button" data-item="${esc(x.id)}" data-price="${x.preco}">Comprar · ${x.preco}</button>`}</div>`).join('');
+    $('shopBox').querySelectorAll('[data-use]').forEach(b => b.onclick = () => { equip(d.itens.find(x => x.id === b.dataset.use)); toast('Pronto! Seu jogador já está usando. Abra o jogo para ver.'); loadShop(); });
     $('shopBox').querySelectorAll('[data-item]').forEach(b => b.onclick = async () => {
       if (!me) { msg('shopMsg', 'Escolha um apelido primeiro.', 'err'); return; }
       if (!confirm(`Comprar por ${b.dataset.price} moedas?`)) return;
       b.disabled = true;
-      try { const r = await rpc('penalti_shop_buy', Object.assign(auth(), { p_item: b.dataset.item })); setCoins(r.carteira); toast('Item comprado! Escolha no Vestiário do jogo.'); loadShop(); }
+      try { const r = await rpc('penalti_shop_buy', Object.assign(auth(), { p_item: b.dataset.item })); setCoins(r.carteira); equip(d.itens.find(x => x.id === b.dataset.item)); toast('Comprado e já vestido no seu jogador! Dá para trocar em "Jogador e skills" no jogo.'); loadShop(); }
       catch (e) { msg('shopMsg', e.code === 'moedas_insuficientes' ? 'Moedas insuficientes.' : e.message, 'err'); b.disabled = false; }
     });
   }
