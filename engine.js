@@ -1068,7 +1068,8 @@
     }
     finish(o, highRemote) {
       const c = this.ball.cross;
-      this.result = { outcome: o, turn: this.turn, high: highRemote != null ? highRemote : o === 'miss' && c && c.y > C.GH };
+      // idx e local: no online, cada aparelho informa a cobrança ao servidor (o batedor manda o que ele mesmo calculou)
+      this.result = { outcome: o, turn: this.turn, idx: this.kickIndex, local: this.localOutcome || o, high: highRemote != null ? highRemote : o === 'miss' && c && c.y > C.GH };
       if (this.online && this.turn === 'cpu') this.online.send('result', { idx: this.kickIndex, o, high: this.result.high });
       this.score[this.turn].push(o === 'goal');
       if (this.turn === 'user' && o === 'goal') this.stats.goals++;

@@ -245,6 +245,7 @@
     try { await rpc('penalti_start_match', { p_id: me.id, p_secret: me.secret, p_match: match.id, p_opponent: match.opp.id, p_mode: p.mode }); }
     catch (e) { status(msgOf(e), true); }
     if (root.PKProfile && root.PKProfile.setOpponentKit) root.PKProfile.setOpponentKit(match.opp.kit, match.opp.gk);
+    startAlive();
     ov.hidden = true; $('menu').hidden = true; $('over').hidden = true;
     const online = {
       role: match.role, seed: p.seed, spots: p.spots, latency: p.latency, oppNick: match.opp.nick, oppPerks: match.opp.perks || {},
@@ -259,7 +260,29 @@
     const rc = $('dotsC') && $('dotsC').closest('.row'); if (rc) rc.hidden = false;
     stallT = performance.now();
   }
+  // cada cobrança vai para o servidor, que monta o placar oficial (o goleiro decide; o batedor confere)
+  const shotQueue = [];
+  async function flushShots() {
+    while (shotQueue.length && match) {
+      const s = shotQueue[0];
+      try { await rpc('penalti_shot', Object.assign({ p_id: me.id, p_secret: me.secret, p_match: match.id }, s)); shotQueue.shift(); }
+      catch (e) { await new Promise(r => setTimeout(r, 1500)); if (++s.tries > 5) shotQueue.shift(); }
+    }
+  }
+  function reportShot(r) {
+    if (!match || r.idx == null) return;
+    const mine = r.turn === 'user';
+    shotQueue.push({ p_idx: r.idx, p_i_kick: mine, p_goal: (mine ? r.local : r.outcome) === 'goal', tries: 0 });
+    if (shotQueue.length === 1) flushShots();
+  }
+  // sinal de vida: sem ele o adversário não consegue pedir W.O.
+  let aliveT = 0;
+  function startAlive() {
+    clearInterval(aliveT);
+    aliveT = setInterval(() => { if (match && !match.over) rpc('penalti_match_alive', { p_id: me.id, p_secret: me.secret, p_match: match.id }).catch(() => {}); else clearInterval(aliveT); }, 15000);
+  }
   function quitMatch(sayBye) {
+    clearInterval(aliveT); shotQueue.length = 0;
     if (sayBye) send('bye', {});
     if (matchCh) { client().removeChannel(matchCh); matchCh = null; }
     if (game && game.online) { game.online = null; game.state = 'menu'; }
@@ -275,15 +298,16 @@
     const box = $('overScore'), extra = document.querySelector('#over .rewards');
     const show = t => { if (extra) extra.textContent = t; };
     show('Registrando no ranking…');
+    for (let w = 0; w < 20 && shotQueue.length; w++) await new Promise(r => setTimeout(r, 500));   // cobranças primeiro
     for (let tries = 0; tries < 8; tries++) {
       try {
         const r = await rpc('penalti_report', { p_id: me.id, p_secret: me.secret, p_match: match.id, p_my: my, p_opp: opp, p_forfeit: !!forfeit });
         if (r.status === 'final') {
           me.rating = r.rating; save(me);
-          show(`Ranking: ${r.delta >= 0 ? '+' : ''}${r.delta} pontos · agora ${r.rating}${r.wo ? ' (vitória por W.O.)' : ''}${r.coins ? ` · +${r.coins} moedas` : ''}`);
+          show(`Placar oficial ${r.my != null ? `${r.my} × ${r.opp}` : ''} · ranking: ${r.delta >= 0 ? '+' : ''}${r.delta} pontos · agora ${r.rating}${r.wo ? ' (vitória por W.O.)' : ''}${r.coins ? ` · +${r.coins} moedas` : r.limite_dupla ? ' · sem moedas: vocês já jogaram 3 vezes hoje' : ''}`);
           syncWallet(); return;
         }
-        if (r.status === 'disputa') { show('Os placares informados não bateram; a partida não contou para o ranking.'); return; }
+        if (r.status === 'disputa') { show('As cobranças registradas pelos dois aparelhos não bateram; a partida foi para análise e não contou para o ranking.'); return; }
         show(forfeit ? 'Aguardando para confirmar a vitória por W.O.…' : 'Aguardando o adversário confirmar o placar…');
       } catch (e) { show(msgOf(e)); }
       await new Promise(r => setTimeout(r, forfeit ? 9000 : 3000));
@@ -307,6 +331,7 @@
     game = g; ui = u;
     game.on((t, d) => {
       if (!game.online || !match) return;
+      if (t === 'result') reportShot(d);
       if (t === 'over' && d.online) {
         $('overTitle').textContent = d.winner === 'user' ? `Você venceu ${match.opp.nick}!` : `${match.opp.nick} venceu`;
         $('overScore').textContent = `Você ${d.gu} × ${d.gc} ${match.opp.nick} · ${MODE_NAME[d.mode]} online`;
