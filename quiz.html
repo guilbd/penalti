@@ -91,6 +91,14 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
 .hero .t { font: 800 clamp(30px, 7vw, 48px)/1 var(--display); text-transform: uppercase; margin: 6px 0 8px; max-width: 16ch; }
 .hero p { margin: 0; font-weight: 600; max-width: 46ch; }
 @media (max-width: 520px) { .opts { grid-template-columns: 1fr; } }
+.meter { margin: 4px 0 12px; }
+.meter .bar { height: 12px; background: #13203f; border: 1px solid var(--line); overflow: hidden; }
+.meter .fill { height: 100%; background: linear-gradient(90deg, #e5484d, #f2b632 40%, #2bb52b); transition: width .1s linear; }
+.meter .row2 { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; font-family: var(--display); font-weight: 700; letter-spacing: .04em; }
+.meter .secs { font-size: 26px; color: var(--gold); } .meter .secs.low { color: var(--loss); }
+.meter .val { font-size: 16px; color: var(--ink); } .meter .val b { color: var(--gold); font-size: 20px; }
+.start { text-align: center; padding: 18px 8px; }
+.start .big { font: 800 30px var(--display); text-transform: uppercase; margin-bottom: 6px; }
 .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 18px; }
 @media (max-width: 520px) { .try, .try-head { grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(0, 1fr)); } .try > div { font-size: 12px; padding: 4px; } .club { font-size: 16px; padding: 6px 9px; } }
 </style>
@@ -103,7 +111,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   <div class="hero" role="note">
     <div class="k">Quiz de futebol · todo dia</div>
     <div class="t">Desafie seus conhecimentos sobre futebol</div>
-    <p>Veja a trajetória de clubes e descubra quem é o jogador. Acertou? Ganhe moedas para as skills e pontos nas suas ligas.</p>
+    <p>Trajetórias, primeiro clube, cidade natal, ano de nascimento, curiosidades e muito mais. Acertou? Ganhe moedas para as skills e pontos nas suas ligas.</p>
   </div>
 
   <div class="me" id="who" hidden></div>
@@ -137,11 +145,11 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
         <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
       </div>
       <div class="levels" role="group" aria-label="Nível" id="trLevel">
-        <button type="button" data-l="facil" aria-pressed="true">Fácil<small>3 pts · 30 moedas</small></button>
-        <button type="button" data-l="medio" aria-pressed="false">Médio<small>5 pts · 60 moedas</small></button>
-        <button type="button" data-l="dificil" aria-pressed="false">Difícil<small>8 pts · 100 moedas</small></button>
+        <button type="button" data-l="facil" aria-pressed="true">Fácil<small>30 s · até 3 pts e 30 moedas</small></button>
+        <button type="button" data-l="medio" aria-pressed="false">Médio<small>20 s · até 5 pts e 60 moedas</small></button>
+        <button type="button" data-l="dificil" aria-pressed="false">Difícil<small>12 s · até 8 pts e 100 moedas</small></button>
       </div>
-      <p class="lead" style="font-size:14px;margin:10px 0">4 alternativas e 1 chance por pergunta. Quanto mais difícil, mais pontos. Até 10 perguntas por dia.</p>
+      <p class="lead" style="font-size:14px;margin:10px 0">4 alternativas e 1 chance. O prêmio cai a cada segundo: responda rápido! Quanto mais difícil, menos tempo e mais pontos. Até 10 perguntas por dia.</p>
       <button class="btn primary" type="button" id="trStart">Nova pergunta</button>
       <span class="num" id="trCount" style="margin-left:8px"></span>
       <div class="msg" id="trMsg" role="status" aria-live="polite"></div>
@@ -171,7 +179,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     <div id="duelList"></div>
   </section>
 
-  <p class="note"><b>Pontos nas ligas:</b> jogador do dia 5 pts · treino 3, 5 ou 8 pts conforme o nível · duelo vencido o dobro do nível. As moedas vão para a sua conta e compram skills no jogo. Trajetórias com os clubes profissionais principais até 2025, sem categorias de base.</p>
+  <p class="note"><b>Pontos nas ligas:</b> jogador do dia 5 pts · treino 3, 5 ou 8 pts conforme o nível · duelo vencido o dobro do nível. As moedas vão para a sua conta e compram skills no jogo. Fácil: trajetórias de craques. Médio: primeiro clube, cidade natal, clubes por onde passou. Difícil: jogadores menos conhecidos, ano de nascimento, clube anterior, curiosidades. Dados: clubes profissionais principais (fonte: Wikidata e curadoria), sem categorias de base.</p>
 </main>
 
 
@@ -222,21 +230,31 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
   const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
 
   // ---------- peças da tela ----------
+  const qHtml = x => `<h2 style="margin-top:6px">${esc(x.pergunta)}</h2>${x.clubes ? pathHtml(x.clubes) : ''}`;
   const pathHtml = clubs => `<div class="path">${(clubs || []).map((c, i) => `${i ? '<span class="arrow" aria-hidden="true">→</span>' : ''}<span class="club">${esc(c)}</span>`).join('')}</div>`;
-  const AGE = { igual: '= mesma idade', mais_velho: '↓ é mais novo', mais_novo: '↑ é mais velho' };
-  function triesHtml(list) {
-    if (!list || !list.length) return '';
-    return `<div class="try-head" aria-hidden="true"><span>Chute</span><span>País</span><span>Posição</span><span>Idade</span><span>Clubes em comum</span></div><div class="tries">` +
-      list.map(t => t.certo ? `<div class="try"><div class="win">${esc(t.nome)}</div><div class="win" style="grid-column:span 4">Acertou!</div></div>`
-        : `<div class="try"><div>${esc(t.nome)}</div><div class="${t.nacao_ok ? 'ok' : 'no'}">${esc(t.nacao)}</div><div class="${t.posicao_ok ? 'ok' : 'no'}">${esc(t.posicao)}</div>
-            <div class="${t.idade === 'igual' ? 'ok' : 'no'}" title="Nascido em ${t.nascimento}">${t.nascimento}<br>${AGE[t.idade]}</div><div class="${t.clubes_comum ? 'ok' : 'no'}">${t.clubes_comum}</div></div>`).join('') + '</div>';
+  // cronômetro: o prêmio cai de 100% até 20% e zera quando o tempo acaba
+  const meters = {};
+  function meterHtml(id) { return `<div class="meter" id="${id}" aria-live="off"><div class="bar"><div class="fill"></div></div><div class="row2"><span class="secs"></span><span class="val"></span></div></div>`; }
+  function runMeter(id, total, restante, maxCoins, onEnd) {
+    clearInterval(meters[id]);
+    const end = performance.now() + restante * 1000, el = $(id); if (!el) return;
+    const tick = () => {
+      const left = Math.max(0, (end - performance.now()) / 1000), k = Math.max(0.2, left / total);
+      el.querySelector('.fill').style.width = (100 * left / total) + '%';
+      const sx = el.querySelector('.secs'); sx.textContent = Math.ceil(left) + ' s'; sx.classList.toggle('low', left <= total * 0.25);
+      el.querySelector('.val').innerHTML = left > 0 ? `vale <b>${Math.max(1, Math.round(maxCoins * k))}</b> moedas agora` : 'tempo esgotado';
+      if (left <= 0) { clearInterval(meters[id]); onEnd(); }
+    };
+    tick(); meters[id] = setInterval(tick, 100);
   }
+  const stopMeter = id => clearInterval(meters[id]);
+
   // alternativas: certas em verde e erradas riscadas quando já respondidas
   function optsHtml(prefix, opts, guesses, answerId, finished) {
-    const tried = (guesses || []).map(t => t.id);
+    const tried = (guesses || []).map(t => t.i);
     return `<div class="opts" id="${prefix}Opts" role="group" aria-label="Alternativas">` + (opts || []).map(o => {
-      const cls = finished && o.id === answerId ? 'right' : tried.includes(o.id) ? 'wrong' : o.eliminada ? 'gone' : '';
-      return `<button type="button" class="opt ${cls}" data-opt="${o.id}" ${finished || cls ? 'disabled' : ''}>${esc(o.nome)}</button>`;
+      const cls = finished && o.i === answerId ? 'right' : tried.includes(o.i) ? 'wrong' : o.eliminada ? 'gone' : '';
+      return `<button type="button" class="opt ${cls}" data-opt="${o.i}" ${finished || cls ? 'disabled' : ''}>${esc(o.nome)}</button>`;
     }).join('') + `</div><div class="msg" id="${prefix}Msg" role="status" aria-live="polite"></div>`;
   }
   function bindOpts(prefix, fn) {
@@ -262,24 +280,36 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     return `⚽ Quem é o jogador? ${MODE[diaMode]} #${dia.numero}\n${t} ${dia.acertou ? dia.tentativas.length : 'X'}/2${dia.sequencia > 1 ? ` · 🔥 ${dia.sequencia} dias seguidos` : ''}\nConsegue? ${new URL('quiz.html', location.href).href}`;
   }
   function renderDia() {
-    const d = dia, left = d.chances - d.tentativas.length;
+    const d = dia, left = d.chances - (d.tentativas || []).length;
+    stopMeter('diaMeter');
+    if (d.conta && !d.iniciado && !d.terminou) {
+      $('diaBox').innerHTML = `<div class="num">${MODE[diaMode]} · desafio nº ${d.numero}${d.sequencia ? ` · 🔥 sequência de ${d.sequencia}` : ''}</div>
+        <div class="start"><div class="big">Pergunta do dia</div><p class="lead" style="margin:0 0 14px">Você terá <b>${d.segundos} segundos</b> e 2 chances. De primeira, o prêmio começa em <b>${d.premio_max} moedas</b> e vai caindo com o tempo. Cada pessoa recebe uma pergunta sorteada.</p>
+        <button class="btn primary" type="button" id="diaGo" style="font-size:20px;padding:14px 28px">Começar</button></div>`;
+      $('diaGo').onclick = async () => { try { dia = await rpc('penalti_quiz_daily_start', Object.assign(auth(), { p_mode: diaMode })); renderDia(); } catch (e) { alert(e.message); } };
+      return;
+    }
+    if (!d.conta) { $('diaBox').innerHTML = '<p class="lead">Escolha um apelido acima para receber a sua pergunta do dia e ganhar moedas.</p>'; return; }
     let h = `<div class="num">${MODE[diaMode]} · desafio nº ${d.numero}${d.sequencia ? ` · 🔥 sequência de ${d.sequencia}` : ''}</div>
-      <h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(d.clubes)}`;
-    h += me || d.terminou ? optsHtml('dia', d.opcoes, d.tentativas, d.resposta_id, d.terminou) : '<p class="lead">Escolha um apelido acima para jogar e ganhar moedas.</p>';
+      ${!d.terminou ? meterHtml('diaMeter') : ''}${qHtml(d)}`;
+    h += me || d.terminou ? optsHtml('dia', d.opcoes, d.tentativas, d.resposta_i, d.terminou) : '<p class="lead">Escolha um apelido acima para jogar e ganhar moedas.</p>';
     if (!d.terminou && d.tentativas.length) h += `<p class="num" style="color:var(--loss)">Errou! Resta ${left} chance.</p>`;
     if (!d.terminou) {
-      h += `<h2 style="font-size:18px;margin-top:16px">Dicas (pagas com moedas)</h2><div class="hints">` + HINTS.map(([k, n, c]) => d.dicas[k] != null && d.dicas[k] !== false
+      h += `<h2 style="font-size:18px;margin-top:16px">Dicas (pagas com moedas)</h2><div class="hints">` + HINTS.filter(([k]) => d.trajetoria || k === 'eliminar').map(([k, n, c]) => d.dicas[k] != null && d.dicas[k] !== false
         ? `<div class="hint"><span>${n}</span><b>${k === 'eliminar' ? 'feito' : esc(d.dicas[k])}</b></div>`
         : `<div class="hint"><span>${n}</span><button class="btn small" type="button" data-hint="${k}" ${me ? '' : 'disabled'}>${c} moedas</button></div>`).join('') + '</div>';
-      h += `<p class="lead" style="font-size:13px;margin:10px 0 0">Cada pessoa recebe um jogador sorteado só para ela. 2 chances. Acertando de primeira: 150 moedas; na segunda: 60. E +5 pontos nas suas ligas.</p>`;
+      h += `<p class="lead" style="font-size:13px;margin:10px 0 0">Cada pessoa recebe um jogador sorteado só para ela. </p>`;
     } else {
-      h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : 'Não foi dessa vez'}</div>
-        <p>Era <b>${esc(d.resposta)}</b>.${d.acertou ? ` Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : ''}</p>
+      h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : d.esgotou ? 'Tempo esgotado' : 'Não foi dessa vez'}</div>
+        <p>Resposta: <b>${esc(d.resposta)}</b>.${d.acertou ? ` Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : ''}</p>
         <p style="margin:0 0 10px"><a href="#treino" id="toTreino" style="color:var(--gold);font-weight:700">Quer mais? Faça o treino por nível →</a></p>
         <p class="num">Próximo desafio em <span id="nextIn"></span></p>
         <div class="row">${waBtn(shareText(), 'Desafiar amigos no WhatsApp')}<button class="btn" type="button" id="copyShare">Copiar resultado</button></div></div>`;
     }
     $('diaBox').innerHTML = h;
+    if (!d.terminou && d.restante != null) runMeter('diaMeter', d.segundos, d.restante, d.tentativas.length ? d.premio_2 : d.premio_max, async () => {
+      try { dia = await rpc('penalti_quiz_guess', Object.assign(auth(), { p_mode: diaMode, p_guess: -1 })); renderDia(); } catch (e) { /* ok */ }
+    });
     const tt = $('toTreino'); if (tt) tt.onclick = e => { e.preventDefault(); setTab('treino'); };
     bindOpts('dia', async id => {
       const r = await rpc('penalti_quiz_guess', Object.assign(auth(), { p_mode: diaMode, p_guess: id }));
@@ -319,13 +349,17 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     const t = tr;
     $('trCount').textContent = `${t.feitas_hoje} de ${t.limite} hoje`;
     $('treinoBox').hidden = false;
-    let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]}</div><h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(t.clubes)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_id, t.terminou)}`;
+    stopMeter('trMeter');
+    let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]} · ${t.segundos} s</div>${!t.terminou ? meterHtml('trMeter') : ''}${qHtml(t)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_i, t.terminou)}`;
     if (!t.terminou && !t.eliminou) h += `<div class="hint" style="margin-top:6px"><span>Dica: eliminar 1 alternativa</span><button class="btn small" type="button" id="trHint">${t.custo_dica} moedas</button></div>`;
-    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : 'Errou'}</div><p>Era <b>${esc(t.resposta)}</b>.${t.acertou ? ` +${t.pontos} pts nas ligas e +${t.moedas} moedas.` : ''}</p>
+    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : t.esgotou ? 'Tempo esgotado' : 'Errou'}</div><p>Resposta: <b>${esc(t.resposta)}</b>.${t.acertou ? ` +${t.pontos} pts nas ligas e +${t.moedas} moedas.` : ''}</p>
       ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : '<p class="num">Você fez as 10 perguntas de hoje. Volte amanhã!</p>'}</div>`;
     $('treinoBox').innerHTML = h;
     bindOpts('tr', async id => { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: id })); renderTreino(); if (tr.terminou) refreshCoins(); });
     const nx = $('trNext'); if (nx) nx.onclick = () => $('trStart').click();
+    if (!t.terminou && t.restante != null) runMeter('trMeter', t.segundos, t.restante, t.moedas_max, async () => {
+      try { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: -1 })); renderTreino(); } catch (e) { /* ok */ }
+    });
     const th = $('trHint'); if (th) th.onclick = async () => {
       th.disabled = true;
       try { const r = await rpc('penalti_quiz_free_hint', Object.assign(auth(), { p_q: t.id })); if (r.erro) alert(ERR[r.erro] || r.erro); tr = r; renderTreino(); refreshCoins(); }
@@ -353,7 +387,7 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
       if (x.status === 'pendente' && !x.eu_desafiei) return `<div class="duel"><span><b>${esc(x.adversario)}</b> desafiou você · ${tag}</span><span class="row"><button class="btn small primary" type="button" data-acc="${x.id}">Aceitar e jogar</button><button class="btn small" type="button" data-rej="${x.id}">Recusar</button></span></div>`;
       if (x.status === 'pendente') return `<div class="duel"><span>Esperando <b>${esc(x.adversario)}</b> aceitar · ${tag}${x.terminei ? (x.acertei ? ' · você acertou' : ' · você errou') : ''}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Continuar</button>`}</div>`;
       if (x.status === 'andamento') return `<div class="duel"><span>Duelo com <b>${esc(x.adversario)}</b> · ${tag} · ${x.terminei ? 'esperando o adversário terminar' : 'sua vez'}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Jogar</button>`}</div>`;
-      if (x.status === 'concluido') return `<div class="duel"><span>${x.empate ? 'Empate' : x.eu_venci ? `<b>Você venceu</b>` : `<b>${esc(x.vencedor)}</b> venceu`} contra ${esc(x.adversario)} · era ${esc(x.resposta)}${x.eu_venci ? ` · +${x.premio.pontos} pts e +${x.premio.moedas} moedas` : ''}</span></div>`;
+      if (x.status === 'concluido') return `<div class="duel"><span>${x.empate ? 'Empate' : x.eu_venci ? `<b>Você venceu</b>` : `<b>${esc(x.vencedor)}</b> venceu`} contra ${esc(x.adversario)} · resposta: ${esc(x.resposta)}${x.eu_venci ? ` · +${x.premio.pontos} pts e +${x.premio.moedas} moedas` : ''}</span></div>`;
       return `<div class="duel"><span>Duelo com ${esc(x.adversario)} ${x.status === 'recusado' ? 'recusado' : 'expirou (não foi aceito em 24 h)'}</span></div>`;
     }).join('') : '<div class="empty">Nenhum duelo ainda. Desafie alguém das suas ligas!</div>';
   }
@@ -372,9 +406,9 @@ input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(-
     const render = () => {
       const x = playing;
       let h = `<div class="row" style="justify-content:space-between;align-items:center"><div class="num">Duelo com ${esc(x.adversario)} · ${MODE[x.modo]} · ${LEVEL[x.nivel]}</div>
-        ${!x.terminei && end ? '<div class="timer" id="duelTimer"></div>' : ''}</div><h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(x.clubes)}${optsHtml('du', x.opcoes, x.tentativas, x.resposta_id, x.terminei)}`;
+        ${!x.terminei && end ? '<div class="timer" id="duelTimer"></div>' : ''}</div>${qHtml(x)}${optsHtml('du', x.opcoes, x.tentativas, x.resposta_i, x.terminei)}`;
       if (x.terminei) h += `<div class="result"><div class="big">${x.acertei ? 'Você acertou!' : 'Fim do seu tempo'}</div>
-        <p>${x.resposta ? `Era <b>${esc(x.resposta)}</b>. ` : ''}${x.status === 'concluido' ? (x.empate ? 'Empate.' : x.eu_venci ? `Você venceu! +${x.premio.pontos} pts e +${x.premio.moedas} moedas.` : `${esc(x.vencedor)} venceu.`) : 'O resultado sai quando o adversário jogar.'}</p>
+        <p>${x.resposta ? `Resposta: <b>${esc(x.resposta)}</b>. ` : ''}${x.status === 'concluido' ? (x.empate ? 'Empate.' : x.eu_venci ? `Você venceu! +${x.premio.pontos} pts e +${x.premio.moedas} moedas.` : `${esc(x.vencedor)} venceu.`) : 'O resultado sai quando o adversário jogar.'}</p>
         <button class="btn" type="button" id="duelClose">Fechar</button></div>`;
       $('duelPlay').innerHTML = h; $('duelPlay').hidden = false;
       bindOpts('du', async id => { playing = await rpc('penalti_quiz_duel_guess', Object.assign(auth(), { p_duel: x.id, p_guess: id })); render(); if (playing.terminei) { loadDuels(); refreshCoins(); } });
