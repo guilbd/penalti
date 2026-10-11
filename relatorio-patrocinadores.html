@@ -138,7 +138,7 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
   const pct = (c, v) => v ? (100 * c / v).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '%' : '—';
   const fmtDay = d => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
   const weekday = d => new Date(d + 'T12:00:00Z').toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' });
-  const ERR = { senha_invalida: 'Código, e-mail ou senha errados.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.', trocar_senha: 'Sua senha ainda é a provisória. Troque-a no Cadastro antes de ver o relatório.' };
+  const ERR = { senha_invalida: 'Código, e-mail ou senha errados.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.', trocar_senha: 'Sua senha ainda é a provisória. Troque-a no Cadastro antes de ver o relatório.', sessao_expirada: 'Sua sessão expirou. Entre de novo.' };
 
   // datas no fuso de Brasília
   const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -162,11 +162,12 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
   // anunciante: { kind: 'anc', marca, pass } · gestor: { kind: 'adm', email, pass }
   let sess = null;
   try { sess = JSON.parse(sessionStorage.getItem('penalti.relatorio')) || null; } catch (e) { /* sem armazenamento */ }
-  if (!sess) try { const a = JSON.parse(sessionStorage.getItem('penalti.admin')); if (a && a.email) sess = { kind: 'adm', email: a.email, pass: a.pass }; } catch (e) { /* ok */ }
+  if (sess && sess.kind === 'adm' && !/^sess_/.test(sess.pass || '')) sess = null;      // versões antigas guardavam a senha
+  if (!sess) try { const a = JSON.parse(sessionStorage.getItem('penalti.admin')); if (a && a.email && /^sess_/.test(a.pass || '')) sess = { kind: 'adm', email: a.email, pass: a.pass }; } catch (e) { /* ok */ }
   const keep = () => { try { sessionStorage.setItem('penalti.relatorio', JSON.stringify(sess)); } catch (e) { /* ok */ } };
   const call = (name, args) => rpc(name, Object.assign(sess.kind === 'adm' ? { p_email: sess.email, p_pass: sess.pass } : { p_marca: sess.marca, p_pass: sess.pass }, args));
   function fail(e) {
-    if (e.code === 'senha_invalida' || e.code === 'bloqueado' || e.code === 'trocar_senha') { logout(); $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; return true; }
+    if (e.code === 'senha_invalida' || e.code === 'bloqueado' || e.code === 'trocar_senha' || e.code === 'sessao_expirada') { logout(); $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; return true; }
     return false;
   }
 
@@ -184,6 +185,7 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
   }
   $('who').addEventListener('click', e => { const b = e.target.closest('[data-w]'); if (b) { $('lMsg').textContent = ''; setWho(b.dataset.w); } });
   function logout() {
+    if (sess && sess.kind === 'adm' && /^sess_/.test(sess.pass || '')) rpc('penalti_admin_logout', { p_email: sess.email, p_pass: sess.pass }).catch(() => {});
     sess = null;
     try { sessionStorage.removeItem('penalti.relatorio'); } catch (e) { /* ok */ }
     $('aPass').value = ''; $('gPass').value = ''; showLogin();
@@ -195,7 +197,16 @@ input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
     catch (e) { if (!fail(e)) { $('lMsg').textContent = e.message; $('lMsg').className = 'msg err'; } }
   }
   $('ancForm').addEventListener('submit', e => { e.preventDefault(); enter({ kind: 'anc', marca: $('aCode').value.trim().toLowerCase(), pass: $('aPass').value }); });
-  $('admForm').addEventListener('submit', e => { e.preventDefault(); enter({ kind: 'adm', email: $('gEmail').value.trim().toLowerCase(), pass: $('gPass').value }); });
+  $('admForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('gEmail').value.trim().toLowerCase();
+    try {
+      const r = await rpc('penalti_admin_login', { p_email: email, p_pass: $('gPass').value });
+      if (r.erro) { const err = new Error(ERR[r.erro] || r.erro); err.code = r.erro; throw err; }
+      if (r.trocar) { $('lMsg').textContent = 'Você ainda está com a senha provisória: crie sua senha no cadastro de patrocinadores.'; $('lMsg').className = 'msg err'; return; }
+      enter({ kind: 'adm', email, pass: r.sessao });
+    } catch (err) { $('lMsg').textContent = err.message; $('lMsg').className = 'msg err'; }
+  });
 
   // ---------- relatório ----------
   let period = '7', data = [], sel = null, mine = null;

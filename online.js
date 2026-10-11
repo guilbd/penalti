@@ -114,8 +114,11 @@
         }
         catch (e) { status(msgOf(e), true); }
       };
+      w.insertAdjacentHTML('beforeend', '<div id="onLogin" style="margin-top:10px"></div>');
+      if (root.PKConta) root.PKConta.mountLogin($('onLogin'), { onLogin: m => { me = m; save(m); status(''); renderWho(); syncWallet(); } });
     } else {
-      w.innerHTML = `<div class="on-row" style="justify-content:space-between"><div class="on-me" style="display:flex;align-items:center;gap:10px"><span id="onAv">${avatar(me.avatar, me.nickname, 44)}</span><span id="onMeTxt">${esc(me.nickname)} · <b>${me.rating ?? 1000}</b> pontos</span></div><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost" type="button" id="onPhoto">${me.avatar ? 'Trocar foto' : 'Pôr foto'}</button><button class="btn ghost" type="button" id="onRename">Trocar apelido</button></span></div>`;
+      w.innerHTML = `<div class="on-row" style="justify-content:space-between"><div class="on-me" style="display:flex;align-items:center;gap:10px"><span id="onAv">${avatar(me.avatar, me.nickname, 44)}</span><span id="onMeTxt">${esc(me.nickname)} · <b>${me.rating ?? 1000}</b> pontos</span></div><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn ghost" type="button" id="onPhoto">${me.avatar ? 'Trocar foto' : 'Pôr foto'}</button><button class="btn ghost" type="button" id="onRename">Trocar apelido</button></span></div><div id="onConta" style="margin-top:10px"></div>`;
+      if (root.PKConta) root.PKConta.mountProtect($('onConta'), me);
       $('onPhoto').onclick = () => pickPhoto(async data => {
         if (!data) return status('Não consegui abrir essa imagem.', true);
         status('Salvando a foto…');

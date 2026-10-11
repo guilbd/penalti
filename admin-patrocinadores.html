@@ -119,6 +119,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     <p class="hint" id="pHint">Você entrou com uma senha provisória. Crie uma senha só sua para continuar (mínimo de 8 caracteres).</p>
     <form id="pForm">
       <input type="email" id="pUser" autocomplete="username" hidden>
+      <div class="field" id="pCurBox"><label for="pCur">Senha atual</label><input type="password" id="pCur" autocomplete="current-password"></div>
       <div class="field"><label for="pNew">Nova senha</label><input type="password" id="pNew" autocomplete="new-password" required minlength="8"></div>
       <div class="field"><label for="pNew2">Repita a nova senha</label><input type="password" id="pNew2" autocomplete="new-password" required minlength="8"></div>
       <div class="row"><button class="btn primary" type="submit" id="pBtn">Salvar senha</button><button class="btn" type="button" id="pCancel">Cancelar</button></div>
@@ -329,7 +330,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.',
     senha_curta: 'Use pelo menos 8 caracteres.', senha_curta_6: 'Use pelo menos 6 caracteres.', marca_inexistente: 'Salve a marca antes.', senha_igual: 'A nova senha precisa ser diferente da provisória.',
     trocar_senha: 'Crie sua senha antes de continuar.', email_invalido: 'E-mail inválido.', email_existe: 'Esse e-mail já é gestor.',
-    remover_si: 'Você não pode remover a si mesmo.'
+    remover_si: 'Você não pode remover a si mesmo.', sessao_expirada: 'Sua sessão expirou. Entre de novo.', senha_atual: 'Digite sua senha atual.'
   };
   const msg = (el, t, kind) => { const m = $(el); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
 
@@ -340,13 +341,16 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     return data;
   }
   // chamadas com e-mail e senha: se não valem mais, volta para a entrada
-  let cred = null;                                   // { email, pass } guardado só nesta aba
+  let cred = null;                                   // { email, pass: código de sessão } guardado só nesta aba (nunca a senha)
   try { cred = JSON.parse(sessionStorage.getItem('penalti.admin')) || null; } catch (e) { /* sem armazenamento */ }
+  // versões antigas guardavam a senha aqui; agora só vale o código de sessão
+  if (cred && !/^sess_/.test(cred.pass || '')) { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } }
+  let typedPass = null;                              // senha provisória digitada agora, só na memória, para a troca obrigatória
   const keep = () => { try { sessionStorage.setItem('penalti.admin', JSON.stringify(cred)); } catch (e) { /* ok */ } };
   async function arpc(name, args) {
     const d = await rpc(name, Object.assign({ p_email: cred && cred.email, p_pass: cred && cred.pass }, args));
     if (d && d.erro) {
-      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
+      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado' || d.erro === 'sessao_expirada') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
       else if (d.erro === 'trocar_senha') showPwd(true);
       throw new Error(ERR[d.erro] || d.erro);
     }
@@ -405,9 +409,12 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     $('pTitle').textContent = force ? 'Crie sua senha' : 'Trocar minha senha';
     $('pHint').textContent = force ? 'Você entrou com uma senha provisória. Crie uma senha só sua para continuar (mínimo de 8 caracteres).' : 'Mínimo de 8 caracteres.';
     $('pCancel').hidden = force; $('pUser').value = cred ? cred.email : '';
+    $('pCurBox').hidden = !!(force && typedPass); $('pCur').value = '';
     $('pNew').value = ''; $('pNew2').value = ''; msg('pMsg', ''); $('pNew').focus();
   }
-  function logout() { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('lPass').value = ''; showLogin(); }
+  function logout() {
+    if (cred && /^sess_/.test(cred.pass || '')) rpc('penalti_admin_logout', { p_email: cred.email, p_pass: cred.pass }).catch(() => {});
+    cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('lPass').value = ''; showLogin(); }
   $('logout').addEventListener('click', logout);
   $('lForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -416,7 +423,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     try {
       const r = await rpc('penalti_admin_login', { p_email: email, p_pass: p });
       if (r.erro) throw new Error(ERR[r.erro] || r.erro);
-      cred = { email, pass: p }; keep(); $('lPass').value = ''; msg('lMsg', '');
+      cred = { email, pass: r.sessao }; typedPass = r.trocar ? p : null; keep(); $('lPass').value = ''; msg('lMsg', '');
       if (r.trocar) showPwd(true); else open(await arpc('penalti_admin_list'));
     } catch (err) { msg('lMsg', err.message, 'err'); }
     $('lBtn').disabled = false;
@@ -425,10 +432,13 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     e.preventDefault();
     const n = $('pNew').value;
     if (n !== $('pNew2').value) return msg('pMsg', 'As duas senhas não são iguais.', 'err');
+    const cur = (forced && typedPass) || $('pCur').value;
+    if (!cur) return msg('pMsg', ERR.senha_atual, 'err');
     $('pBtn').disabled = true; msg('pMsg', 'Salvando…');
     try {
-      await arpc('penalti_admin_password', { p_new: n });
-      cred.pass = n; keep();
+      const r = await rpc('penalti_admin_password', { p_email: cred.email, p_pass: cur, p_new: n });
+      if (r.erro) { if (r.erro === 'bloqueado') { logout(); msg('lMsg', ERR.bloqueado, 'err'); } throw new Error(r.erro === 'senha_invalida' ? 'A senha atual está errada.' : ERR[r.erro] || r.erro); }
+      cred.pass = r.sessao; typedPass = null; keep();
       open(await arpc('penalti_admin_list')); msg('listMsg', 'Senha salva.', 'ok');
     } catch (err) { if (!$('pwd').hidden) msg('pMsg', err.message, 'err'); }
     $('pBtn').disabled = false;

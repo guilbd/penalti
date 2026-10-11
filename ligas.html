@@ -129,6 +129,7 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
     <div class="row"><div class="grow"><label for="regNick">Apelido</label><input type="text" id="regNick" maxlength="16" required autocomplete="nickname"></div><button class="btn primary" type="submit">Criar</button></div>
     <div class="msg" id="regMsg" role="status" aria-live="polite"></div>
   </form>
+  <div id="loginBox" style="margin:-8px 0 18px"></div>
 
   <div id="chBox"></div>
 
@@ -235,6 +236,7 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
   </form>
 </dialog>
 
+<script src="conta.js"></script>
 <script>
 (function () {
   'use strict';
@@ -291,7 +293,8 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
   try { me = JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { /* sem armazenamento */ }
   const auth = () => ({ p_id: me && me.id, p_secret: me && me.secret });
   function renderWho() {
-    $('regForm').hidden = !!me;
+    $('regForm').hidden = !!me; $('loginBox').hidden = !!me;
+    if (!me && !$('loginBox').childElementCount && window.PKConta) PKConta.mountLogin($('loginBox'));
     $('who').hidden = !me;
     if (me) {
       $('who').innerHTML = `<span style="display:flex;align-items:center;gap:10px">${avatar(me.avatar, me.nickname, 40)}<span>Você: <b>${esc(me.nickname)}</b></span></span><button class="btn small" type="button" id="photoBtn">${me.avatar ? 'Trocar foto' : 'Pôr foto'}</button>`;

@@ -166,7 +166,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   const msg = (el, t, kind) => { const m = $(el); m.textContent = t || ''; m.className = 'msg' + (kind ? ' ' + kind : ''); };
   const ERR = {
     senha_invalida: 'Senha errada.', bloqueado: 'Muitas tentativas erradas. Espere 15 minutos e tente de novo.', trocar_senha: 'Crie sua senha no cadastro de patrocinadores antes de continuar.',
-    apelido_em_uso: 'Esse apelido já está em uso.', apelido_invalido: 'Apelido inválido: use 3 a 16 letras, números, espaço, ponto, hífen ou _.', usuario_inexistente: 'Essa conta não existe mais.'
+    apelido_em_uso: 'Esse apelido já está em uso.', apelido_invalido: 'Apelido inválido: use 3 a 16 letras, números, espaço, ponto, hífen ou _.', usuario_inexistente: 'Essa conta não existe mais.', sessao_expirada: 'Sua sessão expirou. Entre de novo.'
   };
   const SKILLS = [['power', 'Força'], ['accuracy', 'Precisão'], ['curve', 'Efeito'], ['reflex', 'Reflexo'], ['reach', 'Impulsão']];
   const nf = n => Number(n || 0).toLocaleString('pt-BR');
@@ -190,18 +190,22 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   // mesma sessão do cadastro de patrocinadores (guardada só nesta aba)
   let cred = null;
   try { cred = JSON.parse(sessionStorage.getItem('penalti.admin')) || null; } catch (e) { /* ok */ }
+  // versões antigas guardavam a senha aqui; agora só vale o código de sessão
+  if (cred && !/^sess_/.test(cred.pass || '')) { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } }
   const keep = () => { try { sessionStorage.setItem('penalti.admin', JSON.stringify(cred)); } catch (e) { /* ok */ } };
   async function arpc(name, args) {
     const d = await rpc(name, Object.assign({ p_email: cred && cred.email, p_pass: cred && cred.pass }, args));
     if (d && d.erro) {
-      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
+      if (d.erro === 'senha_invalida' || d.erro === 'bloqueado' || d.erro === 'sessao_expirada') { logout(); msg('lMsg', ERR[d.erro], 'err'); }
       if (d.erro === 'trocar_senha') location.href = 'admin-patrocinadores.html';
       throw new Error(ERR[d.erro] || d.erro);
     }
     return d;
   }
   const show = id => ['login', 'app'].forEach(x => { $(x).hidden = x !== id; });
-  function logout() { cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('logout').hidden = true; show('login'); }
+  function logout() {
+    if (cred && /^sess_/.test(cred.pass || '')) rpc('penalti_admin_logout', { p_email: cred.email, p_pass: cred.pass }).catch(() => {});
+    cred = null; try { sessionStorage.removeItem('penalti.admin'); } catch (e) { /* ok */ } $('logout').hidden = true; show('login'); }
   $('logout').addEventListener('click', logout);
   $('lForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -210,7 +214,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     try {
       const r = await rpc('penalti_admin_login', { p_email: email, p_pass: p });
       if (r.erro) throw new Error(ERR[r.erro] || r.erro);
-      cred = { email, pass: p }; keep(); $('lPass').value = ''; msg('lMsg', '');
+      cred = { email, pass: r.sessao }; keep(); $('lPass').value = ''; msg('lMsg', '');
       if (r.trocar) { location.href = 'admin-patrocinadores.html'; return; }
       start();
     } catch (err) { msg('lMsg', err.message, 'err'); }

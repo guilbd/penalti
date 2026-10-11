@@ -181,6 +181,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
     <div class="row"><div class="grow"><label for="regNick">Apelido</label><input type="text" id="regNick" maxlength="16" required autocomplete="nickname"></div><button class="btn primary" type="submit">Começar</button></div>
     <div class="msg" id="regMsg" role="status" aria-live="polite"></div>
   </form>
+  <div id="loginBox" hidden style="margin:-4px 0 16px"></div>
 
   <div class="tabs" role="tablist" aria-label="Modos" id="tabs">
     <button type="button" role="tab" data-t="hoje" aria-selected="true">Hoje<span class="badge" id="hojeBadge" hidden></span></button>
@@ -195,6 +196,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   <!-- hoje: bônus, missões, desafio patrocinado, conquistas -->
   <section id="t-hoje">
     <div id="evBox"></div>
+    <div class="card2" id="contaBox" hidden><h2>Sua conta</h2><div id="contaIn"></div></div>
     <div class="card2" id="bonusBox"></div>
     <div class="card2" id="missBox"></div>
     <div id="scBox"></div>
@@ -287,6 +289,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
 
 
 <script src="engine.js"></script>
+<script src="conta.js"></script>
 <script>
 (function () {
   'use strict';
@@ -326,7 +329,8 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   const auth = () => ({ p_id: me && me.id, p_secret: me && me.secret });
   let coins = null;
   function renderWho() {
-    $('regForm').hidden = !!me; $('who').hidden = !me;
+    $('regForm').hidden = !!me; $('who').hidden = !me; $('loginBox').hidden = !!me;
+    if (!me && !$('loginBox').childElementCount && window.PKConta) PKConta.mountLogin($('loginBox'));
     if (me) $('who').innerHTML = `<span>Você: <b>${esc(me.nickname)}</b></span><span>${coins == null ? '' : `<b>${coins}</b> moedas`}</span>`;
   }
   const setCoins = w => { if (w && typeof w.coins === 'number') { coins = w.coins; renderWho(); } };
@@ -819,6 +823,7 @@ table.rk .av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
   }
 
   function loadHoje() {
+    $('contaBox').hidden = !me; if (me && window.PKConta) PKConta.mountProtect($('contaIn'), me);
     loadEvent(); loadBonus(false); loadMissions(); loadSC(); renderPush(); loadRef(); checkAch();
     if (!me) $('achBox').innerHTML = '<h2>Conquistas</h2><p class="lead" style="margin:0">Escolha um apelido para colecionar medalhas.</p>';
   }

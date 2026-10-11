@@ -18,7 +18,7 @@ DOCS.mkdir()
 for name in PAGES:
     body = (ROOT / name).read_text(encoding="utf-8")
     (DOCS / name).write_text('<!doctype html>\n<html lang="pt-BR">\n' + body + "\n</html>\n", encoding="utf-8")
-for name in ["engine.js", "menu.js", "online.js", "realplayers.js", "patrocinadores.js", "patrocinio.js", "sw.js"]:
+for name in ["engine.js", "menu.js", "online.js", "realplayers.js", "patrocinadores.js", "patrocinio.js", "sw.js", "conta.js"]:
     shutil.copy(ROOT / name, DOCS / name)
 shutil.copytree(ROOT / "assets" / "web", DOCS / "assets" / "web")
 shutil.copytree(ROOT / "assets" / "patrocinadores", DOCS / "assets" / "patrocinadores")
