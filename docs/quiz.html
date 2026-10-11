@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="penalti.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/penalti-32.png">
+<link rel="apple-touch-icon" href="assets/icons/penalti-180.png">
+<meta name="apple-mobile-web-app-title" content="Pênalti">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#060b16">
+<title>Quem é o jogador?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Mesmo visual do ranking e das ligas: noite de estádio, filete dourado. */
+:root {
+  --night: #060b16; --panel: #0d1730; --row: rgba(255, 255, 255, .03); --line: rgba(255, 255, 255, .12);
+  --ink: #f3f1ea; --muted: #a8b3c7; --gold: #f2b632; --win: #3cc47a; --loss: #e5484d;
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: radial-gradient(ellipse at 50% -10%, #1b2c4e, var(--night) 60%) fixed, var(--night); color: var(--ink); font-family: var(--body); }
+main { max-width: 760px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top, 0px)) 16px calc(48px + env(safe-area-inset-bottom, 0px)); }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.eyebrow { font-family: var(--display); font-size: 14px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(40px, 9vw, 72px); line-height: .9; margin: 6px 0 0; text-transform: uppercase; }
+h2 { font-family: var(--display); font-weight: 800; font-size: 24px; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 10px; }
+.lead { color: var(--muted); line-height: 1.5; margin: 12px 0 16px; }
+.links { display: flex; gap: 8px; flex-wrap: wrap; }
+.links a, .btn { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); text-decoration: none; border: 1px solid var(--line); padding: 9px 14px; background: transparent; font-size: 15px; cursor: pointer; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.links a.primary, .btn.primary { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.btn.wa { background: #25d366; border-color: #25d366; color: #06230f; }
+.btn.small { min-height: 36px; padding: 5px 10px; font-size: 13px; }
+.btn:disabled { opacity: .45; cursor: default; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.box { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
+.me { background: var(--panel); border-left: 4px solid var(--gold); padding: 10px 14px; margin-bottom: 14px; font-family: var(--display); font-size: 18px; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; align-items: center; }
+.me b { color: var(--gold); }
+label { display: block; font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+input[type=text], select { width: 100%; font: 500 17px var(--body); color: var(--ink); background: var(--night); border: 1px solid var(--line); padding: 10px 12px; min-height: 44px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.row > .grow { flex: 1 1 200px; }
+.msg { min-height: 22px; margin-top: 8px; font-size: 15px; } .msg.err { color: #ff8a8a; } .msg.ok { color: var(--win); }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button { font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: 15px; color: var(--ink); background: transparent; border: 1px solid var(--line); padding: 8px 14px; cursor: pointer; min-height: 40px; }
+.tabs button[aria-selected="true"], .tabs button[aria-pressed="true"] { background: var(--gold); color: #1a1406; border-color: var(--gold); }
+.tabs .badge { display: inline-block; background: var(--loss); color: #fff; border-radius: 10px; font-size: 12px; padding: 0 6px; margin-left: 6px; }
+/* trajetória */
+.path { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0 14px; }
+.club { background: #13203f; border: 1px solid var(--line); padding: 8px 12px; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: .03em; }
+.arrow { color: var(--gold); font-weight: 800; }
+.num { color: var(--muted); font-family: var(--display); letter-spacing: .1em; text-transform: uppercase; font-size: 14px; }
+/* tentativas */
+.tries { display: grid; gap: 6px; margin: 12px 0; }
+.try { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 4px; align-items: stretch; }
+.try > div { background: #13203f; padding: 6px 8px; font-size: 13px; line-height: 1.25; text-align: center; display: grid; place-items: center; min-height: 44px; }
+.try > div:first-child { text-align: left; place-items: center start; font-weight: 600; font-size: 15px; }
+.try .ok { background: rgba(60,196,122,.28); color: #bff5d6; }
+.try .no { background: rgba(229,72,77,.22); color: #ffc9cb; }
+.try .win { background: var(--win); color: #062312; }
+.try-head { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: 4px; font-family: var(--display); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.try-head span:first-child { text-align: left; }
+.hints { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin-top: 10px; }
+.hint { border: 1px dashed var(--line); padding: 8px 10px; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.hint b { color: var(--gold); }
+.result { border: 1px solid var(--gold); background: rgba(242,182,50,.08); padding: 14px; margin-top: 12px; }
+.result .big { font-family: var(--display); font-weight: 800; font-size: 28px; text-transform: uppercase; }
+.timer { font-family: var(--display); font-weight: 800; font-size: 34px; color: var(--gold); }
+.timer.low { color: var(--loss); }
+.duel { border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.duel b { color: var(--gold); }
+.empty { color: var(--muted); padding: 14px; border: 1px dashed var(--line); }
+.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.levels button { font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: 16px; color: var(--ink); background: transparent; border: 1px solid var(--line); padding: 8px; cursor: pointer; }
+.levels button small { display: block; font-family: var(--body); text-transform: none; letter-spacing: 0; font-size: 12px; color: var(--muted); }
+.levels button[aria-pressed="true"] { border-color: var(--gold); background: rgba(242,182,50,.14); }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 4px; }
+.opt { font: 700 18px var(--display); letter-spacing: .03em; text-align: left; color: var(--ink); background: #13203f; border: 2px solid var(--line); padding: 14px 14px; min-height: 58px; cursor: pointer; }
+.opt:hover:not(:disabled) { border-color: var(--gold); }
+.opt:disabled { cursor: default; }
+.opt.right { background: var(--win); border-color: var(--win); color: #062312; }
+.opt.wrong { background: rgba(229,72,77,.25); border-color: var(--loss); color: #ffc9cb; text-decoration: line-through; }
+.opt.gone { opacity: .3; text-decoration: line-through; }
+.hero { position: relative; overflow: hidden; margin: 14px 0 18px; padding: 20px 18px; background: linear-gradient(115deg, #2bb52b 0%, #1f8f2a 45%, #f2b632 140%); color: #06230f; border-radius: 4px; }
+.hero::after { content: "?"; position: absolute; right: -6px; top: -34px; font: 800 190px/1 var(--display); color: rgba(255,255,255,.18); pointer-events: none; }
+.hero .k { font: 800 14px var(--display); letter-spacing: .22em; text-transform: uppercase; }
+.hero .t { font: 800 clamp(30px, 7vw, 48px)/1 var(--display); text-transform: uppercase; margin: 6px 0 8px; max-width: 16ch; }
+.hero p { margin: 0; font-weight: 600; max-width: 46ch; }
+@media (max-width: 520px) { .opts { grid-template-columns: 1fr; } }
+.note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 18px; }
+@media (max-width: 520px) { .try, .try-head { grid-template-columns: minmax(0, 1.2fr) repeat(4, minmax(0, 1fr)); } .try > div { font-size: 12px; padding: 4px; } .club { font-size: 16px; padding: 6px 9px; } }
+</style>
+
+<main>
+  <div class="top">
+    <div><div class="eyebrow">Desafio de futebol</div><h1>Quem é o jogador?</h1></div>
+    <div class="links"><a class="primary" href="index.html">Jogar Pênalti</a><a href="ligas.html">Ligas</a></div>
+  </div>
+  <div class="hero" role="note">
+    <div class="k">Quiz de futebol · todo dia</div>
+    <div class="t">Desafie seus conhecimentos sobre futebol</div>
+    <p>Veja a trajetória de clubes e descubra quem é o jogador. Acertou? Ganhe moedas para as skills e pontos nas suas ligas.</p>
+  </div>
+
+  <div class="me" id="who" hidden></div>
+  <form class="box" id="regForm" hidden style="margin-bottom:14px">
+    <h2>Escolha seu apelido</h2>
+    <p class="lead" style="margin:-4px 0 10px;font-size:14px">É o mesmo do jogo online. As moedas e os pontos ficam na sua conta.</p>
+    <div class="row"><div class="grow"><label for="regNick">Apelido</label><input type="text" id="regNick" maxlength="16" required autocomplete="nickname"></div><button class="btn primary" type="submit">Começar</button></div>
+    <div class="msg" id="regMsg" role="status" aria-live="polite"></div>
+  </form>
+
+  <div class="tabs" role="tablist" aria-label="Modos" id="tabs">
+    <button type="button" role="tab" data-t="dia" aria-selected="true">Jogador do dia</button>
+    <button type="button" role="tab" data-t="treino" aria-selected="false">Treino</button>
+    <button type="button" role="tab" data-t="duelos" aria-selected="false">Duelos<span class="badge" id="duelBadge" hidden></span></button>
+  </div>
+
+  <!-- jogador do dia -->
+  <section id="t-dia">
+    <div class="tabs" role="group" aria-label="Campeonato" id="diaMode">
+      <button type="button" data-m="br" aria-pressed="true">Brasileirão</button>
+      <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
+    </div>
+    <div class="box" id="diaBox"></div>
+  </section>
+
+  <!-- treino -->
+  <section id="t-treino" hidden>
+    <div class="box" id="treinoPick">
+      <div class="tabs" role="group" aria-label="Campeonato" id="trMode">
+        <button type="button" data-m="br" aria-pressed="true">Brasileirão</button>
+        <button type="button" data-m="mundo" aria-pressed="false">Mundo</button>
+      </div>
+      <div class="levels" role="group" aria-label="Nível" id="trLevel">
+        <button type="button" data-l="facil" aria-pressed="true">Fácil<small>3 pts · 30 moedas</small></button>
+        <button type="button" data-l="medio" aria-pressed="false">Médio<small>5 pts · 60 moedas</small></button>
+        <button type="button" data-l="dificil" aria-pressed="false">Difícil<small>8 pts · 100 moedas</small></button>
+      </div>
+      <p class="lead" style="font-size:14px;margin:10px 0">4 alternativas e 1 chance por pergunta. Quanto mais difícil, mais pontos. Até 10 perguntas por dia.</p>
+      <button class="btn primary" type="button" id="trStart">Nova pergunta</button>
+      <span class="num" id="trCount" style="margin-left:8px"></span>
+      <div class="msg" id="trMsg" role="status" aria-live="polite"></div>
+    </div>
+    <div class="box" id="treinoBox" hidden style="margin-top:10px"></div>
+  </section>
+
+  <!-- duelos -->
+  <section id="t-duelos" hidden>
+    <div class="box" id="duelPlay" hidden style="margin-bottom:12px"></div>
+    <form class="box" id="duelForm" style="margin-bottom:12px">
+      <h2 style="font-size:20px">Desafiar alguém</h2>
+      <p class="lead" style="font-size:14px;margin:-4px 0 12px">Os dois respondem a mesma pergunta (4 alternativas, 1 chance) com o mesmo tempo. Vence quem acertar; se os dois acertarem, o mais rápido. Prêmio em dobro: pontos na liga e moedas. Até 5 duelos por dia.</p>
+      <div class="row">
+        <div class="grow"><label for="dOpp">Adversário (membros das suas ligas)</label><select id="dOpp"></select></div>
+        <div style="flex:1 1 140px"><label for="dMode">Campeonato</label><select id="dMode"><option value="br">Brasileirão</option><option value="mundo">Mundo</option></select></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <div style="flex:1 1 140px"><label for="dLevel">Nível</label><select id="dLevel"><option value="facil">Fácil (6 pts · 60 moedas)</option><option value="medio" selected>Médio (10 pts · 120 moedas)</option><option value="dificil">Difícil (16 pts · 200 moedas)</option></select></div>
+        <div style="flex:1 1 120px"><label for="dSecs">Tempo</label><select id="dSecs"><option value="30">30 segundos</option><option value="60" selected>60 segundos</option><option value="90">90 segundos</option></select></div>
+      </div>
+      <label style="display:flex;gap:8px;align-items:center;margin:12px 0;font-family:var(--body);font-size:15px;letter-spacing:0;text-transform:none;color:var(--ink)"><input type="checkbox" id="dWa" checked style="width:20px;height:20px;accent-color:#25d366"> Avisar pelo WhatsApp</label>
+      <button class="btn primary" type="submit">Desafiar e começar</button>
+      <div class="msg" id="dMsg" role="status" aria-live="polite"></div>
+    </form>
+    <h2 style="font-size:20px">Meus duelos</h2>
+    <div id="duelList"></div>
+  </section>
+
+  <p class="note"><b>Pontos nas ligas:</b> jogador do dia 5 pts · treino 3, 5 ou 8 pts conforme o nível · duelo vencido o dobro do nível. As moedas vão para a sua conta e compram skills no jogo. Trajetórias com os clubes profissionais principais até 2025, sem categorias de base.</p>
+</main>
+
+
+<script>
+(function () {
+  'use strict';
+  const SB_URL = 'https://rlxhfldfnyqpvwqzxspx.supabase.co';
+  const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJseGhmbGRmbnlxcHZ3cXp4c3B4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMjc1NTUsImV4cCI6MjEwMzgwMzU1NX0.uB94NZLeFHmAEXb8q2EIDycSWd2_wN52RduS8Tsm9p8';
+  const ID_KEY = 'penalti.online.v1';
+  const MODE = { br: 'Brasileirão', mundo: 'Mundo' }, LEVEL = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' };
+  const HINTS = [['setor', 'Setor do campo', 40], ['continente', 'Continente', 50], ['decada', 'Década de nascimento', 60], ['eliminar', 'Eliminar 1 alternativa', 100]];
+  const ERR = {
+    credenciais_invalidas: 'Seu cadastro neste aparelho não foi reconhecido. Crie um apelido de novo.', apelido_em_uso: 'Esse apelido já está em uso. Escolha outro.',
+    moedas_insuficientes: 'Moedas insuficientes para essa dica.', limite_diario: 'Você já fez as 10 perguntas de treino de hoje. Volte amanhã!',
+    limite_duelos: 'Você já criou 5 duelos hoje.', sem_liga_comum: 'Vocês precisam estar na mesma liga.', duelo_indisponivel: 'Esse duelo não está mais disponível.',
+    jogador_invalido: 'Escolha um nome da lista.'
+  };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const msg = (el, t, kind) => { $(el).textContent = t || ''; $(el).className = 'msg' + (kind ? ' ' + kind : ''); };
+  async function rpc(name, args) {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${name}`, { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+    const txt = await r.text(); let d = null; try { d = JSON.parse(txt); } catch (e) { /* vazio */ }
+    if (!r.ok) { const m = (d && (d.message || d.details)) || txt; for (const k in ERR) if (m.includes(k)) throw new Error(ERR[k]); throw new Error(/check constraint|nickname/.test(m) ? 'Use de 3 a 16 letras, números, espaço, ponto, hífen ou _.' : 'Não foi possível falar com o servidor. Verifique a internet e tente de novo.'); }
+    if (d && d.erro && !d.clubes && !d.id) { const e = new Error(ERR[d.erro] || d.erro); e.code = d.erro; throw e; }
+    return d;
+  }
+
+  // ---------- conta (a mesma do jogo online) ----------
+  let me = null;
+  try { me = JSON.parse(localStorage.getItem(ID_KEY)) || null; } catch (e) { /* sem armazenamento */ }
+  const auth = () => ({ p_id: me && me.id, p_secret: me && me.secret });
+  let coins = null;
+  function renderWho() {
+    $('regForm').hidden = !!me; $('who').hidden = !me;
+    if (me) $('who').innerHTML = `<span>Você: <b>${esc(me.nickname)}</b></span><span>${coins == null ? '' : `<b>${coins}</b> moedas`}</span>`;
+  }
+  const setCoins = w => { if (w && typeof w.coins === 'number') { coins = w.coins; renderWho(); } };
+  $('regForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    try {
+      const d = await rpc('penalti_register', { p_nickname: $('regNick').value.trim() });
+      me = { id: d.id, secret: d.secret, nickname: d.nickname, rating: d.rating };
+      try { localStorage.setItem(ID_KEY, JSON.stringify(me)); } catch (e2) { /* ok */ }
+      renderWho(); loadDia(); loadDuels();
+    } catch (err) { msg('regMsg', err.message, 'err'); }
+  });
+  const needMe = el => { if (me) return false; msg(el, 'Escolha um apelido primeiro.', 'err'); $('regNick').focus(); return true; };
+
+  // ---------- peças da tela ----------
+  const pathHtml = clubs => `<div class="path">${(clubs || []).map((c, i) => `${i ? '<span class="arrow" aria-hidden="true">→</span>' : ''}<span class="club">${esc(c)}</span>`).join('')}</div>`;
+  const AGE = { igual: '= mesma idade', mais_velho: '↓ é mais novo', mais_novo: '↑ é mais velho' };
+  function triesHtml(list) {
+    if (!list || !list.length) return '';
+    return `<div class="try-head" aria-hidden="true"><span>Chute</span><span>País</span><span>Posição</span><span>Idade</span><span>Clubes em comum</span></div><div class="tries">` +
+      list.map(t => t.certo ? `<div class="try"><div class="win">${esc(t.nome)}</div><div class="win" style="grid-column:span 4">Acertou!</div></div>`
+        : `<div class="try"><div>${esc(t.nome)}</div><div class="${t.nacao_ok ? 'ok' : 'no'}">${esc(t.nacao)}</div><div class="${t.posicao_ok ? 'ok' : 'no'}">${esc(t.posicao)}</div>
+            <div class="${t.idade === 'igual' ? 'ok' : 'no'}" title="Nascido em ${t.nascimento}">${t.nascimento}<br>${AGE[t.idade]}</div><div class="${t.clubes_comum ? 'ok' : 'no'}">${t.clubes_comum}</div></div>`).join('') + '</div>';
+  }
+  // alternativas: certas em verde e erradas riscadas quando já respondidas
+  function optsHtml(prefix, opts, guesses, answerId, finished) {
+    const tried = (guesses || []).map(t => t.id);
+    return `<div class="opts" id="${prefix}Opts" role="group" aria-label="Alternativas">` + (opts || []).map(o => {
+      const cls = finished && o.id === answerId ? 'right' : tried.includes(o.id) ? 'wrong' : o.eliminada ? 'gone' : '';
+      return `<button type="button" class="opt ${cls}" data-opt="${o.id}" ${finished || cls ? 'disabled' : ''}>${esc(o.nome)}</button>`;
+    }).join('') + `</div><div class="msg" id="${prefix}Msg" role="status" aria-live="polite"></div>`;
+  }
+  function bindOpts(prefix, fn) {
+    const g = $(prefix + 'Opts'); if (!g) return;
+    g.addEventListener('click', async e => {
+      const b = e.target.closest('[data-opt]'); if (!b || b.disabled) return;
+      g.querySelectorAll('button').forEach(x => { x.disabled = true; });
+      try { await fn(+b.dataset.opt); } catch (err) { msg(prefix + 'Msg', err.message, 'err'); g.querySelectorAll('button:not(.wrong):not(.gone)').forEach(x => { x.disabled = false; }); }
+    });
+  }
+  const waBtn = (text, label) => `<a class="btn wa" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text)}">${label || 'Enviar pelo WhatsApp'}</a>`;
+
+  // ---------- jogador do dia ----------
+  let diaMode = 'br', dia = null;
+  async function loadDia() {
+    $('diaBox').innerHTML = '<p class="num">Carregando…</p>';
+    try { dia = await rpc('penalti_quiz_today', Object.assign({ p_mode: diaMode }, me ? auth() : { p_id: null, p_secret: null })); }
+    catch (e) { $('diaBox').innerHTML = `<p class="msg err">${esc(e.message)}</p>`; return; }
+    setCoins(dia.carteira); renderDia();
+  }
+  function shareText() {
+    const t = dia.tentativas.map(x => x.certo ? '🟩' : '🟥').join('');
+    return `⚽ Quem é o jogador? ${MODE[diaMode]} #${dia.numero}\n${t} ${dia.acertou ? dia.tentativas.length : 'X'}/2${dia.sequencia > 1 ? ` · 🔥 ${dia.sequencia} dias seguidos` : ''}\nConsegue? ${new URL('quiz.html', location.href).href}`;
+  }
+  function renderDia() {
+    const d = dia, left = d.chances - d.tentativas.length;
+    let h = `<div class="num">${MODE[diaMode]} · desafio nº ${d.numero}${d.sequencia ? ` · 🔥 sequência de ${d.sequencia}` : ''}</div>
+      <h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(d.clubes)}`;
+    h += me || d.terminou ? optsHtml('dia', d.opcoes, d.tentativas, d.resposta_id, d.terminou) : '<p class="lead">Escolha um apelido acima para jogar e ganhar moedas.</p>';
+    if (!d.terminou && d.tentativas.length) h += `<p class="num" style="color:var(--loss)">Errou! Resta ${left} chance.</p>`;
+    if (!d.terminou) {
+      h += `<h2 style="font-size:18px;margin-top:16px">Dicas (pagas com moedas)</h2><div class="hints">` + HINTS.map(([k, n, c]) => d.dicas[k] != null && d.dicas[k] !== false
+        ? `<div class="hint"><span>${n}</span><b>${k === 'eliminar' ? 'feito' : esc(d.dicas[k])}</b></div>`
+        : `<div class="hint"><span>${n}</span><button class="btn small" type="button" data-hint="${k}" ${me ? '' : 'disabled'}>${c} moedas</button></div>`).join('') + '</div>';
+      h += `<p class="lead" style="font-size:13px;margin:10px 0 0">Cada pessoa recebe um jogador sorteado só para ela. 2 chances. Acertando de primeira: 150 moedas; na segunda: 60. E +5 pontos nas suas ligas.</p>`;
+    } else {
+      h += `<div class="result"><div class="big">${d.acertou ? `Acertou em ${d.tentativas.length}!` : 'Não foi dessa vez'}</div>
+        <p>Era <b>${esc(d.resposta)}</b>.${d.acertou ? ` Você ganhou <b>${d.moedas} moedas</b> e 5 pontos nas ligas.` : ''}</p>
+        <p style="margin:0 0 10px"><a href="#treino" id="toTreino" style="color:var(--gold);font-weight:700">Quer mais? Faça o treino por nível →</a></p>
+        <p class="num">Próximo desafio em <span id="nextIn"></span></p>
+        <div class="row">${waBtn(shareText(), 'Desafiar amigos no WhatsApp')}<button class="btn" type="button" id="copyShare">Copiar resultado</button></div></div>`;
+    }
+    $('diaBox').innerHTML = h;
+    const tt = $('toTreino'); if (tt) tt.onclick = e => { e.preventDefault(); setTab('treino'); };
+    bindOpts('dia', async id => {
+      const r = await rpc('penalti_quiz_guess', Object.assign(auth(), { p_mode: diaMode, p_guess: id }));
+      dia = r; setCoins(r.carteira); renderDia();
+      if (r.aviso === 'repetido') msg('diaMsg', 'Você já chutou esse nome.', 'err');
+    });
+    $('diaBox').querySelectorAll('[data-hint]').forEach(b => b.addEventListener('click', async () => {
+      const [, n, c] = HINTS.find(x => x[0] === b.dataset.hint);
+      if (!confirm(`Comprar a dica "${n}" por ${c} moedas?`)) return;
+      b.disabled = true;
+      try { const r = await rpc('penalti_quiz_hint', Object.assign(auth(), { p_mode: diaMode, p_hint: b.dataset.hint })); if (r.erro) alert(ERR[r.erro] || r.erro); dia = r; setCoins(r.carteira); renderDia(); }
+      catch (e) { alert(e.message); b.disabled = false; }
+    }));
+    const cp = $('copyShare'); if (cp) cp.onclick = async () => { try { await navigator.clipboard.writeText(shareText()); cp.textContent = 'Copiado!'; } catch (e) { prompt('Copie:', shareText()); } };
+    tickNext();
+  }
+  function tickNext() {
+    const el = $('nextIn'); if (!el) return;
+    const now = new Date(), br = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const s = Math.max(0, Math.floor((new Date(br.getFullYear(), br.getMonth(), br.getDate() + 1) - br) / 1000));
+    el.textContent = `${Math.floor(s / 3600)}h ${String(Math.floor(s / 60) % 60).padStart(2, '0')}min`;
+  }
+  setInterval(tickNext, 30000);
+  $('diaMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; diaMode = b.dataset.m; $('diaMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); loadDia(); });
+
+  // ---------- treino ----------
+  let trMode = 'br', trLevel = 'facil', tr = null;
+  $('trMode').addEventListener('click', e => { const b = e.target.closest('[data-m]'); if (!b) return; trMode = b.dataset.m; $('trMode').querySelectorAll('[data-m]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('trLevel').addEventListener('click', e => { const b = e.target.closest('[data-l]'); if (!b) return; trLevel = b.dataset.l; $('trLevel').querySelectorAll('[data-l]').forEach(x => x.setAttribute('aria-pressed', String(x === b))); });
+  $('trStart').addEventListener('click', async () => {
+    if (needMe('trMsg')) return;
+    msg('trMsg', '');
+    try { tr = await rpc('penalti_quiz_free_start', Object.assign(auth(), { p_mode: trMode, p_level: trLevel })); renderTreino(); }
+    catch (e) { msg('trMsg', e.message, 'err'); }
+  });
+  function renderTreino() {
+    const t = tr;
+    $('trCount').textContent = `${t.feitas_hoje} de ${t.limite} hoje`;
+    $('treinoBox').hidden = false;
+    let h = `<div class="num">Treino · ${MODE[t.modo]} · ${LEVEL[t.nivel]}</div><h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(t.clubes)}${optsHtml('tr', t.opcoes, t.tentativas, t.resposta_id, t.terminou)}`;
+    if (!t.terminou && !t.eliminou) h += `<div class="hint" style="margin-top:6px"><span>Dica: eliminar 1 alternativa</span><button class="btn small" type="button" id="trHint">${t.custo_dica} moedas</button></div>`;
+    if (t.terminou) h += `<div class="result"><div class="big">${t.acertou ? 'Acertou!' : 'Errou'}</div><p>Era <b>${esc(t.resposta)}</b>.${t.acertou ? ` +${t.pontos} pts nas ligas e +${t.moedas} moedas.` : ''}</p>
+      ${t.feitas_hoje < t.limite ? '<button class="btn primary" type="button" id="trNext">Próxima pergunta</button>' : '<p class="num">Você fez as 10 perguntas de hoje. Volte amanhã!</p>'}</div>`;
+    $('treinoBox').innerHTML = h;
+    bindOpts('tr', async id => { tr = await rpc('penalti_quiz_free_guess', Object.assign(auth(), { p_q: t.id, p_guess: id })); renderTreino(); if (tr.terminou) refreshCoins(); });
+    const nx = $('trNext'); if (nx) nx.onclick = () => $('trStart').click();
+    const th = $('trHint'); if (th) th.onclick = async () => {
+      th.disabled = true;
+      try { const r = await rpc('penalti_quiz_free_hint', Object.assign(auth(), { p_q: t.id })); if (r.erro) alert(ERR[r.erro] || r.erro); tr = r; renderTreino(); refreshCoins(); }
+      catch (e) { alert(e.message); th.disabled = false; }
+    };
+  }
+  async function refreshCoins() { if (!me) return; try { setCoins(await rpc('penalti_wallet', auth())); } catch (e) { /* ok */ } }
+
+  // ---------- duelos ----------
+  let playing = null, playTimer = 0;
+  async function loadOpponents() {
+    if (!me) return;
+    try {
+      const d = await rpc('penalti_quiz_opponents', auth());
+      $('dOpp').innerHTML = d.jogadores.length ? '<option value="random">🎲 Adversário aleatório</option>' + d.jogadores.map(p => `<option value="${esc(p.id)}">${esc(p.nick)}</option>`).join('') : '<option value="">Entre numa liga para desafiar alguém</option>';
+    } catch (e) { /* ok */ }
+  }
+  async function loadDuels() {
+    if (!me) { $('duelList').innerHTML = '<div class="empty">Escolha um apelido para duelar.</div>'; return; }
+    let d; try { d = await rpc('penalti_quiz_duel_list', auth()); } catch (e) { return; }
+    const pend = d.duelos.filter(x => x.status === 'pendente' && !x.eu_desafiei).length;
+    $('duelBadge').hidden = !pend; $('duelBadge').textContent = pend;
+    $('duelList').innerHTML = d.duelos.length ? d.duelos.map(x => {
+      const tag = `${MODE[x.modo]} · ${LEVEL[x.nivel]} · ${x.segundos} s`;
+      if (x.status === 'pendente' && !x.eu_desafiei) return `<div class="duel"><span><b>${esc(x.adversario)}</b> desafiou você · ${tag}</span><span class="row"><button class="btn small primary" type="button" data-acc="${x.id}">Aceitar e jogar</button><button class="btn small" type="button" data-rej="${x.id}">Recusar</button></span></div>`;
+      if (x.status === 'pendente') return `<div class="duel"><span>Esperando <b>${esc(x.adversario)}</b> aceitar · ${tag}${x.terminei ? (x.acertei ? ' · você acertou' : ' · você errou') : ''}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Continuar</button>`}</div>`;
+      if (x.status === 'andamento') return `<div class="duel"><span>Duelo com <b>${esc(x.adversario)}</b> · ${tag} · ${x.terminei ? 'esperando o adversário terminar' : 'sua vez'}</span>${x.terminei ? '' : `<button class="btn small primary" type="button" data-play="${x.id}">Jogar</button>`}</div>`;
+      if (x.status === 'concluido') return `<div class="duel"><span>${x.empate ? 'Empate' : x.eu_venci ? `<b>Você venceu</b>` : `<b>${esc(x.vencedor)}</b> venceu`} contra ${esc(x.adversario)} · era ${esc(x.resposta)}${x.eu_venci ? ` · +${x.premio.pontos} pts e +${x.premio.moedas} moedas` : ''}</span></div>`;
+      return `<div class="duel"><span>Duelo com ${esc(x.adversario)} ${x.status === 'recusado' ? 'recusado' : 'expirou (não foi aceito em 24 h)'}</span></div>`;
+    }).join('') : '<div class="empty">Nenhum duelo ainda. Desafie alguém das suas ligas!</div>';
+  }
+  $('duelList').addEventListener('click', async e => {
+    const a = e.target.closest('[data-acc]'), r = e.target.closest('[data-rej]'), p = e.target.closest('[data-play]');
+    try {
+      if (a) { const d = await rpc('penalti_quiz_duel_answer', Object.assign(auth(), { p_duel: a.dataset.acc, p_accept: true })); openDuel(d); }
+      else if (r) { await rpc('penalti_quiz_duel_answer', Object.assign(auth(), { p_duel: r.dataset.rej, p_accept: false })); loadDuels(); }
+      else if (p) openDuel(await rpc('penalti_quiz_duel_get', Object.assign(auth(), { p_duel: p.dataset.play })));
+    } catch (err) { alert(err.message); loadDuels(); }
+  });
+  async function openDuel(d) {
+    playing = d;
+    clearInterval(playTimer);
+    const end = d.restante != null ? performance.now() + d.restante * 1000 : 0;
+    const render = () => {
+      const x = playing;
+      let h = `<div class="row" style="justify-content:space-between;align-items:center"><div class="num">Duelo com ${esc(x.adversario)} · ${MODE[x.modo]} · ${LEVEL[x.nivel]}</div>
+        ${!x.terminei && end ? '<div class="timer" id="duelTimer"></div>' : ''}</div><h2 style="margin-top:6px">De quem é esta trajetória?</h2>${pathHtml(x.clubes)}${optsHtml('du', x.opcoes, x.tentativas, x.resposta_id, x.terminei)}`;
+      if (x.terminei) h += `<div class="result"><div class="big">${x.acertei ? 'Você acertou!' : 'Fim do seu tempo'}</div>
+        <p>${x.resposta ? `Era <b>${esc(x.resposta)}</b>. ` : ''}${x.status === 'concluido' ? (x.empate ? 'Empate.' : x.eu_venci ? `Você venceu! +${x.premio.pontos} pts e +${x.premio.moedas} moedas.` : `${esc(x.vencedor)} venceu.`) : 'O resultado sai quando o adversário jogar.'}</p>
+        <button class="btn" type="button" id="duelClose">Fechar</button></div>`;
+      $('duelPlay').innerHTML = h; $('duelPlay').hidden = false;
+      bindOpts('du', async id => { playing = await rpc('penalti_quiz_duel_guess', Object.assign(auth(), { p_duel: x.id, p_guess: id })); render(); if (playing.terminei) { loadDuels(); refreshCoins(); } });
+      const c = $('duelClose'); if (c) c.onclick = () => { $('duelPlay').hidden = true; playing = null; };
+    };
+    render();
+    $('duelPlay').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (end) playTimer = setInterval(async () => {
+      const t = $('duelTimer'), s = Math.max(0, Math.ceil((end - performance.now()) / 1000));
+      if (t) { t.textContent = s + ' s'; t.classList.toggle('low', s <= 10); }
+      if (s <= 0) { clearInterval(playTimer); try { playing = await rpc('penalti_quiz_duel_get', Object.assign(auth(), { p_duel: playing.id })); } catch (e) { /* ok */ } render(); loadDuels(); }
+    }, 250);
+  }
+  $('duelForm').addEventListener('submit', async e => {
+    e.preventDefault(); if (needMe('dMsg')) return;
+    if (!$('dOpp').value) return msg('dMsg', 'Entre numa liga para desafiar alguém.', 'err');
+    try {
+      const d = await rpc('penalti_quiz_duel_create', Object.assign(auth(), { p_to: $('dOpp').value === 'random' ? null : $('dOpp').value, p_mode: $('dMode').value, p_level: $('dLevel').value, p_seconds: +$('dSecs').value }));
+      if ($('dWa').checked) window.open('https://wa.me/?text=' + encodeURIComponent(`⚽ ${d.adversario}, te desafiei no "Quem é o jogador?" (${MODE[d.modo]}, ${LEVEL[d.nivel]}, ${d.segundos} s). Aceite aqui: ${new URL('quiz.html#duelos', location.href).href}`), '_blank');
+      msg('dMsg', ''); openDuel(d); loadDuels();
+    } catch (err) { msg('dMsg', err.message, 'err'); }
+  });
+
+  // ---------- abas ----------
+  function setTab(t) {
+    document.querySelectorAll('#tabs [data-t]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === t)));
+    ['dia', 'treino', 'duelos'].forEach(x => { $('t-' + x).hidden = x !== t; });
+    if (t === 'duelos') { loadOpponents(); loadDuels(); }
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('[data-t]'); if (b) setTab(b.dataset.t); });
+  setInterval(() => { if (!document.hidden && !playing) loadDuels(); }, 20000);
+
+  renderWho(); loadDia(); loadDuels(); refreshCoins();
+  setTab(location.hash === '#duelos' ? 'duelos' : location.hash === '#treino' ? 'treino' : 'dia');
+})();
+</script>
+
+</html>

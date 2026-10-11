@@ -187,11 +187,11 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
     <p class="hint" id="periodHint" style="margin:-6px 0 10px"></p>
     <div class="prize" id="prize"></div>
     <div class="tablewrap"><table>
-      <thead><tr><th scope="col">#</th><th scope="col">Jogador</th><th scope="col">Pts</th><th scope="col">J</th><th scope="col">V</th><th scope="col">D</th><th scope="col">Gols</th><th scope="col">Clássicos</th><th scope="col" id="thAct"><span class="sr-only" style="position:absolute;left:-9999px">Ações</span></th></tr></thead>
+      <thead><tr><th scope="col">#</th><th scope="col">Jogador</th><th scope="col">Pts</th><th scope="col">J</th><th scope="col">V</th><th scope="col">D</th><th scope="col">Gols</th><th scope="col">Clássicos</th><th scope="col">Quiz</th><th scope="col" id="thAct"><span class="sr-only" style="position:absolute;left:-9999px">Ações</span></th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
     <div class="msg" id="lMsg" role="status" aria-live="polite"></div>
-    <p class="rules"><b>Pontos:</b> vitória 3 · cada gol marcado 1 · vitória contra outro membro da liga (clássico) +2. Contam as partidas online com placar confirmado pelos dois jogadores, jogadas depois que a pessoa entrou na liga. <b>Rodada</b> vai de segunda a domingo. Desempate: vitórias, saldo de gols, gols marcados. Use <b>Desafiar</b> para chamar qualquer membro para uma partida.</p>
+    <p class="rules"><b>Pontos:</b> vitória 3 · cada gol marcado 1 · vitória contra outro membro da liga (clássico) +2. Contam as partidas online com placar confirmado pelos dois jogadores, jogadas depois que a pessoa entrou na liga. <b>Rodada</b> vai de segunda a domingo. Desempate: vitórias, saldo de gols, gols marcados. Use <b>Desafiar</b> para chamar qualquer membro para uma partida. <b>Quiz</b>: pontos do <a href="quiz.html" style="color:var(--gold)">Quem é o jogador?</a> (jogador do dia 5 · treino 3 a 8 · duelo vencido o dobro).</p>
 
     <section class="cup" id="cup">
       <h2>Mata-mata</h2>
@@ -381,7 +381,7 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
   const PERIOD_TXT = { rodada: 'Rodada atual: desde segunda-feira.', mes: 'Mês atual.', geral: 'Campeonato: desde a criação da liga.' };
   async function openLeague(id, fresh) {
     $('home').hidden = true; $('league').hidden = false; msg('lMsg', ''); msg('shareMsg', '');
-    $('rows').innerHTML = '<tr><td colspan="9" class="empty">Carregando…</td></tr>';
+    $('rows').innerHTML = '<tr><td colspan="10" class="empty">Carregando…</td></tr>';
     let d;
     try { d = await rpc('penalti_league_table', Object.assign({ p_league: id, p_period: period }, me ? auth() : { p_id: null, p_secret: null })); }
     catch (e) {
@@ -403,9 +403,9 @@ select { width: 100%; font: 500 17px var(--body); color: var(--ink); background:
     const PR = (d.premio && d.premio.valores) || [300, 150, 75];
     $('rows').innerHTML = d.tabela.length ? d.tabela.map((r, i) => `<tr class="${i < 3 && r.pts > 0 ? 'top3' : ''} ${isMe(r) ? 'mine' : ''}">
         <td class="pos">${i + 1}</td><td class="nick"><span style="display:inline-flex;align-items:center;gap:8px">${avatar(r.foto, r.nick, 28)}<span>${esc(r.nick)}</span></span>${period === 'rodada' && i < 3 && r.pts > 0 ? `<span class="coin" title="Prêmio se terminar a rodada nesta posição">${PR[i]}</span>` : ''}</td><td class="pts">${r.pts}</td><td>${r.j}</td><td>${r.v}</td><td>${r.d}</td>
-        <td>${r.gp}:${r.gc}</td><td>${r.cl}</td>
+        <td>${r.gp}:${r.gc}</td><td>${r.cl}</td><td>${r.qz || 0}</td>
         <td class="act">${cur.membro && !isMe(r) ? `<button class="btn small" type="button" data-dare="${esc(r.id)}" data-nick="${esc(r.nick)}">Desafiar</button>` : ''}${owner && !isMe(r) ? ` <button class="btn small danger" type="button" data-kick="${esc(r.id)}" data-nick="${esc(r.nick)}">Remover</button>` : ''}</td></tr>`).join('')
-      : '<tr><td colspan="9" class="empty">Sem membros.</td></tr>';
+      : '<tr><td colspan="10" class="empty">Sem membros.</td></tr>';
     const last = (d.premio && d.premio.ultima_rodada) || [];
     $('prize').innerHTML = `<b>Prêmio da rodada:</b> 1º ${PR[0]} · 2º ${PR[1]} · 3º ${PR[2]} moedas do jogo para gastar em skills. As moedas caem no seu jogador quando você abre o jogo depois que a rodada termina (domingo à meia-noite). Vale quando pelo menos 3 membros jogam na semana.` +
       (last.length ? `<br>Última rodada: ${last.map(x => `${x.posicao}º <b>${esc(x.nick)}</b> (${x.pts} pts)`).join(' · ')}` : '');

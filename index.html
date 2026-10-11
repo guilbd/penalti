@@ -35,13 +35,27 @@ h1 { font-family: var(--display); font-weight: 800; font-size: clamp(56px, 12vw,
 .card p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 15px; }
 .go { margin-top: auto; padding-top: 10px; font-family: var(--display); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 footer { margin-top: 36px; color: var(--muted); font-size: 14px; line-height: 1.5; }
-@media (prefers-reduced-motion: reduce) { .card { transition: none; } }
+/* chamada do quiz: verde Next Player, bem visível */
+.quiz-cta { position: relative; overflow: hidden; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; margin: 0 0 28px; padding: 22px 20px; text-decoration: none; color: #06230f; background: linear-gradient(115deg, #2bb52b 0%, #1f8f2a 50%, #f2b632 150%); border-radius: 4px; box-shadow: 0 10px 30px rgba(43,181,43,.25); transition: transform .15s; }
+.quiz-cta:hover, .quiz-cta:focus-visible { transform: translateY(-2px); outline: 3px solid #fff; outline-offset: 2px; }
+.quiz-cta::after { content: "?"; position: absolute; right: 110px; top: -40px; font: 800 200px/1 var(--display); color: rgba(255,255,255,.16); pointer-events: none; }
+.quiz-cta .k { font: 800 13px var(--display); letter-spacing: .22em; text-transform: uppercase; }
+.quiz-cta .t { font: 800 clamp(28px, 6vw, 46px)/1 var(--display); text-transform: uppercase; margin: 6px 0 8px; }
+.quiz-cta p { margin: 0; font-weight: 600; line-height: 1.4; max-width: 50ch; }
+.quiz-cta .b { position: relative; z-index: 1; font: 800 18px var(--display); letter-spacing: .08em; text-transform: uppercase; background: #06230f; color: #fff; padding: 14px 18px; white-space: nowrap; }
+@media (max-width: 560px) { .quiz-cta { grid-template-columns: 1fr; } .quiz-cta::after { right: -10px; } }
+@media (prefers-reduced-motion: reduce) { .card, .quiz-cta { transition: none; } }
 </style>
 
 <main>
   <div class="eyebrow">Disputa de pênaltis · protótipo</div>
   <h1>Pênalti</h1>
   <p class="lead">Três modos contra o computador: disputa de pênaltis, duelo de faltas com barreira e desafio dos alvos com chute carregado. A bola tem gravidade, resistência do ar e efeito, e o goleiro só alcança o canto se saltar na hora certa. Ganhe moedas, evolua seu jogador e personalize o uniforme.</p>
+  <a class="quiz-cta" href="quiz.html">
+    <span><span class="k">Novo · Quiz de futebol diário</span><span class="t" style="display:block">Desafie seus conhecimentos sobre futebol</span>
+    <p>Quem é o jogador? Descubra pela trajetória de clubes, ganhe moedas e duele com os amigos das suas ligas.</p></span>
+    <span class="b">Jogar o quiz →</span>
+  </a>
   <div class="grid">
     <a class="card" data-touch href="penalti-celular.html"><span class="tag">Celular · leve</span><h2>Celular 2D</h2><p>Chute arrastando o dedo. Roda em qualquer Android ou iPhone.</p><span class="go">Jogar →</span></a>
     <a class="card" data-touch href="penalti-celular-3d.html"><span class="tag">Celular · 3D</span><h2>Celular 3D</h2><p>O mesmo arrasto de dedo com estádio em 3D, sombras e rede que balança.</p><span class="go">Jogar →</span></a>

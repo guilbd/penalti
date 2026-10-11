@@ -99,7 +99,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     <div><div class="eyebrow">Painel de LED do estádio</div><h1>Patrocinadores</h1></div>
     <div class="links"><a href="relatorio-patrocinadores.html">Relatório</a><a href="index.html">Jogar</a><button class="btn" type="button" id="logout" hidden>Sair</button></div>
   </div>
-  <p class="lead">Cadastre as marcas do painel de LED da arquibancada, escolha o período em que cada uma fica no ar e quanto tempo de tela ela recebe. As mudanças valem para quem abrir o jogo depois de salvar.</p>
+  <p class="lead">Cadastre os jogadores do quiz e as marcas do painel de LED da arquibancada (para as marcas, escolha o período em que cada uma fica no ar e quanto tempo de tela ela recebe. As mudanças valem para quem abrir o jogo depois de salvar).</p>
 
   <!-- entrada -->
   <section class="box login" id="login" hidden>
@@ -158,8 +158,39 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
       </form>
       <div class="msg" id="uMsg" role="status" aria-live="polite"></div>
     </div>
+
+    <div class="bar" style="margin-top:34px"><h2>Quiz "Quem é o jogador?"</h2><button class="btn small primary" type="button" id="qAdd">+ Novo jogador</button></div>
+    <div class="box">
+      <p class="hint" style="margin:0 0 10px">Jogadores usados no quiz. Fácil = muito conhecidos; Difícil = menos conhecidos (valem mais pontos). Use "Buscar no Wikidata" para preencher a trajetória e confira antes de salvar.</p>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <input type="text" id="qSearch" placeholder="Buscar pelo nome ou clube" style="flex:1 1 220px">
+        <select id="qFilter" style="flex:0 0 180px"><option value="">Todos</option><option value="br">Brasileirão</option><option value="mundo">Mundo</option><option value="facil">Fácil</option><option value="medio">Médio</option><option value="dificil">Difícil</option><option value="off">Desativados</option></select>
+      </div>
+      <p class="hint" id="qCount" style="margin:0 0 8px"></p>
+      <div id="qList" style="max-height:520px;overflow:auto"></div>
+    </div>
   </section>
 </main>
+
+<dialog id="qDlg" aria-labelledby="qTitle">
+  <form class="dlg" id="qForm" method="dialog">
+    <h2 id="qTitle" style="margin-bottom:12px">Jogador do quiz</h2>
+    <div class="field"><label for="qName">Nome</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="qName" maxlength="60" required style="flex:1 1 220px"><button class="btn small" type="button" id="qWd">Buscar no Wikidata</button></div>
+      <div class="hint" id="qWdMsg"></div></div>
+    <div class="grid2">
+      <div class="field"><label for="qMode">Campeonato</label><select id="qMode"><option value="br">Brasileirão</option><option value="mundo">Mundo</option></select></div>
+      <div class="field"><label for="qLevel">Nível</label><select id="qLevel"><option value="facil">Fácil (muito conhecido)</option><option value="medio">Médio</option><option value="dificil">Difícil (pouco conhecido)</option></select></div>
+      <div class="field"><label for="qNation">Nacionalidade</label><input type="text" id="qNation" maxlength="40" required></div>
+      <div class="field"><label for="qPos">Posição</label><select id="qPos"><option>Goleiro</option><option>Zagueiro</option><option>Lateral</option><option>Meio-campista</option><option>Atacante</option></select></div>
+      <div class="field"><label for="qBirth">Ano de nascimento</label><input type="number" id="qBirth" min="1900" max="2015" required></div>
+      <div class="field" style="padding-top:26px"><label class="check"><input type="checkbox" id="qActive" checked> Ativo no quiz</label></div>
+    </div>
+    <div class="field"><label for="qClubs">Trajetória (um clube por linha, na ordem)</label><textarea id="qClubs" rows="8" style="width:100%;font:500 16px var(--body);color:var(--ink);background:var(--night);border:1px solid var(--line);padding:10px 12px" required></textarea>
+      <div class="hint">Só clubes profissionais principais (sem base, time B ou seleção). Clube repetido = voltou ao clube.</div></div>
+    <div class="msg" id="qMsg" role="status" aria-live="polite"></div>
+    <div class="dlg-foot"><button class="btn" type="button" id="qCancel">Cancelar</button><button class="btn primary" type="submit">Salvar jogador</button></div>
+  </form>
+</dialog>
 
 <dialog id="dlg" aria-labelledby="dTitle">
   <form class="dlg" id="dForm" method="dialog">
@@ -379,7 +410,7 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
   function open(d) {
     data = d; show('app'); $('logout').hidden = false;
     $('sTempo').value = d.tempo; $('sContato').value = d.contato || '';
-    render(); renderUsers();
+    render(); renderUsers(); loadQuiz();
   }
   async function reload() { try { open(await arpc('penalti_admin_list')); } catch (e) { msg('listMsg', e.message, 'err'); } }
   function render() {
@@ -558,6 +589,67 @@ dialog::backdrop { background: rgba(2, 5, 12, .75); }
     try { await arpc('penalti_admin_save', { p_marca: m }); dlg.close(); await reload(); msg('listMsg', `"${m.nome}" salva.`, 'ok'); }
     catch (err) { msg('dMsg', err.message, 'err'); }
     $('dSave').disabled = false;
+  });
+
+  // ---------- quiz: jogadores ----------
+  const QLV = { facil: 'Fácil', medio: 'Médio', dificil: 'Difícil' }, QMD = { br: 'Brasileirão', mundo: 'Mundo' };
+  let quiz = [], qCur = null;
+  async function loadQuiz() { try { quiz = (await arpc('penalti_admin_quiz_list')).jogadores || []; renderQuiz(); } catch (e) { $('qList').textContent = e.message; } }
+  function renderQuiz() {
+    const t = $('qSearch').value.trim().toLowerCase(), f = $('qFilter').value;
+    const list = quiz.filter(j => (!t || j.name.toLowerCase().includes(t) || j.clubs.some(c => c.toLowerCase().includes(t)))
+      && (!f || (f === 'off' ? !j.active : j.mode === f || j.level === f)));
+    $('qCount').textContent = `${list.length} de ${quiz.length} jogadores · ${quiz.filter(j => j.mode === 'br' && j.active).length} no Brasileirão, ${quiz.filter(j => j.mode === 'mundo' && j.active).length} no Mundo`;
+    $('qList').innerHTML = list.map(j => `<div class="user"><div><b>${esc(j.name)}</b> <span>${QMD[j.mode]} · ${QLV[j.level]}${j.active ? '' : ' · desativado'}</span><br><span>${esc(j.clubs.join(' → '))}</span></div>
+      <button class="btn small" type="button" data-q="${j.id}">Editar</button></div>`).join('') || '<p class="hint">Nenhum jogador.</p>';
+  }
+  $('qSearch').addEventListener('input', renderQuiz); $('qFilter').addEventListener('change', renderQuiz);
+  $('qList').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) qEdit(quiz.find(j => j.id === +b.dataset.q)); });
+  $('qAdd').addEventListener('click', () => qEdit(null));
+  $('qCancel').addEventListener('click', () => $('qDlg').close());
+  function qEdit(j) {
+    qCur = j; msg('qMsg', ''); $('qWdMsg').textContent = '';
+    $('qName').value = j ? j.name : ''; $('qMode').value = j ? j.mode : 'br'; $('qLevel').value = j ? j.level : 'medio';
+    $('qNation').value = j ? j.nation : ''; $('qPos').value = j ? j.position : 'Atacante'; $('qBirth').value = j ? j.birth_year : '';
+    $('qActive').checked = j ? j.active : true; $('qClubs').value = j ? j.clubs.join('\n') : '';
+    $('qDlg').showModal(); $('qName').focus();
+  }
+  $('qForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const clubs = $('qClubs').value.split('\n').map(x => x.trim()).filter(Boolean);
+    if (clubs.length < 2) return msg('qMsg', 'Coloque pelo menos 2 clubes.', 'err');
+    try {
+      await arpc('penalti_admin_quiz_save', { p_j: { id: qCur && qCur.id, name: $('qName').value, mode: $('qMode').value, level: $('qLevel').value, nation: $('qNation').value,
+        position: $('qPos').value, birth_year: +$('qBirth').value, active: $('qActive').checked, clubs } });
+      $('qDlg').close(); loadQuiz();
+    } catch (err) { msg('qMsg', /duplicate|unique/i.test(err.message) ? 'Já existe um jogador com esse nome nesse campeonato.' : err.message, 'err'); }
+  });
+  // Wikidata (dados abertos, licença CC0): procura o jogador e preenche trajetória, nascimento, país e posição
+  const POS = [[/goleiro|goalkeeper/i, 'Goleiro'], [/lateral|full-?back|wing-?back/i, 'Lateral'], [/zagueiro|defensor|centre-back|center-back|defender/i, 'Zagueiro'],
+    [/meio|médio|volante|midfield/i, 'Meio-campista'], [/atacante|ponta|centroavante|forward|striker|winger/i, 'Atacante']];
+  $('qWd').addEventListener('click', async () => {
+    const name = $('qName').value.trim(); if (!name) return;
+    $('qWdMsg').textContent = 'Buscando no Wikidata…';
+    try {
+      const sr = await (await fetch('https://www.wikidata.org/w/api.php?' + new URLSearchParams({ action: 'wbsearchentities', search: name, language: 'pt', type: 'item', format: 'json', limit: 10, origin: '*' }))).json();
+      const hit = (sr.search || []).find(x => /futebol|football|soccer|fútbol/i.test(x.description || ''));
+      if (!hit) { $('qWdMsg').textContent = 'Não achei um jogador com esse nome no Wikidata.'; return; }
+      const q = `SELECT ?teamLabel ?st ?birth ?ctryLabel ?posLabel WHERE {
+        OPTIONAL { wd:${hit.id} p:P54 ?s . ?s ps:P54 ?team . OPTIONAL { ?s pq:P580 ?st }
+          FILTER NOT EXISTS { ?team wdt:P31/wdt:P279* wd:Q6979593 } }
+        OPTIONAL { wd:${hit.id} wdt:P569 ?birth } OPTIONAL { wd:${hit.id} wdt:P1532 ?ctry } OPTIONAL { wd:${hit.id} wdt:P413 ?pos }
+        SERVICE wikibase:label { bd:serviceParam wikibase:language "pt-br,pt,en". } } ORDER BY ?st`;
+      const rows = (await (await fetch('https://query.wikidata.org/sparql?' + new URLSearchParams({ query: q, format: 'json' }))).json()).results.bindings;
+      const seen = new Set(), clubs = [];
+      rows.forEach(b => { if (!b.teamLabel) return; const k = b.teamLabel.value + '|' + (b.st ? b.st.value : ''); if (seen.has(k)) return; seen.add(k);
+        const t = b.teamLabel.value; if (/sub-?\d|u-?\d|\bB\b|juvenil|youth|reserv|\bII\b|júnior|junior/i.test(t)) return;
+        if (clubs[clubs.length - 1] !== t) clubs.push(t); });
+      if (clubs.length) $('qClubs').value = clubs.join('\n');
+      const b0 = rows.find(b => b.birth); if (b0) $('qBirth').value = b0.birth.value.slice(0, 4);
+      const c0 = rows.find(b => b.ctryLabel); if (c0 && !$('qNation').value) $('qNation').value = c0.ctryLabel.value;
+      const p0 = rows.find(b => b.posLabel); if (p0) { const m = POS.find(([re]) => re.test(p0.posLabel.value)); if (m) $('qPos').value = m[1]; }
+      $('qWdMsg').innerHTML = `Encontrado: <a href="https://www.wikidata.org/wiki/${hit.id}" target="_blank" rel="noopener" style="color:var(--gold)">${esc(hit.label)}</a> (${esc(hit.description || '')}). Confira os clubes antes de salvar.`;
+    } catch (e) { $('qWdMsg').textContent = 'Não foi possível consultar o Wikidata agora.'; }
   });
 
   // ---------- início ----------

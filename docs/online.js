@@ -68,6 +68,9 @@
   .on-link:hover { text-decoration: underline; }
   .btn.ghost { background: transparent; }
   .on-menu-btn { width: 100%; margin-top: 8px; border-color: var(--gold) !important; color: var(--gold) !important; }
+  .on-quiz-btn { display: flex !important; flex-direction: column; align-items: center; gap: 2px; width: 100%; margin-top: 8px; text-decoration: none; text-align: center;
+    background: linear-gradient(115deg, #2bb52b, #1f8f2a 60%, #f2b632 160%) !important; border-color: #2bb52b !important; color: #06230f !important; padding: 10px 12px !important; }
+  .on-quiz-btn span { font-weight: 800; font-size: 17px; } .on-quiz-btn small { font-family: var(--body); text-transform: none; letter-spacing: 0; font-size: 12px; font-weight: 600; }
   @media (max-width: 480px) { .on-grid { grid-template-columns: 1fr; } }`;
   document.head.appendChild(st);
 
@@ -154,6 +157,10 @@
     const b = document.createElement('button'); b.type = 'button'; b.className = 'btn on-menu-btn'; b.id = 'openOnline'; b.textContent = 'Jogar online contra outra pessoa';
     startBtn.after(b);
     b.onclick = () => { $('menu').hidden = true; ov.hidden = false; renderWho(); status(''); };
+    // chamada do quiz "Quem é o jogador?"
+    const q = document.createElement('a'); q.className = 'btn on-quiz-btn'; q.href = 'quiz.html';
+    q.innerHTML = '<span>Desafie seus conhecimentos sobre futebol</span><small>Quiz diário: quem é o jogador? · ganhe moedas</small>';
+    b.after(q);
   }
 
   // ---------- encontro: partida rápida ou sala ----------
@@ -374,6 +381,14 @@
         ]);
       });
     } catch (e) { /* sem rede: tenta de novo depois */ }
+    // duelos do quiz recebidos
+    try {
+      const q = await rpc('penalti_quiz_duel_list', { p_id: me.id, p_secret: me.secret });
+      (q.duelos || []).filter(x => x.status === 'pendente' && !x.eu_desafiei).forEach(x => {
+        if (shown['q' + x.id]) return; shown['q' + x.id] = 1;
+        toast(`<b>${esc(x.adversario)}</b> te desafiou no quiz "Quem é o jogador?" (${x.segundos} s).`, [['Aceitar', true, () => { location.href = 'quiz.html#duelos'; }], ['Depois', false]]);
+      });
+    } catch (e) { /* ok */ }
   }
   setTimeout(checkChallenges, 2500); setInterval(checkChallenges, 20000);
 
